@@ -1,34 +1,49 @@
 #
-# probe-run-trigger-dep 2 -- proves ADR-0272's `trigger` field is right for BOTH
-# values, which no test in SELFTESTS can do (a run needs a real build,
-# and test_pkg is excluded -- see probe-missing-tool/1 for the same
+# probe-run-trigger-dep 2 -- proves ADR-0272's `trigger` field for BOTH values,
+# which no test in SELFTESTS can do (a run needs a real build, and
+# test_pkg is excluded -- see probe-missing-tool/1 for the same
 # reasoning about #224).
 #
-# The pair matters more than either half. probe-run-trigger DEPENDS on
-# probe-run-trigger-dep, so a rolling rebuild of the first pulls the
-# second, and the two atoms are what the original implementation got
-# wrong: the cause was a module static consumed when a run opened, so
-# only dep_queue[0] ever saw "rolling" and every dependency recorded
-# itself as "request". The fix carries it on the chain.
+# The dependency half. Deliberately trivial: this is about the run RECORD, not about building anything.
 #
-# EXPECTED RESULT, read from GET /v1/pipeline/runs:
-#   after a deliberate POST /v1/pkg/install -- both atoms "request"
-#   after publishing a new revision of both -- both atoms "rolling"
+# Two corrections to the earlier revisions, both found by running them
+# on 192.168.15.95 on 2026-09-10:
 #
-# Deliberately trivial: this probe is about the run RECORD, not about
-# building anything, so it does the least work that still goes through
-# the real fetch/build/install path.
+#  1. The source moved off ftp.gnu.org. probe-run-trigger/2's rebuild
+#     failed "checksum mismatch (source 0)" while revision 1 had
+#     installed fine -- revision 1 was a cache hit and never fetched.
+#     The daemon's log shows real `curl: (6) Could not resolve host:
+#     ftp.gnu.org` failures from build containers on this box. This
+#     uses the cix tarball from git.home.arpa instead, whose bytes were
+#     fetched twice and hashed identically while cutting v2.57.49, and
+#     which that release then really did build from.
+#
+#  2. A rolling rebuild does NOT pull an already-installed dependency.
+#     resolve_chain() skips one that is installed at ANY version --
+#     "if (!force && existing != NULL && existing->state ==
+#     PKG_STATE_INSTALLED) return 0;" -- it never compares versions, and
+#     only the package the manifest names is forced. So the dependency
+#     has to be UNINSTALLED before the rebuild for the two-atom case to
+#     happen at all.
+#
+# EXPECTED, from GET /v1/pipeline/runs:
+#   1. install probe-run-trigger deliberately -> two atoms, both "request"
+#   2. uninstall probe-run-trigger-dep only
+#   3. publish a new revision -> the rolling drain rebuilds, resolve_chain()
+#      finds the dependency missing and queues it, and BOTH atoms say
+#      "rolling". Before the chain fix only dep_queue[0] saw "rolling"
+#      and everything after it recorded "request".
 #
 pkg_name="probe-run-trigger-dep"
 pkg_version="2"
-pkg_source="https://ftp.gnu.org/gnu/hello/hello-2.12.1.tar.gz"
-pkg_sha256="8d99142afd92576f30b0cd7cb42a8dc6809998bc5d607d88761f512e26c7db20"
+pkg_source="https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.49.tar.gz"
+pkg_sha256="6042eeebf80880a82e06eefbb15c4ecc7272b759258e72b617dd6198f734e11e"
 pkg_depends=""
 pkg_build_depends="bash coreutils"
-pkg_changelog="2: probes ADR-0272's run trigger end to end against a real daemon -- request for a deliberate install, rolling for a publish-driven rebuild, on the dependency as well as on the package asked for."
+pkg_changelog="2: source moved to git.home.arpa (ftp.gnu.org does not resolve from a build container on this host, and revision 1's apparent success was a cache hit); records that resolve_chain() skips an already-installed dependency regardless of version, so the probe uninstalls it first."
 
 pkg_build() {
-	echo "probe: revision 2, nothing to build"
+	echo "probe: probe-run-trigger-dep revision 2, nothing to build"
 	true
 }
 
