@@ -270,7 +270,7 @@ static int recipe_uses_gcc(const char *path)
 }
 
 /*
- * cix#504: splits "<name>@<version>.<ext>". Mirrors the daemon's own
+ * cix#505: splits "<name>@<version>.<ext>". Mirrors the daemon's own
  * recipe_file_split() in daemon/src/pkg.c -- this test links no daemon
  * code, which is what lets it run anywhere, so the rule is restated
  * rather than shared. Both split at the FIRST '@' and take the
@@ -316,7 +316,7 @@ int main(void)
 	}
 
 	/*
-	 * cix#504: the corpus is FLAT -- one file per recipe, named
+	 * cix#505: the corpus is FLAT -- one file per recipe, named
 	 * "<name>@<version>.<ext>" -- so "the newest revision of each
 	 * package" is found by asking, for each file, whether a higher
 	 * version of the same name exists. No inner directory to walk,

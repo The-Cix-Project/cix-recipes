@@ -3,7 +3,7 @@
 Every recipe Cix builds from: packages, images and container deployments.
 
 Split out of the [cix](https://git.home.arpa/itdlabs/cix) repository on
-2026-09-21 (cix#504), with history preserved.
+2026-09-21 (cix#505), with history preserved.
 
 ## Layout
 

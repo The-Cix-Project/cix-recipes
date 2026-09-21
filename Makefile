@@ -1,6 +1,6 @@
 # cix-recipes -- the gates that assert things about recipe CONTENT.
 #
-# These moved here with the corpus (cix#504, cix ADR-0308) because
+# These moved here with the corpus (cix#505, cix ADR-0308) because
 # they test the recipes, not the daemon. A gate that lives away from
 # what it gates is a gate nobody runs, which is the failure mode cix's
 # own SELFTESTS list has already produced twice -- so this Makefile
