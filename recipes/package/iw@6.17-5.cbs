@@ -1,0 +1,126 @@
+# iw -- the nl80211 CLI for configuring wireless devices, and what
+# the AP work drives a radio with. Converted from build.sh to
+# build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THIS IS THE FIRST RECIPE HERE TO USE `stdout file`
+# (cix-build-system#185), and iw is the package that motivated
+# filing it. Its whole install phase is one assertion that could not
+# previously be written:
+#
+#   readelf -d "$dir/iw" | grep -q 'NEEDED.*libnl-3\.so\.200' || exit 1
+#
+# `expect { stdout contains }` and `stdout "name"` both require the
+# process to print exactly ONE line, which readelf does not, so
+# there was no form for it at all -- and iw stayed on build.sh
+# rather than convert and lose the guard. Now readelf's output goes
+# to a file and the file is asserted on.
+#
+# What it catches is worth stating, because the #389 install gate
+# does NOT cover it: that gate refuses a binary linking something
+# UNDECLARED. A binary that quietly linked NOTHING -- a build that
+# fell back to static, or resolved the symbols some other way --
+# declares nothing undeclared and sails through. That silent
+# degradation is cix#113, and this is the check for it.
+#
+# The two pkg-config guards in the build phase become plain runs.
+# `pkg-config --exists` communicates entirely through its exit
+# status, which is the default expectation, so the shell's explicit
+# `|| { echo; exit 1; }` has nothing left to say -- and the
+# diagnostic it printed is replaced by CPDL naming the operation and
+# the recipe line that failed.
+#
+# PKG_CONFIG_PATH is set explicitly because Cix packages do not
+# agree on where a .pc file lands: libnl ships to /usr/lib/pkgconfig
+# and others use the multiarch path, so a genuinely installed
+# library still reports "not found" without it.
+package "iw" {
+    version "6.17"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "iw" {
+            url "https://www.kernel.org/pub/software/network/iw/iw-6.17.tar.xz"
+            sha256 "7d182e498289ab39b257da6780d562e415377107f50358ee5b55b8cfe40b1e33"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "libnl"
+        }
+        runtime {
+            package "libnl"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "7e80f7cddebff342091c2168ace8e11168d7e1e400ef232d7aead6aba0aa3e29"
+        "changelog" "6.17-5: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest and the same make line. First recipe here to use stdout file (cix-build-system#185), which is what finally lets the DT_NEEDED assertion be written -- readelf prints many lines and no earlier form could assert on it, so iw stayed on build.sh rather than convert and lose the guard. That guard catches what the #389 gate cannot: a build that linked nothing at all rather than something undeclared."
+    }
+
+    build {
+        cd "${src}/iw/iw-6.17" {
+            # Fail here, with the operation named, rather than sixty
+            # lines later inside a generated Makefile rule that
+            # blames libnl for a missing pkg-config.
+            run "pkg-config" {
+                "--exists"
+                "libnl-3.0"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            run "pkg-config" {
+                "--exists"
+                "libnl-genl-3.0"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            run "make" {
+                jobs $jobs
+                "CC=tcc"
+                "PREFIX=/usr"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        copy "${src}/iw/iw-6.17/iw" to "${dest}/usr/sbin/iw"
+        chmod 0755 "${dest}/usr/sbin/iw"
+        require file "${dest}/usr/sbin/iw" {
+            exists
+            nonempty
+        }
+        # No library copying: libnl arrives as a declared dependency.
+        # Assert that what shipped really is dynamically linked
+        # against it.
+        run "readelf" {
+            "-d"
+            "${dest}/usr/sbin/iw"
+            stdout file "${src}/iw/needed.txt"
+        }
+        require file "${src}/iw/needed.txt" {
+            exists
+            contains "libnl-3.so.200"
+        }
+        require file "${src}/iw/needed.txt" {
+            exists
+            contains "libnl-genl-3.so.200"
+        }
+    }
+}
