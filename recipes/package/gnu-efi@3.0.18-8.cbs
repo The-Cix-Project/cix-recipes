@@ -1,0 +1,71 @@
+# gnu-efi -- the EFI headers, crt0 and link script the bootloader
+# pieces build against. Converted from build.sh to build.cbs
+# (ADR-0305 stage 4, #487).
+#
+# NOTHING TO RESTORE under #491: this recipe never deleted anything.
+# It is one make and one make install.
+package "gnu-efi" {
+    version "3.0.18"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "gnu-efi" {
+            url "https://sourceforge.net/projects/gnu-efi/files/gnu-efi-3.0.18.tar.bz2/download"
+            sha256 "7f212c96ee66547eeefb531267b641e5473d7d8529f0bd8ccdefd33cf7413f5c"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "linux-headers"
+            tool "binutils"
+            tool "sed"
+            # bzip2, for the SOURCE, not for the build. gnu-efi ships
+            # a .tar.bz2 and cbs's libarchive cannot decompress it
+            # in-process -- it shells out, and 3.0.18-7 died before
+            # reaching a single compile with
+            #
+            #   cannot open archive: Can't initialize filter;
+            #   unable to run program "bzip2 -d"
+            #
+            # which names a program rather than a library, and is the
+            # only clue that the fix is a declared tool.
+            tool "bzip2"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "missing language feature: needs __builtin_ms_va_list for the EFI calling convention, which TCC does not implement. Carried from 3.0.18-6 and not re-measured against the pinned tcc 0.9.28rc -- a candidate for re-measuring, since that upgrade added 12 of 15 previously-missing builtins (ADR-0223)"
+    }
+
+    metadata {
+        "artifact_sha256" "5eb306023b0a6dcbd8afe61807415091a70d7bfc629598988abf457eb9aa16d9"
+        "changelog" "3.0.18-8: declares bzip2. 3.0.18-7 could not be built at all: gnu-efi ships a .tar.bz2 and cbs's libarchive shells out to decompress it, failing with 'Can't initialize filter; unable to run program bzip2 -d' before reaching a single compile. The tool is needed for the SOURCE, not the build, which is why nothing in the build phase asks for it. 3.0.18-7: converted from build.sh to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307); nothing to restore under ADR-0306, this recipe never deleted anything."
+    }
+
+    build {
+        cd "${src}/gnu-efi/gnu-efi-3.0.18" {
+            run "make" {
+                jobs $jobs
+                "ARCH=x86_64"
+                "CC=/usr/bin/gcc"
+                "PREFIX=/usr"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/gnu-efi/gnu-efi-3.0.18" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "PREFIX=/usr"
+            }
+        }
+    }
+}
