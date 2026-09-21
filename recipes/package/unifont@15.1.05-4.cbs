@@ -1,0 +1,75 @@
+# unifont -- the GNU Unifont BDF that GRUB compiles into its own
+# unicode.pf2 so a boot menu can render text. Converted from
+# build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THERE IS NO BUILD PHASE. The shell recipe's pkg_build() was a
+# literal `:`. Nothing is compiled -- the upstream tarball ships a
+# precompiled BDF and this package decompresses one file out of it.
+#
+# `gzip -dc X > Y` is a redirect, which CPDL had no form for until
+# `stdout file` (cix-build-system#185). That is the whole reason
+# this package waited: not a guard, just the ability to send a
+# process's output to a file.
+#
+# The BDF check is one bit weaker than the shell's and the
+# difference is worth stating. The shell read LINE ONE and matched
+# ^STARTFONT; `contains` searches the whole file. A BDF has
+# STARTFONT only at its head, so in practice this catches the same
+# thing -- a decompression that produced something other than a font
+# -- and would not catch a file with a valid-looking keyword buried
+# in it. Anchoring to the first line is cix-build-system#193's
+# neighbourhood rather than something available today.
+package "unifont" {
+    version "15.1.05"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "unifont" {
+            url "https://unifoundry.com/pub/unifont/unifont-15.1.05/unifont-15.1.05.tar.gz"
+            sha256 "d275f55f4358750e0f86305b92e87b88eb330aa46c15f553d2edf047fb1c23fa"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+            tool "gzip"
+            tool "grep"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "ae134694149446a50bbb4005af38c5a06fcdbf486a8995aaae7a614736e83bed"
+        "changelog" "15.1.05-4: decompresses in place instead of redirecting. 15.1.05-3 used stdout file for gzip -dc and failed -- process stdout exceeds the 64 KiB limit, which is undocumented (cix-build-system#199) and correct for what that feature is for. Copying the .gz into place and running gzip -d lets the tool write the file. 15.1.05-3: converted to build.cbs (ADR-0305) as a .cixpkg; no build phase, the shell recipe compiling nothing."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/unifont" chmod 0755
+        # Copy the .gz into place and decompress IN PLACE, rather
+        # than `gzip -dc` with the output redirected. 15.1.05-3 tried
+        # the redirect via `stdout file` and failed:
+        #
+        #   process stdout exceeds the 64 KiB limit
+        #
+        # That limit is undocumented (cix-build-system#199) and is
+        # right for what the feature is for -- asserting on a
+        # command's output, not producing a 12 MB font. Letting gzip
+        # write the file is better anyway: CBS relays nothing.
+        copy "${src}/unifont/unifont-15.1.05/font/precompiled/unifont-15.1.05.bdf.gz" to "${dest}/usr/share/unifont/unifont.bdf.gz"
+        run "gzip" {
+            "-d"
+            "${dest}/usr/share/unifont/unifont.bdf.gz"
+        }
+        require file "${dest}/usr/share/unifont/unifont.bdf" {
+            exists
+            contains "STARTFONT"
+        }
+    }
+}

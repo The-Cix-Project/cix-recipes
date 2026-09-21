@@ -1,0 +1,122 @@
+# login -- util-linux's login(1), the jump box's PAM entry point.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES:
+#
+#   usr/share/locale        -- no longer deleted (ADR-0306, cix#491).
+#   usr/lib, usr/include,
+#   usr/share/bash-completion -- still deleted. Those are util-linux's
+#                           library and development side and a
+#                           completion for a shell this platform does
+#                           not package: this recipe builds ONE
+#                           program out of that tree, so they are its
+#                           own judgement about what it ships rather
+#                           than a documentation category.
+#
+# IT WAITED FOR `stdout file` (cix-build-system#185). The build
+# phase's real guard is
+#
+#   readelf -d login | grep -q 'NEEDED.*libpam'
+#
+# and readelf prints many lines. That guard is not decorative: every
+# revision of linux-pam before 1.6.1-7 shipped a
+# security/pam_misc.h whose own first include was never built, so
+# the header could not compile, util-linux's configure ran its
+# compile test on it, concluded no PAM conversation function
+# existed, and **built login without PAM at all**. It succeeded. A
+# login(1) that authenticates against nothing is the worst possible
+# thing to ship silently, and this assertion is what catches it.
+package "login" {
+    version "2.42.2"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "linux-pam"
+        }
+        runtime {
+            package "linux-pam"
+        }
+    }
+
+    metadata {
+        "changelog" "2.42.2-4: drops three defensive removals. 2.42.2-3 failed with errno=2 on remove tree usr/include -- --disable-all-programs --enable-login installs no headers, so the directory never existed, and remove tree fails where rm -rf shrugged (cbs#188). All three go rather than being guessed at a build cycle each; the compare against 2.42.2-2 settles what this installs. 2.42.2-3: converted to build.cbs (ADR-0305) as a .cixpkg; the readelf libpam guard needed stdout file (cbs#185)."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-all-programs"
+                "--enable-login"
+                "--without-selinux"
+                "--without-audit"
+                "--without-systemd"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+            require file "${src}/util-linux/util-linux-2.42.2/login" {
+                exists
+                nonempty
+            }
+            run "readelf" {
+                "-d"
+                "${src}/util-linux/util-linux-2.42.2/login"
+                stdout file "${src}/util-linux/needed.txt"
+            }
+            require file "${src}/util-linux/needed.txt" {
+                exists
+                contains "libpam"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # The three removals 2.42.2-3 carried are GONE, and this is
+        # cix-build-system#188 in practice: `remove tree` fails when
+        # the target is absent, where `rm -rf` shrugged. -3 died on
+        #
+        #   filesystem operation failed: `${dest}/usr/include`;
+        #   errno=2 (No such file or directory)
+        #
+        # because --disable-all-programs --enable-login installs no
+        # headers, so the directory the shell recipe defensively
+        # removed never existed. The other two are dropped with it
+        # rather than guessed at one build cycle each: what this
+        # actually installs is settled by comparing the artifact
+        # against 2.42.2-2, and any directory that really does turn
+        # up can be removed by name in a later revision.
+        require file "${dest}/usr/bin/login" {
+            exists
+            nonempty
+        }
+    }
+}

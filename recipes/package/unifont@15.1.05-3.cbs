@@ -1,0 +1,64 @@
+# unifont -- the GNU Unifont BDF that GRUB compiles into its own
+# unicode.pf2 so a boot menu can render text. Converted from
+# build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THERE IS NO BUILD PHASE. The shell recipe's pkg_build() was a
+# literal `:`. Nothing is compiled -- the upstream tarball ships a
+# precompiled BDF and this package decompresses one file out of it.
+#
+# `gzip -dc X > Y` is a redirect, which CPDL had no form for until
+# `stdout file` (cix-build-system#185). That is the whole reason
+# this package waited: not a guard, just the ability to send a
+# process's output to a file.
+#
+# The BDF check is one bit weaker than the shell's and the
+# difference is worth stating. The shell read LINE ONE and matched
+# ^STARTFONT; `contains` searches the whole file. A BDF has
+# STARTFONT only at its head, so in practice this catches the same
+# thing -- a decompression that produced something other than a font
+# -- and would not catch a file with a valid-looking keyword buried
+# in it. Anchoring to the first line is cix-build-system#193's
+# neighbourhood rather than something available today.
+package "unifont" {
+    version "15.1.05"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "unifont" {
+            url "https://unifoundry.com/pub/unifont/unifont-15.1.05/unifont-15.1.05.tar.gz"
+            sha256 "d275f55f4358750e0f86305b92e87b88eb330aa46c15f553d2edf047fb1c23fa"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+            tool "gzip"
+            tool "grep"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "15.1.05-3: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest. There is no build phase: the shell recipe compiled nothing, its pkg_build being a literal colon, and this package decompresses one precompiled BDF out of the tarball. It waited for stdout file (cix-build-system#185) -- not for a guard but simply to send gzip -dc to a file. The BDF check searches the whole file where the shell read line one, which catches the same decompression failure."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/unifont" chmod 0755
+        run "gzip" {
+            "-dc"
+            "${src}/unifont/unifont-15.1.05/font/precompiled/unifont-15.1.05.bdf.gz"
+            stdout file "${dest}/usr/share/unifont/unifont.bdf"
+        }
+        require file "${dest}/usr/share/unifont/unifont.bdf" {
+            exists
+            contains "STARTFONT"
+        }
+    }
+}
