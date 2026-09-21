@@ -1,0 +1,139 @@
+# hibr -- Hackable In-process Bash Runtime, and حِبر, Arabic for ink.
+# The owner's shell, packaged so it can be installed on a Cix host
+# like anything else.
+#
+# PINNED TO A COMMIT, not a tag, because the repository has none yet.
+# f0adafb6 is main at 2026-09-21T18:18:15+01:00 ("Give every git count
+# its own colour"), and CHANGELOG.md's newest heading is 0.21, which
+# is where this version comes from. When hibr starts tagging releases
+# this should name a tag instead -- a commit pin is the fallback this
+# corpus already uses for cbs, and it is worse for exactly one reason:
+# nothing in the artifact records which commit it was, only this
+# recipe does.
+#
+# -ldl IS REMOVED FROM THE LINK, and that is the one real adaptation
+# here. hibr's Makefile sets LDFLAGS = -rdynamic -ldl, which is
+# correct nearly everywhere and fails on cix-builder:
+#
+#   tcc: error: library 'dl' not found
+#
+# cix-builder's glibc ships libc.so and libm.so linker stubs but no
+# libdl.so -- only the runtime libdl.so.2 soname, and no .a, since
+# ADR-0251's finalize policy drops the stubs. glibc folded libdl into
+# libc at 2.34, so every symbol hibr wants from it (dlopen, dlsym,
+# dlerror) resolves with no flag at all. It is the FLAG that has
+# nothing to name, not the functions that are missing -- which is why
+# the error reads like a broken image and is not one.
+#
+# -rdynamic stays, and is load-bearing: hibr's modules are .so files
+# that call back into the shell's own symbols, so those symbols have
+# to be in the dynamic symbol table.
+package "hibr" {
+    version "0.21"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "hibr" {
+            url "https://git.home.arpa/api/v1/repos/itdlabs/hibr/archive/f0adafb6e235e24eff3d874ce50800dd9d4317d4.tar.gz"
+            sha256 "4ed122a3e7b14bfe0b49389b4755663d4092f0b1a50cff5948636c93920221c3"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            # cmp, which the Makefile's .moddir stamp rule uses to
+            # decide whether MODDIR actually changed.
+            tool "diffutils"
+        }
+        runtime {
+            # openssl is a REAL dependency that nothing can detect.
+            # hibr never links libssl: src/net.c dlopen()s it on first
+            # use, walking "libssl.so.3", "libssl.so.1.1", "libssl.so"
+            # in order, so a shell that never speaks TLS never pays.
+            # That also means it records no DT_NEEDED, so the #389
+            # undeclared-link gate would never notice its absence --
+            # TLS would simply fail at runtime on a host without it.
+            # Declaring it here is the only thing that makes the
+            # dependency real.
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "0.21-1: first package. hibr is already a tcc build; installed to PREFIX=/usr, so the shell lands at /usr/bin/hibr and its modules at /usr/lib/hibr (#184). LDFLAGS drops -ldl: cix-builder ships no libdl.so stub, and glibc folded libdl into libc at 2.34, so the flag has nothing to name while dlopen resolves fine. -rdynamic stays -- modules call back into the shell. openssl is declared at runtime though nothing links it: src/net.c dlopens libssl, so no DT_NEEDED records it and no gate can catch its absence."
+    }
+
+    prepare {
+        # Listed before it is needed, so the log answers what a gitea
+        # commit archive's top-level directory is actually called
+        # rather than only whether one guess was right.
+        run "ls" {
+            "-la"
+            "${src}/hibr"
+        }
+        require directory "${src}/hibr/hibr" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/hibr/hibr" {
+            run "make" {
+                jobs $jobs
+                "CC=tcc"
+                "PREFIX=/usr"
+                "LDFLAGS=-rdynamic"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/hibr/hibr" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "PREFIX=/usr"
+                "LDFLAGS=-rdynamic"
+            }
+        }
+        require file "${dest}/usr/bin/hibr" {
+            exists
+            nonempty
+        }
+        # The four modules the Makefile's MODS list builds. Asserted
+        # by name rather than by counting, so a module silently
+        # dropped from the build is a failure here and not a missing
+        # builtin discovered in a live shell.
+        require file "${dest}/usr/lib/hibr/sys.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/http.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/ls.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/prompt.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/hibr/hibr.h" {
+            exists
+            nonempty
+        }
+    }
+}
