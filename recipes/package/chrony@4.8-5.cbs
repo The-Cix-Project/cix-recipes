@@ -1,0 +1,102 @@
+# chrony -- chronyd, the NTP daemon ntp-1 and ntp-2 run. Converted
+# from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES:
+#
+#   usr/share       -- no longer deleted (ADR-0306, cix#491).
+#   the tcc-nopthread wrapper -- GONE, and this is the interesting
+#                      half. 4.8-4 wrote a shell script that stripped
+#                      a bare -pthread from the command line before
+#                      delegating to tcc, because TCC did not merely
+#                      ignore the flag, it mishandled it destructively:
+#                      `tcc -pthread foo.c -o foo` failed with
+#                      "undefined symbol 'main'", the argument parser
+#                      having silently dropped the source file. The
+#                      pinned tcc 0.9.28rc accepts -pthread and
+#                      produces the binary (ADR-0223, measured by
+#                      probe-tcc-conformance/9), so the wrapper is a
+#                      workaround for a fixed bug and CC=tcc is
+#                      enough.
+#
+# If that turns out to be wrong, the build says "undefined symbol
+# 'main'" and this revision is the one to look at -- which is a
+# better place to be than carrying a wrapper nobody re-measures.
+#
+# chronyd looks up its configured run-as user by NAME at startup even
+# though --with-user=root and no privilege dropping is compiled in,
+# so it needs an /etc/passwd with a root entry. That is supplied at
+# container-creation time as ordinary files[] content, not by this
+# package: which accounts exist is a container concern, not an image
+# baseline one.
+package "chrony" {
+    version "4.8"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "chrony" {
+            url "https://chrony-project.org/releases/chrony-4.8.tar.gz"
+            sha256 "33ea8eb2a4daeaa506e8fcafd5d6d89027ed6f2f0609645c6f149b560d301706"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "855dc517eb2d079b661dca89b9fa936d53cf41e6e0fd3d9bb09eac6d6029a162"
+        "changelog" "4.8-5: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307), same tarball and configure line. Drops the tcc-nopthread wrapper: it stripped a bare -pthread because TCC did not ignore the flag but silently dropped the source file with it, producing 'undefined symbol main'. The pinned tcc 0.9.28rc accepts -pthread (ADR-0223), so CC=tcc is enough. Stops deleting usr/share (ADR-0306, cix#491)."
+    }
+
+    build {
+        cd "${src}/chrony/chrony-4.8" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-readline"
+                "--without-nss"
+                "--without-nettle"
+                "--without-gnutls"
+                "--without-tomcrypt"
+                "--without-libcap"
+                "--without-seccomp"
+                "--disable-nts"
+                "--with-user=root"
+                "--with-pidfile=/run/chronyd.pid"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/chrony/chrony-4.8" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/sbin/chronyd" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/chronyc" {
+            exists
+            nonempty
+        }
+    }
+}
