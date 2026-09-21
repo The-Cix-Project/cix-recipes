@@ -1,0 +1,119 @@
+# THE TOOLWRAP LIVES UNDER ${src}, NOT /build. 1.51.0-3 put it at
+# /build/toolwrap, which the shell recipe used freely, and CPDL
+# refused before running anything:
+#
+#   error[CPDL-E4004]: runtime: filesystem operation failed:
+#   `/build/toolwrap`; errno=1 (Operation not permitted)
+#
+# CPDL confines filesystem operations to the source and destination
+# trees it owns. A shell recipe can write anywhere in the container
+# and a CPDL one cannot, which is the point -- but it means any
+# scratch path a shell recipe invented has to move inside ${src}.
+#
+# libuv -- BIND's bin/dig hard-requires it via pkg-config (its own
+# configure.ac does AC_MSG_ERROR if missing, with no way to build
+# without it even though bin/dig never links it), so this exists as
+# that prerequisite for the jump box's nslookup. Converted from
+# build.sh to build.cbs (ADR-0305 stage 4, #487).
+#
+# WHAT CHANGES: the defensive `rm -f usr/lib/*.la` is not translated.
+# Finalize's clause 3 drops every .la, and CPDL's `remove glob` FAILS
+# on a glob matching nothing where `rm -f` shrugged.
+#
+# THE TOOLWRAP STAYS, and it is worth saying why it was not dropped
+# as stale. autogen.sh defaults to bare `aclocal`/`automake`/
+# `libtoolize`, and this build sandbox's copies of those are dangling
+# Debian update-alternatives symlink chains that the kernel's #!
+# shebang exec path fails to resolve -- ENOEXEC, so bash's shell
+# fallback then mis-parses the perl source as shell and reports
+# "package: command not found". Invoking perl on the same file
+# directly works. autogen.sh reads ACLOCAL/AUTOMAKE/LIBTOOLIZE from
+# the environment, so no patch to libuv's source is needed. That is a
+# property of the composed build environment rather than of any
+# compiler version, so nothing about the tcc upgrade retires it.
+package "libuv" {
+    version "1.51.0"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "libuv" {
+            url "https://github.com/libuv/libuv/archive/refs/tags/v1.51.0.tar.gz"
+            sha256 "27e55cf7083913bfb6826ca78cde9de7647cded648d35f24163f2d31bb9f51cd"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            tool "perl"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "77f0cd4d92925ada590db6b394057aac457e1c43f714bdf90ae54880ac6ac5c9"
+        "changelog" "1.51.0-4: the autogen toolwrap moves from /build/toolwrap into the source tree. 1.51.0-3 could not run at all -- CPDL confines filesystem operations to the trees it owns and refused the mkdir with Operation not permitted before any build step. A shell recipe can write anywhere in the container and a CPDL one cannot, so a scratch path a shell recipe invented has to move inside the source tree. 1.51.0-3: converted to build.cbs (ADR-0305); perl newly declared."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/libuv"
+        }
+        require directory "${src}/libuv/libuv-1.51.0" {
+            exists
+        }
+        mkdir "${src}/libuv/toolwrap" chmod 0755
+        write "${src}/libuv/toolwrap/aclocal-wrap" "#!/bin/sh\nexec perl /usr/bin/aclocal \"$@\"\n"
+        write "${src}/libuv/toolwrap/automake-wrap" "#!/bin/sh\nexec perl /usr/bin/automake \"$@\"\n"
+        write "${src}/libuv/toolwrap/libtoolize-wrap" "#!/bin/sh\nexec perl /usr/bin/libtoolize \"$@\"\n"
+        chmod 0755 "${src}/libuv/toolwrap/aclocal-wrap"
+        chmod 0755 "${src}/libuv/toolwrap/automake-wrap"
+        chmod 0755 "${src}/libuv/toolwrap/libtoolize-wrap"
+    }
+
+    build {
+        cd "${src}/libuv/libuv-1.51.0" {
+            run "./autogen.sh" {
+                env "ACLOCAL" = "${src}/libuv/toolwrap/aclocal-wrap"
+                env "AUTOMAKE" = "${src}/libuv/toolwrap/automake-wrap"
+                env "LIBTOOLIZE" = "${src}/libuv/toolwrap/libtoolize-wrap"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-static"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libuv/libuv-1.51.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/pkgconfig/libuv.pc" {
+            exists
+            nonempty
+        }
+    }
+}
