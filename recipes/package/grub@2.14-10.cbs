@@ -1,0 +1,108 @@
+# GRUB -- the EFI bootloader this platform installs. Converted from
+# build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES: usr/share/{info,man,locale} are no longer deleted
+# (ADR-0306, cix#491). usr/share/grub was always kept and stays --
+# unicode.pf2 is a font GRUB READS at boot, not documentation, which
+# is exactly the distinction ADR-0306 turns on.
+#
+# THE TWO ASSERTIONS ARE THE POINT OF THIS RECIPE'S INSTALL PHASE,
+# and both guard a silent degradation rather than a crash:
+#
+#   unicode.pf2   FONT_SOURCE points configure at unifont's .bdf. If
+#                 it is not picked up, the build still succeeds and
+#                 GRUB simply has no font -- which surfaces as an
+#                 unreadable boot menu on someone else's machine.
+#   grub-mkfont   only builds when freetype is detected. Same shape:
+#                 absence is silent at build time.
+#
+# `test -x` becomes `require file { exists nonempty }`: CPDL asserts
+# existence and content, not the execute bit. That is weaker by
+# exactly one bit, and the thing being caught here is a binary that
+# was never built at all, not one built unexecutable.
+#
+# The `ls -la` of the generated fonts is dropped -- it printed to the
+# build log and could not fail a build, so nothing is lost with it.
+package "grub" {
+    version "2.14"
+    release 10
+    format "cixpkg"
+
+    sources {
+        main "grub" {
+            url "https://ftp.gnu.org/gnu/grub/grub-2.14.tar.xz"
+            sha256 "bc8d3c73535b8838d8c8e2654d73edc4e6ae8c8acdb45d5df5dc9a1547446d43"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "linux-headers"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "patch"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "bison"
+            tool "flex"
+            tool "m4"
+            tool "python"
+            tool "freetype"
+            tool "unifont"
+        }
+        runtime {
+            package "patch"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "carried from 2.14-9 and not re-measured against the pinned tcc 0.9.28rc. GRUB builds freestanding EFI objects with its own linker scripts and a target triplet, which is the shape TCC is least likely to satisfy, but that is a prediction rather than a measurement -- ADR-0226 wants a date and this reason has none"
+    }
+
+    metadata {
+        "changelog" "2.14-10: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest and the same configure line, FONT_SOURCE included. Stops deleting usr/share/{info,man,locale} (ADR-0306, cix#491); usr/share/grub was always kept and stays, unicode.pf2 being a font GRUB reads at boot rather than documentation. The two test assertions become require file -- test -x becomes exists plus nonempty, weaker by one bit and still catching what actually happens, a binary never built at all."
+    }
+
+    build {
+        cd "${src}/grub/grub-2.14" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--sysconfdir=/etc"
+                "--target=x86_64"
+                "--with-platform=efi"
+                "--disable-efiemu"
+                "--disable-werror"
+                "--disable-nls"
+                "FONT_SOURCE=/usr/share/unifont/unifont.bdf"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/grub/grub-2.14" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/share/grub/unicode.pf2" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/grub-mkfont" {
+            exists
+            nonempty
+        }
+    }
+}
