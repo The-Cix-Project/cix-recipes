@@ -1,0 +1,243 @@
+# sysklogd -- syslogd and logger, what syslog-1 and syslog-2 run.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything. It never runs `make install` either.
+#
+# IT COMPILES EIGHT FILES BY HAND AND SKIPS make ENTIRELY, and that
+# is deliberate rather than odd. The cix-builder image has no
+# binutils, so no ar and no ranlib -- and Autotools builds a static
+# "convenience library" internally for any package with more than one
+# source file, even with --disable-shared, so `make` dies at the
+# archive step. Pulling the whole binutils toolchain in as a
+# build-only dependency would be disproportionate for two small
+# binaries, so the recipe compiles and links the handful of objects
+# directly and bypasses the archive.
+#
+# The shell version expressed that as a for loop with `eval` and
+# `$(basename)`. CPDL has `each`, but the loop needs BOTH the source
+# path and its basename and `each` binds one value, so these are
+# written out as eight lines -- which is what the recipe guide says
+# to do with a loop whose body is a single operation, and is more
+# readable than the eval was.
+#
+# The weak __dso_handle stub: a direct tcc link with no libtool
+# driving it can leave __dso_handle undefined, glibc's static
+# destructor bookkeeping expecting a symbol the normal CRT path
+# supplies. Declared weak, so a toolchain already providing one
+# silently wins.
+package "sysklogd" {
+    version "2.7.0"
+    release 7
+    format "cixpkg"
+
+    sources {
+        main "sysklogd" {
+            url "https://github.com/troglobit/sysklogd/releases/download/v2.7.0/sysklogd-2.7.0.tar.gz"
+            sha256 "6ab74ab5001121bb32697fd2f7ab3cc4b4452c3f721677e06e5b60982a04d0cc"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "b72e0882c0d4abfaee11587ed3619c0d666259ebac62551448bb3d57d9afc8ff"
+        "changelog" "2.7.0-7: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest, the same configure line and the same eight hand-compiled objects. Nothing to restore under ADR-0306: this recipe deletes nothing and never runs make install. The for loop becomes eight explicit run lines -- CPDL has each, but the loop needed both a source path and its basename and each binds one value."
+    }
+
+    build {
+        cd "${src}/sysklogd/sysklogd-2.7.0" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-shared"
+                env "CC" = "tcc"
+                env "CFLAGS" = "-D__STDC_NO_VLA__=1"
+            }
+            write "${src}/sysklogd/sysklogd-2.7.0/dso_stub.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+            run "tcc" {
+                "-c"
+                "dso_stub.c"
+                "-o"
+                "dso_stub.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "src/syslogd.c"
+                "-o"
+                "syslogd.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "src/socket.c"
+                "-o"
+                "socket.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "src/timer.c"
+                "-o"
+                "timer.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "src/syslog.c"
+                "-o"
+                "syslog.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "src/logger.c"
+                "-o"
+                "logger.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "lib/pidfile.c"
+                "-o"
+                "pidfile.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "lib/strlcpy.c"
+                "-o"
+                "strlcpy.o"
+            }
+            run "tcc" {
+                "-D__STDC_NO_VLA__=1"
+                "-DHAVE_CONFIG_H"
+                "-DSYSCONFDIR=\"/etc\""
+                "-DRUNSTATEDIR=\"/run\""
+                "-D_BSD_SOURCE"
+                "-D_XOPEN_SOURCE=600"
+                "-I."
+                "-Isrc"
+                "-Ilib"
+                "-c"
+                "lib/strlcat.c"
+                "-o"
+                "strlcat.o"
+            }
+            run "tcc" {
+                "-o"
+                "syslogd"
+                "syslogd.o"
+                "socket.o"
+                "timer.o"
+                "syslog.o"
+                "pidfile.o"
+                "strlcpy.o"
+                "strlcat.o"
+                "dso_stub.o"
+            }
+            run "tcc" {
+                "-o"
+                "logger"
+                "logger.o"
+                "syslog.o"
+                "pidfile.o"
+                "strlcpy.o"
+                "strlcat.o"
+                "dso_stub.o"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        mkdir "${dest}/usr/bin" chmod 0755
+        mkdir "${dest}/etc" chmod 0755
+        mkdir "${dest}/var/log" chmod 0755
+        copy "${src}/sysklogd/sysklogd-2.7.0/syslogd" to "${dest}/usr/sbin/syslogd"
+        copy "${src}/sysklogd/sysklogd-2.7.0/logger" to "${dest}/usr/bin/logger"
+        chmod 0755 "${dest}/usr/sbin/syslogd"
+        chmod 0755 "${dest}/usr/bin/logger"
+        write "${dest}/etc/syslog.conf" "*.*\t/var/log/messages\n"
+        write "${dest}/var/log/messages" ""
+        require file "${dest}/usr/sbin/syslogd" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/logger" {
+            exists
+            nonempty
+        }
+    }
+}
