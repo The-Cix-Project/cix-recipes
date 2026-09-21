@@ -1,0 +1,90 @@
+# dosfstools -- mkfs.fat, which the installer uses to make the EFI
+# system partition. Converted from build.sh to build.cbs (ADR-0305
+# stage 4, cix#487).
+#
+# WHAT CHANGES: usr/share/{man,doc} are no longer deleted (ADR-0306,
+# cix#491).
+#
+# The DT_NEEDED check survives the conversion because
+# `stdout file` exists now (cix-build-system#185). The shell form
+# captured readelf's output into a variable and ran it through a
+# `case`; the whole shape -- a command printing many lines, matched
+# against a pattern -- had no CPDL equivalent, which is why this
+# package waited.
+#
+# It is a weak check and it is kept honestly rather than dressed up:
+# every dynamically linked ELF names libc, so what this actually
+# catches is a build that went STATIC, which would name nothing.
+# That matters because ADR-0251's install-time gate reads DT_NEEDED
+# to compare declared against actual, and a static binary declares
+# nothing undeclared -- it passes. Same blind spot iw's assertion
+# covers, for the same reason.
+package "dosfstools" {
+    version "4.2"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "dosfstools" {
+            url "https://github.com/dosfstools/dosfstools/releases/download/v4.2/dosfstools-4.2.tar.gz"
+            sha256 "64926eebf90092dca21b14259a5301b7b98e7b1943e8a201c7d726084809b527"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "linux-headers"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "pkgconf"
+            tool "findutils"
+            tool "diffutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "a7ee2d4c29b67835d48fa4122b982021bc6c64c0dbfb6f01993789aad8e38650"
+        "changelog" "4.2-3: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball and configure line. Stops deleting usr/share/{man,doc} (cix#491). The DT_NEEDED check survives because stdout file now exists (cix-build-system#185): the shell form captured readelf output into a variable and matched it with case, a shape with no CPDL equivalent, which is why this package waited. It is a weak check kept honestly -- what it catches is a build gone static, naming no library at all."
+    }
+
+    build {
+        cd "${src}/dosfstools/dosfstools-4.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--sbindir=/usr/sbin"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/dosfstools/dosfstools-4.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/sbin/mkfs.fat" {
+            exists
+            nonempty
+        }
+        run "readelf" {
+            "-d"
+            "${dest}/usr/sbin/mkfs.fat"
+            stdout file "${src}/dosfstools/needed.txt"
+        }
+        require file "${src}/dosfstools/needed.txt" {
+            exists
+            contains "libc.so.6"
+        }
+    }
+}
