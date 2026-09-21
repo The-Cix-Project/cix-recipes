@@ -1,0 +1,103 @@
+# bind-utils -- dig, host and nslookup, built out of the BIND 9
+# source and nothing else from it. Converted from build.sh to
+# build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything. It builds two subdirectories of a much larger tree and
+# copies three binaries out.
+#
+# libuv is a hard requirement of bin/dig even though bin/dig never
+# links it: BIND's own configure.ac does AC_MSG_ERROR when it is
+# missing, with no way to build without it. That is the entire reason
+# libuv is packaged here at all.
+#
+# python is a BUILD tool and not a runtime one, despite
+# --without-python: BIND's build still runs python scripts to
+# generate sources.
+package "bind-utils" {
+    version "9.18.30"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "bind" {
+            url "https://downloads.isc.org/isc/bind9/9.18.30/bind-9.18.30.tar.xz"
+            sha256 "9f6817640970267317e5aa143ecf70531040f2155636b1a63ea45379aa09034a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "python"
+            tool "libuv"
+            tool "openssl"
+        }
+        runtime {
+            package "libuv"
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "9.18.30-4: converted to build.cbs (ADR-0305 stage 4) and published as a .cixpkg (ADR-0307). Same tarball at the same digest, the same configure line and the same two make -C targets. Nothing to restore under ADR-0306: this recipe never deleted anything, building two subdirectories of the BIND tree and copying three binaries out. Also fixes a duplicated pkg_build_depends line, whose two copies were identical here but are the same trap that silently dropped libxcrypt from mtr's and screen's."
+    }
+
+    build {
+        cd "${src}/bind/bind-9.18.30" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--without-python"
+                "--disable-linux-caps"
+                "--without-lmdb"
+                "--without-libxml2"
+                "--without-json-c"
+                "--without-maxminddb"
+                "--without-gssapi"
+                "--without-readline"
+                "--disable-geoip"
+                "--disable-doh"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+                "-C"
+                "lib"
+            }
+            run "make" {
+                jobs $jobs
+                "-C"
+                "bin/dig"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" chmod 0755
+        copy "${src}/bind/bind-9.18.30/bin/dig/dig" to "${dest}/usr/bin/dig"
+        copy "${src}/bind/bind-9.18.30/bin/dig/host" to "${dest}/usr/bin/host"
+        copy "${src}/bind/bind-9.18.30/bin/dig/nslookup" to "${dest}/usr/bin/nslookup"
+        chmod 0755 "${dest}/usr/bin/dig"
+        chmod 0755 "${dest}/usr/bin/host"
+        chmod 0755 "${dest}/usr/bin/nslookup"
+        require file "${dest}/usr/bin/dig" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/nslookup" {
+            exists
+            nonempty
+        }
+    }
+}

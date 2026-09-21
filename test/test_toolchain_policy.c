@@ -53,7 +53,8 @@
  * stop the set GROWING unnoticed, which is the failure that mattered.
  */
 static const char *const g_gcc_recipes[] = {
-	"btop", "binutils", "binutils-dev", "bird", "btrfs-progs", "cmake", "efivar", "elfutils",
+	"bind-utils", "btop", "binutils", "binutils-dev", "bird", "btrfs-progs", "cmake",
+	"efivar", "elfutils",
 	"fastfetch", "gcc", "gitea", "glauth", "glibc", "gnu-efi", "go", "go-bootstrap",
 	"grub", "kernel", "keyutils", "kmod", "libblkid", "libxcrypt",
 	"linux-headers", "node", "perl", "probe-gcc-headers", "probe-gcc-postglibc",
