@@ -1,0 +1,165 @@
+# 2.14-12 declares xz. 2.14-11 built -- once freetype and unifont
+# were installed and its environment could finally be composed --
+# and was then refused at install:
+#
+#   usr/bin/grub-mkimage links "liblzma.so.5", which nothing it
+#   declares provides
+#
+# That hole is not new. It predates the conversion: grub was reaching
+# xz transitively through the build sandbox, so the link was recorded
+# and the dependency was not, and nothing noticed because grub had
+# not been rebuilt since the #389 gate existed. The conversion is
+# simply what caused a rebuild.
+#
+# PUBLISHED AND NOT YET BUILT, and not for a reason in this file.
+# The build environment cannot be composed:
+#
+#   declared build tool "freetype" is not installed anywhere, so
+#   there is nothing to compose a build environment from
+#
+# freetype and unifont are both installed in zero images. ADR-0199
+# composes a build container from the declared tools alone, so a
+# tool nobody has installed anywhere cannot be provided -- and there
+# is deliberately no fallback to a fuller environment, because
+# falling back would let the build succeed against something it
+# never declared.
+#
+# So this needs freetype and unifont installed somewhere first, and
+# then a full GRUB build. That chain was priced and deferred rather
+# than started at the end of a long session; the conversion itself
+# is complete and the mirror fix in it is real.
+#
+# FETCHES FROM mirrors.kernel.org, NOT ftp.gnu.org. 2.14-10 could
+# not be built:
+#
+#   fetch failed (curl exit status 1): OpenSSL SSL_connect:
+#   SSL_ERROR_SYSCALL in connection to ftp.gnu.org:443
+#
+# which is cix#409's intermittent-reachability signature exactly, and
+# CLAUDE.md's own advice for it is to keep mirrors.kernel.org as the
+# durable choice on any bump. This is a bump, so it takes it.
+#
+# Checked before blaming the mirror, because an identical-looking
+# fetch failure earlier the same day turned out to be a full disk
+# (cix#503): /var/lib/cix had 12.6 GiB free and sda 81.6 GiB at the
+# time of this failure, so the network really is the cause here.
+#
+# The digest is unchanged, which is what makes a mirror swap a
+# non-event -- a mirror cannot substitute different bytes without
+# failing a gate that already exists.
+#
+# GRUB -- the EFI bootloader this platform installs. Converted from
+# build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES: usr/share/{info,man,locale} are no longer deleted
+# (ADR-0306, cix#491). usr/share/grub was always kept and stays --
+# unicode.pf2 is a font GRUB READS at boot, not documentation, which
+# is exactly the distinction ADR-0306 turns on.
+#
+# THE TWO ASSERTIONS ARE THE POINT OF THIS RECIPE'S INSTALL PHASE,
+# and both guard a silent degradation rather than a crash:
+#
+#   unicode.pf2   FONT_SOURCE points configure at unifont's .bdf. If
+#                 it is not picked up, the build still succeeds and
+#                 GRUB simply has no font -- which surfaces as an
+#                 unreadable boot menu on someone else's machine.
+#   grub-mkfont   only builds when freetype is detected. Same shape:
+#                 absence is silent at build time.
+#
+# `test -x` becomes `require file { exists nonempty }`: CPDL asserts
+# existence and content, not the execute bit. That is weaker by
+# exactly one bit, and the thing being caught here is a binary that
+# was never built at all, not one built unexecutable.
+#
+# The `ls -la` of the generated fonts is dropped -- it printed to the
+# build log and could not fail a build, so nothing is lost with it.
+package "grub" {
+    version "2.14"
+    release 12
+    format "cixpkg"
+
+    sources {
+        main "grub" {
+            url "https://mirrors.kernel.org/gnu/grub/grub-2.14.tar.xz"
+            sha256 "bc8d3c73535b8838d8c8e2654d73edc4e6ae8c8acdb45d5df5dc9a1547446d43"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "linux-headers"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "patch"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "bison"
+            tool "flex"
+            tool "m4"
+            tool "python"
+            tool "freetype"
+            tool "unifont"
+            tool "xz"
+        }
+        runtime {
+            package "patch"
+            # liblzma.so.5, which grub-mkimage links for its
+            # compressed-image support. Declared here because the
+            # #389 install gate refused 2.14-11 for exactly this:
+            # xz was reaching the build sandbox transitively, so the
+            # link was recorded while the dependency was not.
+            package "xz"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "carried from 2.14-9 and not re-measured against the pinned tcc 0.9.28rc. GRUB builds freestanding EFI objects with its own linker scripts and a target triplet, which is the shape TCC is least likely to satisfy, but that is a prediction rather than a measurement -- ADR-0226 wants a date and this reason has none"
+    }
+
+    metadata {
+        "changelog" "2.14-12: declares xz. 2.14-11 was refused at install -- grub-mkimage links liblzma.so.5 and nothing it declared provided it. The hole predates this conversion: xz reached the build sandbox transitively, so the link was recorded and the dependency was not, and grub had not been rebuilt since the #389 gate existed. 2.14-11: fetches from mirrors.kernel.org, ftp.gnu.org having failed with SSL_ERROR_SYSCALL. 2.14-10: converted to build.cbs (ADR-0305) as a .cixpkg; keeps usr/share (cix#491)."
+    }
+
+    build {
+        cd "${src}/grub/grub-2.14" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--sysconfdir=/etc"
+                "--target=x86_64"
+                "--with-platform=efi"
+                "--disable-efiemu"
+                "--disable-werror"
+                "--disable-nls"
+                "FONT_SOURCE=/usr/share/unifont/unifont.bdf"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/grub/grub-2.14" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/share/grub/unicode.pf2" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/grub-mkfont" {
+            exists
+            nonempty
+        }
+    }
+}

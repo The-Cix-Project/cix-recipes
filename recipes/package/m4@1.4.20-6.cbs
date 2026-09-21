@@ -1,0 +1,128 @@
+# GNU m4 -- what autoconf and bison are built on. Converted from
+# build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THREE SHELL GUARDS COLLAPSE INTO ONE `exactly`. The shell recipe
+# grepped for the typo BEFORE patching ("upstream has fixed it, drop
+# this patch"), ran a global sed, then grepped AFTER to prove the
+# patch took. CPDL's `replace … exactly N` is all three: it counts
+# matches, refuses to mutate anything unless the count is right, and
+# names the file and the number when it is not. The recipe guide
+# says to delete a grep-before-a-sed for exactly this reason.
+#
+# `exactly 1` is a CLAIM about upstream, not a measured count -- the
+# shell form used a global sed and never recorded how many there
+# were. If it is wrong the build says "expected 1 matches but found
+# N", which is how the real number gets recorded here instead of
+# being lost again.
+#
+# WHY THE PATCH EXISTS: gnulib's bundled obstack.in.h has a typo,
+# (OBSTACK_CPTR) where it means (_OBSTACK_CPTR).
+#
+# THE ac_cv_func_ CACHE VARIABLE IS THE INTERESTING PART and is
+# truthful rather than a lie to configure. glibc 2.44 exports
+# posix_spawn_file_actions_addchdir_np as a real symbol and provides
+# the POSIX-2024 name posix_spawn_file_actions_addchdir ONLY through
+# spawn.h's __REDIRECT_NTH asm alias -- there is no symbol of that
+# name in libc.so.6 at all. AC_CHECK_FUNC deliberately declares the
+# function itself rather than including the header, so it links a
+# bare name that genuinely does not exist and concludes the function
+# is absent; gnulib then emits its own prototype after
+# #include_next-ing the system header and the two collide.
+#
+# Setting the cache variable is true -- the function IS available to
+# any translation unit that includes the header, which is the only
+# legitimate way C code calls it -- and it lands on gnulib's
+# strictly safer REPLACE=1 branch, where the name is #defined to
+# rpl_... and gnulib compiles its own. The assertion below proves
+# that branch was actually taken, because a cache variable that
+# stopped being read would otherwise fail silently (cix#198).
+package "m4" {
+    version "1.4.20"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "m4" {
+            url "https://mirrors.kernel.org/gnu/m4/m4-1.4.20.tar.xz"
+            sha256 "e236ea3a1ccf5f6c270b1c4bb60726f371fa49459a8eaaebc90b216b328daf2b"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "b1bd2405d8d15fd70d3f455a317ae18a79d7bb3c572397275f8e894d81587e3d"
+        "changelog" "1.4.20-6: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball and configure line. Three shell guards collapse into one replace exactly: the grep before the sed, the global sed, and the grep after are all what exactly N does, and it names the file and count when wrong. exactly 1 is a claim rather than a measured number, the shell form having used a global sed. The REPLACE-branch assertion stays -- a cache variable that stopped being read would fail silently (cix#198)."
+    }
+
+    prepare {
+        # gnulib's bundled obstack.in.h writes (OBSTACK_CPTR) where
+        # it means (_OBSTACK_CPTR).
+        replace "${src}/m4/m4-1.4.20/lib/obstack.in.h" {
+            from "(OBSTACK_CPTR)"
+            to "(_OBSTACK_CPTR)"
+            exactly 1
+        }
+    }
+
+    build {
+        cd "${src}/m4/m4-1.4.20" {
+            write "${src}/m4/m4-1.4.20/dso_stub.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+            run "tcc" {
+                "-c"
+                "dso_stub.c"
+                "-o"
+                "dso_stub.o"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "LIBS=${src}/m4/m4-1.4.20/dso_stub.o"
+                env "CC" = "tcc"
+                env "AR" = "ar"
+                env "RANLIB" = "ranlib"
+                env "CFLAGS" = "-D_GL_EXTERN_INLINE_STDHEADER_BUG=1"
+                env "ac_cv_func_posix_spawn_file_actions_addchdir" = "yes"
+            }
+            # Proof the cache variable was read and gnulib took the
+            # REPLACE branch. Without it a silently-ignored variable
+            # would fail much later, inside a generated header.
+            require file "${src}/m4/m4-1.4.20/lib/Makefile" {
+                exists
+                contains "REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR = 1"
+            }
+            # No jobs: the shell recipe ran a serial make and this
+            # keeps that, rather than changing build parallelism in a
+            # translation.
+            run "make" {
+            }
+        }
+    }
+
+    install {
+        cd "${src}/m4/m4-1.4.20" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/m4" {
+            exists
+            nonempty
+        }
+    }
+}
