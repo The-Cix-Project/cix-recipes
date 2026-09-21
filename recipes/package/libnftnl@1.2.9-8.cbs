@@ -1,0 +1,162 @@
+# libnftnl -- the netlink library nftables and keepalived link.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THIS IS THE FIRST RECIPE HERE TO USE `links` (cbs#194), and it is
+# the clearest case for why that operation was worth asking for.
+# Everything below replaced a shell guard that either could not be
+# written in CPDL at all, or took four lines to say.
+#
+# WHAT CHANGES:
+#
+#   usr/lib/*.la     -- not translated. --disable-static builds none,
+#                       finalize drops any, and `remove glob` fails
+#                       on a glob matching nothing.
+#   the DT_NEEDED check -- `readelf -d | grep -q NEEDED.*libmnl` and
+#                       a separate diagnostic readelf become one
+#                       `links { needs }` declaration.
+#   the three `test -e` -- become `require file`.
+#   the before/after continuation count -- GONE, and deliberately.
+#                       The shell recipe counted backslash-newline
+#                       continuations across every Makefile before
+#                       and after the strip, because its sed had
+#                       once eaten a TAB and a line-continuation and
+#                       orphaned the following line. `replace …
+#                       exactly N` is that guard: it counts matches,
+#                       refuses to mutate unless the count is right,
+#                       and names the file. The recipe guide says to
+#                       delete a count-guard around an edit for
+#                       exactly this reason.
+#
+# THE VERSION-SCRIPT STRIP is what cbs#177 was filed for. TCC cannot
+# honour --version-script and src/Makefile.am passes one
+# unconditionally. The shell form needed a character class of
+# [^[:space:]] rather than [^ ], because the real line ends in a TAB
+# and a backslash, and using [^ ] deleted both and killed the -1
+# revision with "recipe commences before first target" four
+# directories deep. `until whitespace` is that rule as an operation:
+# the delimiter is never part of the match.
+#
+# `exactly 1` is now MEASURED, not claimed. 1.2.9-5 guessed 6 and
+# the build answered
+#
+#   source edit expected 6 matches but found 1
+#
+# which is the documented way to learn a count the shell form never
+# recorded -- it used a global sed across every Makefile and said
+# nothing about how many it changed. One deliberate failing build is
+# the price, and it buys an assertion the sed never had: the flag
+# appears in exactly one generated Makefile, and if upstream ever
+# adds a second the build says so instead of silently stripping it.
+package "libnftnl" {
+    version "1.2.9"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "libnftnl" {
+            url "https://www.netfilter.org/projects/libnftnl/files/libnftnl-1.2.9.tar.xz"
+            sha256 "e8c216255e129f26270639fee7775265665a31b11aa920253c3e5d5d62dfc4b8"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "libmnl"
+        }
+        runtime {
+            package "libmnl"
+        }
+    }
+
+    metadata {
+        "changelog" "1.2.9-8: adds a diagnostic readelf before the links declaration. 1.2.9-7 reported the artifact missing libmnl.so.0, while the shell recipe asserted the same thing with readelf and passed -- one of those is wrong and only the build log can say which. 1.2.9-7: asserts the real libnftnl.so.11.6.0 and the soname as a symlink (cbs#175). 1.2.9-6: strip count measured at exactly 1. 1.2.9-5: converted to build.cbs, first use of links (cbs#194)."
+    }
+
+    build {
+        cd "${src}/libnftnl/libnftnl-1.2.9" {
+            run "pkg-config" {
+                "--exists"
+                "libmnl"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                env "CC" = "tcc"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            replace glob "${src}/libnftnl/libnftnl-1.2.9/**/Makefile" {
+                from "-Wl,--version-script="
+                until whitespace
+                to ""
+                exactly 1
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libnftnl/libnftnl-1.2.9" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # libnftnl.so.11.6.0, the REAL file. 1.2.9-6 asserted
+        # libnftnl.so.11 and was refused:
+        #
+        #   required file `…/libnftnl.so.11` is a symbolic link;
+        #   require file matches regular files only
+        #
+        # That is cix-build-system#175's trap, and the soname is
+        # always the name you reach for because it is the name you
+        # know. The version link is asserted alongside it, which
+        # #175 made possible and which is the thing consumers
+        # actually resolve.
+        require file "${dest}/usr/lib/libnftnl.so.11.6.0" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libnftnl.so.11" {
+            exists
+            target "libnftnl.so.11.6.0"
+        }
+        require file "${dest}/usr/include/libnftnl/rule.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libnftnl.pc" {
+            exists
+            nonempty
+        }
+        # It must really be linked against Cix's libmnl, not have
+        # quietly resolved the symbols some other way (cix#113).
+        # Diagnostic: 1.2.9-7's `links` reported the artifact
+        # MISSING libmnl.so.0, while the shell recipe asserted the
+        # same thing with readelf and passed. One of those is wrong
+        # and the build log is the only place that can say which, so
+        # readelf prints to it here before the declaration runs.
+        run "readelf" {
+            "-d"
+            "${dest}/usr/lib/libnftnl.so.11.6.0"
+        }
+        links "${dest}/usr/lib/libnftnl.so.11.6.0" {
+            needs "libmnl.so.0"
+        }
+    }
+}
