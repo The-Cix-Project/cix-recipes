@@ -1,0 +1,129 @@
+# PUBLISHED AND NOT BUILT, and not for a reason in this file.
+# cixd cannot stage the source at all:
+#
+#   write header for ".../build/src/snap/hooks/install" failed:
+#   Hard-link target 'keepalived-2.3.4/snap/hooks/post-refresh'
+#   does not exist.
+#
+# keepalived's tarball contains hard links -- snap/hooks/install and
+# snap/hooks/post-refresh are one inode -- and the extractor writes
+# the link entry before its target exists. That is cix#506, on the
+# way IN, in third-party source this project does not control, so no
+# recipe change avoids it. Distinct from cix-build-system#182, which
+# is a hard link in a STAGED tree and which recipes fix by writing
+# symlinks instead.
+#
+# The conversion itself is complete and is what this revision is
+# for; it builds the moment #506 is fixed.
+#
+# keepalived -- VRRP, what cr-1 and cr-2 run to share a virtual
+# address. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything. It copies one binary out of the build tree.
+#
+# WHAT IT WAITED FOR: the install phase's real guard is
+#
+#   readelf -d "$dir/keepalived" | grep -q 'NEEDED.*libnl-3\.so\.200'
+#
+# and readelf prints many lines, which had no CPDL form until
+# `stdout file` (cix-build-system#185). Converting without it would
+# have meant dropping the guard, so keepalived stayed on build.sh.
+#
+# The guard matters here specifically because keepalived is a
+# probe-and-degrade build: its configure detects libnl, libnftnl,
+# ipset and iptables independently and quietly builds WITHOUT
+# whichever it cannot find. A VRRP daemon that silently lost its
+# netlink support still compiles, still installs, and fails when it
+# tries to manage an address. The #389 install gate cannot see this
+# -- it refuses a binary linking something UNDECLARED, and a build
+# that linked less than expected declares nothing undeclared.
+#
+# TWO DIAGNOSTIC BLOCKS ARE DROPPED. A loop printing which of nine
+# pkg-config modules were visible, and a grep of config.log for what
+# configure decided. Both printed to the build log and neither could
+# fail a build -- and the one thing they were really watching for,
+# a missing libnl, is what the assertion below actually enforces.
+package "keepalived" {
+    version "2.3.4"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "keepalived" {
+            url "https://www.keepalived.org/software/keepalived-2.3.4.tar.gz"
+            sha256 "6afd95ddb7d3e0d3b8b8e5b3a489144131b61a01b06d29e883d0c44acc8a36bf"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "openssl"
+            tool "libnl"
+            tool "libnftnl"
+            tool "iptables"
+            tool "ipset"
+        }
+        runtime {
+            package "openssl"
+            package "libnl"
+            package "libnftnl"
+            package "libmnl"
+            package "iptables"
+            package "ipset"
+        }
+    }
+
+    metadata {
+        "changelog" "2.3.4-8: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball and configure line. It waited for stdout file (cix-build-system#185): its real guard is readelf -d piped to grep for NEEDED libnl-3.so.200, and readelf prints many lines, so converting earlier meant dropping it. keepalived is a probe-and-degrade build -- configure quietly omits libnl support it cannot find -- and the #389 gate cannot catch that, refusing only what links something undeclared."
+    }
+
+    build {
+        cd "${src}/keepalived/keepalived-2.3.4" {
+            # Cix packages do not agree on where a .pc file lands, so
+            # a consumer cannot assume its dependency chose the same
+            # convention: libnl ships to /usr/lib/pkgconfig and
+            # others use the multiarch path.
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        copy "${src}/keepalived/keepalived-2.3.4/keepalived/keepalived" to "${dest}/usr/sbin/keepalived"
+        chmod 0755 "${dest}/usr/sbin/keepalived"
+        require file "${dest}/usr/sbin/keepalived" {
+            exists
+            nonempty
+        }
+        run "readelf" {
+            "-d"
+            "${dest}/usr/sbin/keepalived"
+            stdout file "${src}/keepalived/needed.txt"
+        }
+        require file "${src}/keepalived/needed.txt" {
+            exists
+            contains "libnl-3.so.200"
+        }
+    }
+}
