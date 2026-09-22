@@ -1,0 +1,210 @@
+#
+# nftables -- the nft CLI and libnftables.
+#
+# A DIFFERENT UPSTREAM PROJECT FROM libnftnl, despite the names.
+# libnftnl is the low-level netlink library that builds and parses the
+# messages; this is the high-level rule syntax and the tool an
+# operator actually types at. Packaging one does not give you the
+# other, which is worth saying because the naming invites the
+# opposite assumption.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# ============================================================
+# DECLARED CAPABILITY LOSS: no interactive CLI (ADR-0222)
+# ============================================================
+#
+# REMOVED:  nft -i, the interactive readline-style shell.
+#
+# KEPT:     everything else -- one-shot commands (nft add rule ...),
+#           script files (nft -f), the whole rule syntax, and
+#           libnftables for programmatic use. The interactive prompt
+#           is a convenience wrapper around the same parser.
+#
+# WHY:      configure requires one of libreadline, libedit or
+#           linenoise and errors out if it cannot find the one it was
+#           asked for; the default is editline. None of the three is
+#           packaged, and readline would pull in ncurses as well.
+#           --without-cli is upstream's own supported answer rather
+#           than something forced on it.
+#
+# Reversible in the ordinary way: package one of the three line
+# editors and rebuild with --with-cli=readline. Recorded here because
+# an operator who types 'nft -i' and gets nothing deserves to find
+# the reason in the package rather than by reading configure.
+#
+# THE DT_NEEDED CHECKS BECOME `links`, WHICH IS WHAT THEY ALWAYS
+# WANTED TO BE. The shell form ran readelf and grepped its output for
+# each library in turn, with a failure branch per library -- and
+# 1.1.1-2 exists only because 1.1.1 asserted the WRONG artifact,
+# checking the nft binary for libnftnl when nft links libnftables and
+# libnftables is what links libnftnl and libmnl. `links PATH { needs
+# ... }` says the same thing as a first-class operation, on the right
+# file, with no output parsing at all -- which matters here more than
+# usual, because CPDL cannot inspect a multi-line output like
+# readelf's at all (cbs#226, measured three ways during the gettext
+# conversion the same day).
+#
+# THE VERSION-SCRIPT STRIP IS MEASURED, NOT GUESSED, and it is one
+# rather than libnl's seven. Measured on 192.168.15.95, 2026-09-22 by
+# probe-nftables-configure, after a real configure run in the build
+# image:
+#
+#   ./Makefile.in:721:  -Wl,--version-script="$(srcdir)/src//libnftables.map" \
+#   ./Makefile.am:259:  -Wl,--version-script="$(srcdir)/src//libnftables.map" \
+#   ./Makefile:721:     -Wl,--version-script="$(srcdir)/src//libnftables.map" \
+#
+# nftables is a non-recursive automake build: one generated Makefile,
+# one shared library, one occurrence. The other two are upstream
+# sources and are deliberately left alone. Note the argument is
+# QUOTED, which `until whitespace` handles without help -- the value
+# contains no space, so the match ends at the quote's own trailing
+# space and the line-continuation backslash after it survives. That
+# is the failure the shell form needed a [^[:space:]] character class
+# to avoid, and the reason it counted backslashes before and after.
+#
+package "nftables" {
+    version "1.1.1"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "nftables" {
+            url "https://www.netfilter.org/projects/nftables/files/nftables-1.1.1.tar.xz"
+            sha256 "6358830f3a64f31e39b0ad421d7dadcd240b72343ded48d8ef13b8faf204865a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            # Real requirements, not extras: nftables' rule syntax IS
+            # a grammar (AC_PROG_YACC / AC_PROG_LEX) and the parser is
+            # generated at build time.
+            tool "bison"
+            tool "flex"
+            tool "libmnl"
+            tool "libnftnl"
+            tool "gmp"
+        }
+        runtime {
+            package "libmnl"
+            package "libnftnl"
+            package "gmp"
+        }
+    }
+
+    metadata {
+        "changelog" "1.1.1-5: links takes a full soname, not a substring. 1.1.1-4 built and installed correctly and failed asserting libnftables, which nft does link -- the shell form grepped readelf output, where a substring matches. Every soname is now measured. Adds the real-file and soname assertions the shell form did not make (cbs#175) and removes the .la. 1.1.1-4: converts to CPDL (cix#487)."
+    }
+
+    build {
+        cd "${src}/nftables/nftables-1.1.1" {
+            # The two pkg-config preflights the shell form ran are
+            # gone. configure checks both versions itself with
+            # PKG_CHECK_MODULES and fails naming the module; the
+            # preflight existed to make that message clearer, and a
+            # failing run already prints the command CBS ran.
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-static"
+                "--without-cli"
+                env "CC" = "tcc"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+
+            # TCC cannot honour --version-script. The GENERATED
+            # makefile is edited so upstream's own tree stays
+            # unmodified -- Makefile.in and Makefile.am carry the same
+            # line and are left alone.
+            replace "${src}/nftables/nftables-1.1.1/Makefile" {
+                from "-Wl,--version-script="
+                until whitespace
+                to ""
+                exactly 1
+            }
+
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/nftables/nftables-1.1.1" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+
+        # nft is the point of the package; assert it rather than trust
+        # make's exit status (cix#113). The shell form searched
+        # usr/sbin, sbin and usr/bin in turn because it did not know
+        # which; nftables declares nft in sbin_PROGRAMS, so with
+        # --prefix=/usr it is usr/sbin/nft, and naming one path means
+        # a future move fails here instead of being absorbed.
+        require file "${dest}/usr/sbin/nft" {
+            exists
+            executable
+        }
+
+        # The library, and its two names. cbs#175's soname trap:
+        # `require file` refuses a symlink, so the real file and the
+        # soname are asserted separately -- the soname is the name a
+        # consumer records and the one that must not go missing.
+        require file "${dest}/usr/lib/libnftables.so.1.1.0" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libnftables.so.1" {
+            exists
+        }
+
+        # libtool archives. Nothing on this platform consumes a .la,
+        # and the shell form removed them.
+        remove glob "${dest}/usr/lib/*.la"
+
+        # Assert the RIGHT artifact. nft is a thin front end: it links
+        # libnftables and libgmp directly, and the netlink stack
+        # (libnftnl, libmnl) is linked by libnftables, not by the
+        # binary. 1.1.1 asserted libnftnl against nft itself and
+        # failed after an otherwise complete, correct build.
+        #
+        # `links` takes the FULL SONAME, not a substring. 1.1.1-4
+        # built and installed correctly and then failed here:
+        #
+        #   error[CPDL-E4005]: runtime: artifact is missing required
+        #   library `libnftables`
+        #
+        # -- reading as though nft were not linked against it at all,
+        # when what was wrong was the spelling. The shell form grepped
+        # readelf output for NEEDED.*libnftables, which a substring
+        # satisfies; `links` compares DT_NEEDED entries exactly, and
+        # is right to. Every soname below is measured on
+        # 192.168.15.95, 2026-09-22: libnftables.so.1 and its real
+        # file libnftables.so.1.1.0 from this build's own make install
+        # output, libgmp.so.10 from gmp 6.3.0-3's installed file list,
+        # and libnftnl.so.11 / libmnl.so.0 from the two recipes that
+        # already assert them.
+        links "${dest}/usr/sbin/nft" {
+            needs "libnftables.so.1"
+            needs "libgmp.so.10"
+        }
+        links "${dest}/usr/lib/libnftables.so.1.1.0" {
+            needs "libnftnl.so.11"
+            needs "libmnl.so.0"
+        }
+    }
+}
