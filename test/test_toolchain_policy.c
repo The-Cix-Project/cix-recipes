@@ -57,7 +57,21 @@ static const char *const g_gcc_recipes[] = {
 	"efivar", "elfutils",
 	"fastfetch", "gcc", "gitea", "glauth", "glibc", "gnu-efi", "go", "go-bootstrap",
 	"grub", "kernel", "keyutils", "kmod", "libblkid", "libxcrypt",
-	"linux-headers", "node", "perl", "probe-gcc-headers", "probe-gcc-postglibc",
+	"linux-headers", "node",
+	/*
+	 * openssl: a gcc build since it was written, and one this gate
+	 * could not see until 3.0.20-7. Configure target linux-x86_64
+	 * sets CC=gcc (Configurations/10-main.conf) and the recipe has
+	 * always declared gcc as a build tool -- but the shell form
+	 * carried no pkg_toolchain= line, and uses_gcc() below scans
+	 * pkg_build() textually, where this recipe says only
+	 * "perl ./Configure". A gcc package invisible to the audit is
+	 * exactly what ADR-0224 exists to prevent, and it sat here for
+	 * the whole life of the shell recipe. The CPDL revision declares
+	 * it, which is what put this line in a diff.
+	 */
+	"openssl",
+	"perl", "probe-gcc-headers", "probe-gcc-postglibc",
 	/*
 	 * probe-wifi-driver names /usr/bin/gcc to ASK ABOUT it, not to
 	 * build with it: revision 9 runs `gcc -E -Wp,-v` to print HOSTCC's

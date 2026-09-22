@@ -1,0 +1,173 @@
+# openssl -- libcrypto, libssl and the openssl CLI. This platform PKI
+# subsystem is built on it and mkbootroot stages its openssl.cnf.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THIS RECIPE NOW DECLARES gcc, AND THAT IS THE INTERESTING PART.
+#
+# It has always been a gcc build. OpenSSL Configure target
+# linux-x86_64 sets CC=gcc (Configurations/10-main.conf), the recipe
+# has listed gcc in its build tools since it was written, and its own
+# header names it as one of the small explicit Tier-3 exceptions
+# alongside kernel, gnu-efi, python and grub (ADR-0211). What it
+# never had was a pkg_toolchain= line.
+#
+# That mattered, because test_toolchain_policy scans a recipe
+# pkg_build() textually for a gcc invocation, and this one says only
+# "perl ./Configure". So openssl was a gcc package the audit could
+# not see -- precisely the invisibility ADR-0224 was written to end,
+# and the reason that gate keeps an explicit list of names rather
+# than a count. Declaring it here adds one line to g_gcc_recipes[] in
+# a diff, which is the whole mechanism working.
+#
+# ./Configure IS OpenSSL own bespoke Perl build script, not
+# autotools. It is invoked as "perl ./Configure" rather than directly
+# because its shebang is "#!/usr/bin/env perl", which needs
+# /usr/bin/env on PATH -- real on an image that also has coreutils,
+# but not guaranteed in a lean composed environment. Confirmed the
+# hard way: cix-hosttools has perl but no coreutils, execve() on the
+# un-runnable script fell back to bash interpreting Configure own
+# Perl source as shell, and the build died on "use: command not
+# found".
+#
+# THE .pc ASSERTION IS THE ONE CLAIM THE LAYOUT RESTS ON, and it gets
+# simpler rather than merely translated. The shell form read the file
+# with cat and matched a `case` against its output -- deliberately
+# not grep, so that verifying it cost no extra declared build tool.
+# `require file { contains }` is that check with no tool at all.
+#
+# install_sw is OpenSSL own documented software-only target
+# (binaries, libraries, headers, pkg-config, no docs) and depends on
+# install_dev, which is what installs both the .pc files and the
+# static archives. The .pc files are wanted; the rest is dropped:
+#
+#   *.a          nothing here links OpenSSL statically
+#   c_rehash     a perl wrapper around a symlink-farm convention
+#                nothing in this project uses -- and the only reason
+#                the installed package would need perl at runtime
+#   engines-3    the legacy provider/engine plugins
+#   ossl-modules real, but daemon/src/pki.c only ever needs the
+#                default provider, which is built into libcrypto.so.3
+#                itself rather than loaded as a plugin
+#
+# install_ssldirs is separate and load-bearing: this project own PKI
+# needs a real openssl.cnf at exactly usr/lib/ssl/openssl.cnf, and
+# `pki ca bootstrap` fails without one.
+package "openssl" {
+    version "3.0.20"
+    release 7
+    format "cixpkg"
+
+    sources {
+        main "openssl" {
+            url "https://github.com/openssl/openssl/releases/download/openssl-3.0.20/openssl-3.0.20.tar.gz"
+            sha256 "c80a01dfc70ece4dc21168932c37739042d404d46ccc81a5986dd75314ecda6f"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            # Read off the real generated Makefile rather than assumed.
+            # perl is not merely a helper: Configure IS perl, and
+            # $(PERL) appears in 68 further rules. diffutils is `cmp`,
+            # 2149 invocations, one per object -- every per-object
+            # dependency rule compares the fresh .d.tmp against the
+            # previous .d, and omitting it by analogy with other
+            # autotools recipes would have failed the build.
+            tool "make"
+            tool "perl"
+            tool "binutils"
+            tool "bash"
+            tool "coreutils"
+            tool "linux-headers"
+            tool "diffutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "build system: OpenSSL Configure target linux-x86_64 sets CC=gcc, and the recipe has declared gcc as a build tool since it was written -- a Tier-3 exception of long standing (ADR-0211). The declaration is new because the shell form never carried one, so test_toolchain_policy could not see it: that gate scans pkg_build() textually and this recipe only says perl ./Configure."
+    }
+
+    metadata {
+        "changelog" "3.0.20-7: converts to CPDL (cix#487), and declares gcc for the first time. This has always been a gcc build -- Configure target linux-x86_64 sets CC=gcc and the recipe has listed gcc as a build tool since it was written -- but it carried no pkg_toolchain line, and test_toolchain_policy scans pkg_build() textually, where this recipe says only perl ./Configure. So it was gcc the audit could not see. Otherwise unchanged: same Configure line, install_sw plus install_ssldirs, same four removals."
+    }
+
+    build {
+        cd "${src}/openssl/openssl-3.0.20" {
+            run "perl" {
+                "./Configure"
+                "--prefix=/usr"
+                "--openssldir=/usr/lib/ssl"
+                "--libdir=/usr/lib"
+                "linux-x86_64"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/openssl/openssl-3.0.20" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "install_sw"
+            }
+            run "make" {
+                "DESTDIR=${dest}"
+                "install_ssldirs"
+            }
+        }
+        remove glob "${dest}/usr/lib/*.a" allow_failure
+        remove "${dest}/usr/bin/c_rehash" allow_failure
+        remove tree "${dest}/usr/lib/engines-3" allow_failure
+        remove tree "${dest}/usr/lib/ossl-modules" allow_failure
+        require file "${dest}/usr/bin/openssl" {
+            exists
+            executable
+        }
+        # The real shared objects and the names consumers link.
+        # cbs#175: require file refuses a symlink.
+        require file "${dest}/usr/lib/libcrypto.so.3" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/libssl.so.3" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libcrypto.so" {
+            exists
+            target "libcrypto.so.3"
+        }
+        require symlink "${dest}/usr/lib/libssl.so" {
+            exists
+            target "libssl.so.3"
+        }
+        # The one claim the layout rests on: the generated .pc must
+        # name the directory the libraries were actually installed
+        # into. With libdir at /usr/lib the install writes them
+        # straight where pkgconf looks, and this recipe is where that
+        # whole class of fix started (cix#174, cix#184).
+        require file "${dest}/usr/lib/pkgconfig/libcrypto.pc" {
+            exists
+            nonempty
+            contains "libdir=/usr/lib"
+        }
+        require file "${dest}/usr/lib/pkgconfig/libssl.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/openssl.pc" {
+            exists
+            nonempty
+        }
+        # install_ssldirs own output. `pki ca bootstrap` fails
+        # without exactly this file at exactly this path.
+        require file "${dest}/usr/lib/ssl/openssl.cnf" {
+            exists
+            nonempty
+        }
+    }
+}
