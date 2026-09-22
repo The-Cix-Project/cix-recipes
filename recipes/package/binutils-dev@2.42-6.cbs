@@ -1,0 +1,130 @@
+#
+# binutils-dev -- binutils' own development files: bfd.h and friends,
+# plus the static libbfd.a/libopcodes.a/libiberty.a/libctf.a/
+# libsframe.a archives, which binutils' own recipe deliberately drops
+# ("nothing else in this project's image set links against libbfd
+# directly") -- the same runtime/dev split libc/libc-dev established.
+# Needed because sbsigntools genuinely does link libbfd: its own
+# configure.ac hard-fails with AC_MSG_ERROR if bfd.h is not found,
+# confirmed directly rather than assumed.
+#
+# A real from-source build, not a copy out of the build container's
+# own toolchain the way libc-dev works -- unlike glibc, binutils
+# genuinely is built from source in this project already. Same
+# tarball, version and configure flags as binutils' own recipe, kept
+# in sync deliberately.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE SOURCE MOVES TO mirrors.kernel.org, and that is why this
+# revision exists rather than the conversion alone. Measured on
+# 192.168.15.95, 2026-09-22, fetching the old URL:
+#
+#   fetch failed (curl exit status 1):
+#   https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.xz:
+#   OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ftp.gnu.org
+#
+# That is cix#409's intermittent reachability, and it blocked
+# sbsigntools, which depends on this package. CLAUDE.md's own note
+# says to keep mirrors.kernel.org as the durable choice on any bump
+# and to move a recipe when it next revises rather than mass-revising
+# the whole GNU base, since every publish queues a rolling rebuild.
+# This is that bump. pkg_sha256 is unchanged and is what makes the
+# swap a non-event: a mirror cannot substitute different bytes
+# without failing a gate that already exists.
+#
+# GCC, and the recorded reason is only half measured -- kept as it
+# was written rather than improved, because improving it would mean
+# asserting something nobody has checked. gnu-efi needs
+# __builtin_ms_va_list for the EFI calling convention and TCC does not
+# implement it, reduced to a one-line probe; binutils-dev followed it
+# onto the list as sbsigntools' other dependency, and its own TCC
+# parse failure in bfd.c was never root-caused. If it turns out to
+# build under TCC once its declaration is right, it should come back
+# off the list (ADR-0211, ADR-0226).
+#
+package "binutils-dev" {
+    version "2.42"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "binutils" {
+            url "https://mirrors.kernel.org/gnu/binutils/binutils-2.42.tar.xz"
+            sha256 "f6e4d41fd5fc778b06b7891457b3620da5ecea1006c6a4a41ae998109f85a800"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "binutils"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            # binutils' own Makefiles use find during install.
+            tool "findutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "missing language feature: needs __builtin_ms_va_list for the EFI calling convention, which TCC does not implement; bfd.c also fails to parse"
+    }
+
+    metadata {
+        "changelog" "2.42-6: converts to CPDL (cix#487), and moves the source to mirrors.kernel.org. ftp.gnu.org refused the fetch with SSL_ERROR_SYSCALL on 2026-09-22 (cix#409's intermittent reachability), which blocked sbsigntools behind this package. Same bytes, same sha256. The two find pipelines become explicit copies and one copy glob."
+    }
+
+    build {
+        # binutils' own documented out-of-tree convention.
+        mkdir "${src}/binutils/binutils-2.42/build"
+        cd "${src}/binutils/binutils-2.42/build" {
+            run "../configure" {
+                "--prefix=/usr"
+                "--disable-multilib"
+                "--disable-gold"
+                "--disable-gprofng"
+                "--enable-deterministic-archives"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                "MAKEINFO=true"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        # The static headers (ansidecl.h, libiberty.h, bfdlink.h, ...)
+        # are source-tree files; bfd.h and bfdver.h are GENERATED
+        # inside the build directory's own bfd/ and are not shipped as
+        # source. An earlier revision got this wrong in both
+        # directions at once, because pkg_install() inherited
+        # pkg_build()'s `cd build` and it referenced paths as though
+        # it had not. Nothing is relative here, so there is nothing to
+        # inherit and nothing to get wrong.
+        copy tree "${src}/binutils/binutils-2.42/include" to "${dest}/usr/include"
+        copy "${src}/binutils/binutils-2.42/build/bfd/bfd.h" to "${dest}/usr/include/bfd.h"
+        copy "${src}/binutils/binutils-2.42/build/bfd/bfdver.h" to "${dest}/usr/include/bfdver.h"
+
+        # Was `find . -name '*.a' -exec cp -a {} ... \;`. A glob
+        # source selector says the same thing as one operation.
+        mkdir "${dest}/usr/lib"
+        copy glob "${src}/binutils/binutils-2.42/build/**/*.a" to "${dest}/usr/lib"
+
+        # What sbsigntools actually needs, asserted rather than
+        # inferred from make exiting 0 (cix#113).
+        require file "${dest}/usr/include/bfd.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/libbfd.a" {
+            exists
+            nonempty
+        }
+    }
+}

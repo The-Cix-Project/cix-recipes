@@ -1,0 +1,260 @@
+#
+# sbsigntools -- sbsign/sbverify/sbattach/sbvarsign/sbsiglist/
+# sbkeysync, for signing and verifying UEFI PE/COFF binaries for
+# Secure Boot.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# CANONICAL UPSTREAM, confirmed directly rather than guessed: the
+# original Canonical/Jeremy Kerr tree is dead and the maintained fork
+# is James Bottomley's -- confirmed via that repo's own README ("The
+# current maintained fork resides at:..."), its configure.ac
+# maintainer contact, and GNU Guix's package definition sourcing the
+# same URL and tag. v0.9.5 is upstream's newest real tag, and upstream
+# ships NO release tarball at all, only git tags, so the source is a
+# cgit /snapshot/ of that exact tag.
+#
+# THE SECOND SOURCE is CCAN, which sbsigntools vendors as a git
+# submodule (lib/ccan.git -> git.ozlabs.org/~ccan/ccan, from
+# .gitmodules) pinned at b1f28e1, read from the real submodule gitlink
+# at tag v0.9.5. A parent repo's snapshot does not contain its
+# submodules, so it is fetched separately. It comes from
+# rustyrussell/ccan rather than git.ozlabs.org because ozlabs' gitweb
+# snapshot URL is query-string-only and produces an unusable basename;
+# same commit, confirmed byte-identical by sha256 against ozlabs' own
+# snapshot.
+#
+# THE TOOLWRAP IS GONE, and this is the cbs#219 question asked of a
+# second recipe. That wrapper did two jobs, and neither needed a
+# fabricated executable:
+#
+#   -D__STDC_NO_VLA__=1   travels in CC itself. The shell form baked
+#                         it into the wrapper because ccan's Makefile
+#                         ASSIGNS CFLAGS, so an environment CFLAGS is
+#                         overridden -- true, and the answer is that
+#                         make expands $(CC) as a command line, so a
+#                         flag in CC reaches every invocation just as
+#                         a wrapper would, with nothing fabricated.
+#
+#   --std=* -> -std=*     is NOT reproduced, because nothing has
+#                         measured that it is still needed. If some
+#                         component really passes a double-dashed
+#                         --std, TCC will say so and name the file,
+#                         and a literal in a source tree is a
+#                         `replace` -- which is exactly the boundary
+#                         recorded on cbs#223 after hostapd's own
+#                         wrapper turned out to be one token in one
+#                         file. Carrying a rewrite forward because an
+#                         older revision had one is how a workaround
+#                         outlives its cause.
+#
+# WHY -D__STDC_NO_VLA__=1 AT ALL: glibc's <regex.h> declares
+# regexec()'s regmatch_t parameter with a C99 VLA-in-prototype size
+# expression referencing the NEXT parameter, which TCC rejects --
+#   /usr/include/regex.h:682: error: '__nmatch' undeclared
+# The header has its own #ifndef __STDC_NO_VLA__ branch for a compiler
+# without VLA support, so saying so accurately steers it onto a form
+# TCC parses. Same gap xorriso and daemon/src/logstore.c both hit.
+#
+# CC IS NAMED, and the absence of a bare `cc` is deliberate. ccan's
+# Makefile relies on make's built-in default of CC=cc, and a composed
+# environment (ADR-0199) has tcc and gcc but no `cc` at all, so an
+# earlier revision died on `make: cc: No such file or directory`. That
+# absence is worth keeping: this project has already shipped an sshd
+# whose configure reported PAM support and whose ELF carried no
+# libpam, because a bare `cc` silently resolved to GCC instead of TCC.
+#
+# create-ccan-tree's SHEBANG IS CORRECTED, rather than the script
+# being run through an explicit interpreter. It starts "#!/bin/bash",
+# and this project's images have no /bin/bash -- the bash package
+# installs usr/bin/bash and a bin/sh symlink and nothing else. The
+# shebang fails at execve and bash reports
+#   create-ccan-tree: cannot execute: required file not found
+# -- exit 127, which reads like a missing script rather than a missing
+# interpreter.
+#
+# The shell form worked around that by invoking `bash <script>`. CPDL
+# will not let you, and is right not to:
+#
+#   CBS validation rejects the literal basenames sh, bash, dash, ash,
+#   ksh, zsh, and env ... This rule prevents a shell escape in CPDL
+#   while allowing upstream build systems that are themselves scripts.
+#
+# A recipe that names an interpreter to run a script is one edit away
+# from naming one to run recipe logic, so the rule is a good one -- and
+# the alternative it forces is better than what it refuses. Fixing the
+# shebang repairs the actual defect, in the generated tree only, and
+# the script is then an ordinary executable CBS runs like ./configure.
+# A recipe that invokes the interpreter leaves the bad shebang in
+# place for whatever runs the script next.
+#
+# SUBDIRS override: upstream's own SUBDIRS is "lib/ccan src docs
+# tests". docs needs help2man, which is staged nowhere here, and tests
+# is irrelevant to installing the tools. Confirmed real rather than a
+# workaround: an unrestricted `make` builds and links all six binaries
+# successfully before ever reaching docs.
+#
+package "sbsigntools" {
+    version "0.9.5"
+    release 12
+    format "cixpkg"
+
+    sources {
+        main "sbsigntools" {
+            url "https://git.kernel.org/pub/scm/linux/kernel/git/jejb/sbsigntools.git/snapshot/sbsigntools-v0.9.5.tar.gz"
+            sha256 "88ffb0eead3687bed6b0c741e5f440d8f00978493794fa1d11a32bb6a316f7cf"
+        }
+        extra "ccan" {
+            url "https://codeload.github.com/rustyrussell/ccan/tar.gz/b1f28e1"
+            sha256 "79f709f16f6223c6d464fe17ea0dc4432ee67abaad575ed35b000a85b998f4f7"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            # Autotools regeneration from a git snapshot: aclocal,
+            # autoheader, autoconf and automake all run before
+            # configure, so these are real build inputs.
+            tool "m4"
+            tool "perl"
+            tool "autoconf"
+            tool "automake"
+            # ccan's create-ccan-tree parses its arguments with
+            #   getopt -o ab: --long copy-all,build-type: ...
+            # and bash's builtin getopts is not a substitute: it has
+            # no --long, which is exactly what that call uses. Added
+            # as a real package rather than patching the argument
+            # parsing out of third-party source.
+            tool "getopt"
+            # Present here as well as at runtime because a composed
+            # environment is built from this list ALONE -- headers and
+            # libraries have to be here to compile against, not merely
+            # installed alongside the result.
+            tool "gnu-efi"
+            tool "libuuid"
+            tool "binutils-dev"
+            tool "openssl"
+        }
+        runtime {
+            package "gnu-efi"
+            package "libuuid"
+            package "binutils-dev"
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "0.9.5-12: removes the snapshot own empty lib/ccan.git before extracting into it -- a submodule gitlink becomes an empty directory in a git-archive, so the shell form rm -rf was load-bearing and 0.9.5-11 failed CPDL-E4006 without it. 0.9.5-11: converts to CPDL (cix#487). The toolwrap is gone, the define travels in CC, and create-ccan-tree #!/bin/bash shebang is corrected rather than the script being run through bash, which CPDL refuses as a shell escape."
+    }
+
+    build {
+        # The snapshot's top-level directory name is not guessed.
+        # Exactly one match is required, so a snapshot that ever
+        # produced two fails here rather than silently picking one.
+        glob "top" = "${src}/sbsigntools/*"
+
+        # The snapshot already carries lib/ccan.git -- a submodule
+        # gitlink becomes an empty directory in a git-archive, so the
+        # path is occupied before anything is extracted into it. The
+        # shell form's `rm -rf lib/ccan.git` was load-bearing and
+        # dropping it failed 0.9.5-11:
+        #
+        #   error[CPDL-E4006]: source: extracted destination already
+        #   exists or is missing
+        #
+        # (One message for two opposite causes, which is worth
+        # knowing when reading it: here it is "already exists".)
+        # allow_failure because the directory's presence is an
+        # artifact of how the snapshot was produced, not something
+        # this recipe should assert.
+        remove tree "${glob.top}/lib/ccan.git" allow_failure
+
+        # Was: tar xzf /build/extra/b1f28e1 -C lib, then a mv to fix
+        # the name. `as` renames the archive's single top-level
+        # directory on the way in, so neither step is needed.
+        extract $source.ccan into "${glob.top}/lib" as "ccan.git"
+
+        # autoreconf requires these to exist; the snapshot has
+        # neither, since both are generated in upstream's own release
+        # process rather than committed.
+        write "${glob.top}/AUTHORS" "Authors of sbsigntool:\n"
+        write "${glob.top}/ChangeLog" "\n"
+
+        # See the header: #!/bin/bash does not exist on this
+        # platform, and CPDL refuses to let a recipe name an
+        # interpreter. The generated tree is edited; upstream's own
+        # source is untouched, exactly as with a generated makefile.
+        replace "${glob.top}/lib/ccan.git/tools/create-ccan-tree" {
+            from "#!/bin/bash"
+            to "#!/usr/bin/bash"
+            exactly 1
+        }
+
+        cd "${glob.top}" {
+            run "lib/ccan.git/tools/create-ccan-tree" {
+                "--build-type=automake"
+                "lib/ccan"
+                "talloc"
+                "read_write_all"
+                "build_assert"
+                "array_size"
+                "endian"
+                env "CC" = "tcc -D__STDC_NO_VLA__=1"
+            }
+
+            run "aclocal" {
+            }
+            run "autoheader" {
+            }
+            run "autoconf" {
+            }
+            run "automake" {
+                "--add-missing"
+                "-Wno-portability"
+            }
+
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc -D__STDC_NO_VLA__=1"
+            }
+
+            run "make" {
+                "SUBDIRS=lib/ccan src"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${glob.top}" {
+            run "make" {
+                "install"
+                "SUBDIRS=lib/ccan src"
+                "DESTDIR=${dest}"
+            }
+        }
+
+        # The binaries are the point of the package; assert them
+        # rather than trust make's exit status (cix#113).
+        require file "${dest}/usr/bin/sbsign" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/sbverify" {
+            exists
+            executable
+        }
+    }
+}
