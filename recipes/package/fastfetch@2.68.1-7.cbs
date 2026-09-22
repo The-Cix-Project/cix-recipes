@@ -1,0 +1,273 @@
+# fastfetch -- the system summary the jump box prints at login,
+# carrying the Cix mark.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# `write` DOES NOT CREATE PARENT DIRECTORIES, which 2.68.1-5
+# found the expensive way -- a complete cmake build, then
+# CPDL-E4004 errno=2 on cixlogo/. Every `write` into a new
+# directory here is preceded by a `mkdir`, exactly as the shell
+# form's `mkdir -p` was.
+#
+# THREE HEREDOCS BECOME THREE BLOCK STRINGS, and that is the reason
+# this conversion is clean rather than painful. Two of them are the
+# Cix logo in box-drawing characters with $1 and $2 colour
+# placeholders, and one is a JSON config. A block string processes
+# NO escapes and NO interpolation, so `$1` stays `$1` and every
+# U+2588 stays itself -- which a quoted string with \n escapes would
+# have made unreadable and a shell heredoc only managed by quoting
+# its delimiter.
+#
+# `expect { stdout contains }` IS ONLY FOR SINGLE-LINE OUTPUT, which
+# 2.68.1-6 found: the config gate asserted on fastfetch's own report
+# and got
+#
+#   error[CPDL-E4001]: process stdout must be one line
+#
+# So a multi-line program is asserted through `stdout file` and
+# `require file { contains }` -- the form cbs#185 exists for -- and
+# `expect { stdout contains }` is for a one-line answer. Both gates
+# here take the file route for that reason.
+#
+# THE THREE GATES ALL SURVIVE, and one of them is the first negative
+# check in this corpus:
+#
+#   "it ran and printed something"  -> stdout file + require nonempty
+#   "the logo has no literal $1"    -> grep ... expect exit 1
+#   "the config yields modules"     -> stdout file + contains
+#
+# The middle one is worth naming. CPDL has no "does not contain", and
+# the shell form was a `case` with a failure arm. `grep` answers 1
+# when it finds nothing, so `expect exit 1` IS the negative
+# assertion, and -F keeps `$1` a literal rather than a regex
+# anchor-and-group. It is checking for a real failure that has
+# happened: fastfetch renders a logo file's colour placeholders only
+# when it understands the file, and a logo whose `$1` reaches the
+# terminal verbatim looks like a corrupt install.
+#
+# WHY -4 EXISTS, and it is the reason the config gate is not
+# optional: the config revision 3 installed selected the logo and
+# SILENCED EVERY INFORMATION MODULE. Measured in the jump container
+# -- with that config fastfetch printed the Cix mark and not one line
+# beside it, and the same binary with `--config none` printed the
+# full default set. A loaded config IS the module list, and one with
+# no "modules" key is a list of none.
+#
+# gcc, and it is a language gap rather than a bug: fastfetch is C23,
+# its CMakeLists sets the standard to 23, and TCC reports
+# __STDC_VERSION__ 199901 even on the pinned 0.9.28rc snapshot
+# (probe-tcc-conformance/9). Re-measure if TCC gains C23 (ADR-0226).
+package "fastfetch" {
+    version "2.68.1"
+    release 7
+    format "cixpkg"
+
+    sources {
+        main "fastfetch" {
+            url "https://github.com/fastfetch-cli/fastfetch/archive/refs/tags/2.68.1.tar.gz"
+            sha256 "c268cfcd230cc7ed5447fb34ed21bf4977315c7104356a39388b6ba784ad11b0"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "cmake"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "findutils"
+            tool "binutils"
+            tool "pkgconf"
+            tool "glibc"
+            tool "linux-headers"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "language: fastfetch is C23 -- its CMakeLists.txt sets the C standard to 23 and the sources use C23 constructs throughout. TCC reports __STDC_VERSION__ 199901 even on the pinned 0.9.28rc snapshot (probe-tcc-conformance/9), so this is a language-version gap rather than a bug to file. Re-measure if TCC gains C23."
+    }
+
+    metadata {
+        "changelog" "2.68.1-7: converts to CPDL (cix#487). Same tarball, same cmake line, same 46 installed files including both logos and the config. The three heredocs become block strings, so box-drawing characters and colour placeholders survive verbatim. All three gates survive, each through stdout file plus require file: -5 learned that write does not create parent directories, and -6 that expect stdout contains is only for single-line output, which fastfetch is not."
+    }
+
+    build {
+        cd "${src}/fastfetch/fastfetch-2.68.1" {
+            run "cmake" {
+                "-S"
+                "."
+                "-B"
+                "build"
+                "-DCMAKE_BUILD_TYPE=Release"
+                "-DCMAKE_INSTALL_PREFIX=/usr"
+                "-DBUILD_TESTS=OFF"
+            }
+            run "cmake" {
+                "--build"
+                "build"
+                jobs $jobs
+            }
+            # It ran and said something. A cmake that exits 0 is not
+            # evidence of a working binary.
+            run "./build/fastfetch" {
+                "--structure"
+                "Title"
+                "--pipe"
+                stdout file "${build}/ff-title.txt"
+            }
+            require file "${build}/ff-title.txt" {
+                exists
+                nonempty
+            }
+            # The Cix mark, rendered. $1 and $2 are fastfetch's own
+            # colour placeholders and must not reach a terminal
+            # literally.
+            # `write` does not create parent directories. Measured
+            # on 192.168.15.95, 2026-09-22: 2.68.1-5 wrote straight
+            # into cixlogo/ and got
+            #
+            #   error[CPDL-E4004]: filesystem operation failed:
+            #   `.../cixlogo/cix.txt`; errno=2 (No such file or directory)
+            #
+            # after a complete, successful cmake build. The shell
+            # form's `mkdir -p` was load-bearing and easy to read as
+            # defensive.
+            mkdir "${src}/fastfetch/fastfetch-2.68.1/cixlogo"
+            write "${src}/fastfetch/fastfetch-2.68.1/cixlogo/cix.txt" """
+            $1           ▄▄▄▄
+            $1      ▄▄███████████▄
+            $1    ▄██████▀▀▀▀▀██████▄           ▄▄██████▄
+            $1   ████▀▀         ▀█████▄      ▄█████████▀▀
+            $1  ████▀     $2▄▄$1      ▀█████▄  ▄█████▀
+            $1 ▄███▀    $2▄█████▄$1     ▀▀██▀▄████▀
+            $1 ████     $2███████$1        ▄█████
+            $1 ▀███▄    $2▀█████▀$1      ▄████████▄
+            $1  ████▄     $2▀▀$1       ▄████▀  ▀████▄▄
+            $1   ████▄▄         ▄▄████▀      ▀█████▄▄▄▄▄
+            $1    ▀██████▄▄▄▄▄██████▀          ▀▀███████▀
+            $1      ▀▀███████████▀▀
+            $1           ▀▀▀▀
+            """
+            run "./build/fastfetch" {
+                "--logo"
+                "${src}/fastfetch/fastfetch-2.68.1/cixlogo/cix.txt"
+                "--structure"
+                "Title"
+                "--pipe"
+                stdout file "${build}/ff-logo.txt"
+            }
+            require file "${build}/ff-logo.txt" {
+                exists
+                nonempty
+            }
+            # The negative half. grep answers 1 when it finds
+            # nothing, so exit 1 IS the passing case; -F keeps $1 a
+            # literal rather than a regex group reference.
+            run "grep" {
+                "-F"
+                "$1"
+                "${build}/ff-logo.txt"
+                expect exit 1
+            }
+            run "grep" {
+                "-F"
+                "$2"
+                "${build}/ff-logo.txt"
+                expect exit 1
+            }
+        }
+    }
+
+    install {
+        cd "${src}/fastfetch/fastfetch-2.68.1" {
+            run "cmake" {
+                "--install"
+                "build"
+                env "DESTDIR" = "${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/fastfetch" {
+            exists
+            executable
+        }
+        # Both marks, at the path the config below names, so an image
+        # that installs this package has the logo wherever it is
+        # pointed at from.
+        mkdir "${dest}/usr/share/cix/fastfetch"
+        write "${dest}/usr/share/cix/fastfetch/cix.txt" """
+        $1           ▄▄▄▄
+        $1      ▄▄███████████▄
+        $1    ▄██████▀▀▀▀▀██████▄           ▄▄██████▄
+        $1   ████▀▀         ▀█████▄      ▄█████████▀▀
+        $1  ████▀     $2▄▄$1      ▀█████▄  ▄█████▀
+        $1 ▄███▀    $2▄█████▄$1     ▀▀██▀▄████▀
+        $1 ████     $2███████$1        ▄█████
+        $1 ▀███▄    $2▀█████▀$1      ▄████████▄
+        $1  ████▄     $2▀▀$1       ▄████▀  ▀████▄▄
+        $1   ████▄▄         ▄▄████▀      ▀█████▄▄▄▄▄
+        $1    ▀██████▄▄▄▄▄██████▀          ▀▀███████▀
+        $1      ▀▀███████████▀▀
+        $1           ▀▀▀▀
+        """
+        write "${dest}/usr/share/cix/fastfetch/cix-small.txt" """
+        $1     ▄▄▄▄▄▄
+        $1  ▄███▀▀▀▀███▄      ▄▄██▄
+        $1 ▄██▀      ▀███▄  ▄██▀▀▀▀
+        $1 ██   $2███▄$1   ▀▀█▄██▀
+        $1 ██   $2███▀$1   ▄█████▄
+        $1 ▀██▄      ▄███▀ ▀███▄▄
+        $1  ▀███▄▄▄▄███▀      ▀████
+        $1     ▀▀▀▀▀▀
+        """
+        # A loaded config IS the module list. -3 shipped one with no
+        # "modules" key, which is a list of none, and fastfetch
+        # printed the mark and nothing else.
+        mkdir "${dest}/etc/fastfetch"
+        write "${dest}/etc/fastfetch/config.jsonc" """
+        {
+            "logo": {
+                "type": "file",
+                "source": "/usr/share/cix/fastfetch/cix.txt"
+            },
+            "modules": [
+                "title",
+                "separator",
+                "os",
+                "host",
+                "kernel",
+                "uptime",
+                "shell",
+                "terminal",
+                "cpu",
+                "gpu",
+                "memory",
+                "swap",
+                "disk",
+                "localip",
+                "locale",
+                "break",
+                "colors"
+            ]
+        }
+        """
+        # Run the binary against the config it is about to ship. The
+        # failure this catches is silent: a config that parses and
+        # selects nothing.
+        run "${src}/fastfetch/fastfetch-2.68.1/build/fastfetch" {
+            "--pipe"
+            "--logo"
+            "none"
+            "--config"
+            "${dest}/etc/fastfetch/config.jsonc"
+            stdout file "${build}/ff-config.txt"
+        }
+        require file "${build}/ff-config.txt" {
+            exists
+            nonempty
+            contains "Kernel:"
+        }
+    }
+}
