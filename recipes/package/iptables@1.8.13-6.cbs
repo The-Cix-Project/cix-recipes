@@ -1,0 +1,204 @@
+# iptables -- the nft-backed iptables/ip6tables/arptables/ebtables
+# family the router image filters with, plus libxtables and the
+# libiptc pair other packages build against.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE BIG WIN HERE IS THE MODULE COUNT. The shell form ended with a
+# count of usr/lib/xtables/*.so piped into wc -l, compared against a
+# floor of 20 -- a number chosen because counting by hand was not
+# worth it, against a package that really installs 121 (measured
+# from the installed 1.8.13-5 on 192.168.15.95). A floor of 20 would
+# sail through a build that lost five sixths of its extensions, and
+# the only symptom would be "iptables -m conntrack" failing at
+# runtime on the router. "require glob ... exactly 121" is the same
+# guard with the real number in it, and it fails in BOTH directions:
+# a build that silently gains modules is as interesting as one that
+# loses them.
+#
+# THE OTHER LOOPS BECOME REQUIRES. Three shell loops with test -e,
+# and an "ls ... >/dev/null 2>&1" used for the shared libraries
+# because their names carry a version, turn into plain assertions --
+# and the soname trap applies: the real files are libxtables.so.12.7.0
+# and the libip4tc/libip6tc .so.2.0.0 pair, while the .so.12 and
+# .so.2 a consumer links against are symlinks that require file
+# refuses (cbs#175). Both halves are asserted.
+#
+# AM_DEPFLAGS= IS LOAD-BEARING (1.8.13-3): automake passes
+# -Wp,-MMD,... which TCC cannot parse, and emptying the variable is
+# what gets the build past its first object.
+#
+# usr/share/man and usr/share/xtables are no longer deleted
+# (ADR-0306, cix#491), so this package grows. 1.8.13-5 shipped
+# nothing under usr/share at all.
+package "iptables" {
+    version "1.8.13"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "iptables" {
+            url "https://deb.debian.org/debian/pool/main/i/iptables/iptables_1.8.13.orig.tar.xz"
+            sha256 "1afcd33da9e8f913ace6a2126788162e207e26f5d5e29c6573c0e581ffc58b99"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "libmnl"
+            tool "libnftnl"
+        }
+        runtime {
+            package "libmnl"
+            package "libnftnl"
+        }
+    }
+
+    metadata {
+        "changelog" "1.8.13-6: converts to CPDL (cix#487). Same tarball, same configure and make lines, same binaries and libraries. The xtables module guard stops being a floor of 20 and becomes require glob exactly 121, the number 1.8.13-5 actually installs -- a floor of 20 would pass a build that lost five sixths of its extensions, and the symptom would be iptables -m conntrack failing on the router. The three test -e loops become requires, split into real file and soname symlink (cbs#175). Keeps usr/share (cix#491)."
+    }
+
+    build {
+        cd "${src}/iptables/iptables-1.8.13" {
+            # configure hard-errors inside PKG_CHECK_MODULES without
+            # these; failing here names the version that is wrong.
+            run "pkg-config" {
+                "--atleast-version=1.0.4"
+                "libmnl"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            run "pkg-config" {
+                "--atleast-version=1.2.6"
+                "libnftnl"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--enable-shared"
+                env "CC" = "tcc"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            # automake's own dependency flags are -Wp,-MMD,... which
+            # TCC cannot parse (1.8.13-3).
+            run "make" {
+                "AM_DEPFLAGS="
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/iptables/iptables-1.8.13" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        remove glob "${dest}/usr/lib/*.la" allow_failure
+        # 121, measured from the installed 1.8.13-5 rather than
+        # guessed. The shell form asserted "more than 20".
+        require glob "${dest}/usr/lib/xtables/*.so" {
+            exactly 121
+        }
+        require file "${dest}/usr/sbin/xtables-nft-multi" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/iptables" {
+            exists
+            executable
+        }
+        # The real files, then the sonames a consumer links. cbs#175:
+        # require file refuses a symlink, and the soname is always
+        # the name you reach for because it is the name you know.
+        require file "${dest}/usr/lib/libxtables.so.12.7.0" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libxtables.so.12" {
+            exists
+            target "libxtables.so.12.7.0"
+        }
+        require file "${dest}/usr/lib/libip4tc.so.2.0.0" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libip4tc.so.2" {
+            exists
+            target "libip4tc.so.2.0.0"
+        }
+        require file "${dest}/usr/lib/libip6tc.so.2.0.0" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libip6tc.so.2" {
+            exists
+            target "libip6tc.so.2.0.0"
+        }
+        # The four pkg-config modules and the four headers other
+        # packages build against. Note the module is named xtables,
+        # not libxtables -- 1.8.13-3 asserted the library file name
+        # and failed a correct build (1.8.13-4).
+        require file "${dest}/usr/lib/pkgconfig/xtables.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libip4tc.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libip6tc.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libiptc.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/xtables.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/xtables-version.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/libiptc/libiptc.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/libiptc/libip6tc.h" {
+            exists
+            nonempty
+        }
+        # It must really be linked against Cix's netlink libraries
+        # rather than having resolved the symbols some other way
+        # (cix#113). The stdout-file form rather than links, which
+        # still carries the cbs#201 false negative.
+        run "readelf" {
+            "-d"
+            "${dest}/usr/sbin/xtables-nft-multi"
+            stdout file "${src}/iptables/needed.txt"
+        }
+        require file "${src}/iptables/needed.txt" {
+            exists
+            contains "libmnl.so.0"
+        }
+        require file "${src}/iptables/needed.txt" {
+            exists
+            contains "libnftnl.so.11"
+        }
+    }
+}
