@@ -1,0 +1,202 @@
+# hostapd -- the 802.11 access point daemon the wifi_router image
+# runs, built against OpenWrt libnl-tiny rather than full libnl.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE SECOND SOURCE STOPS BEING A MANUAL UNPACK. The shell form
+# listed /build/extra, picked the first entry, tar xzf it, listed
+# libnl-tiny-* to find what came out, and mv it to a fixed name --
+# five steps and three failure messages, all of which existed
+# because ADR-0036 hands a non-first source to the recipe as an
+# opaque file. CBS extracts every declared source into $src/<name>/,
+# so the tarball is already unpacked; the only unknown left is the
+# directory name, which carries the pinned commit hash, and
+# `glob "nltiny" = ...` binds it. That operation requires exactly one
+# match by default, so a tarball that ever produced two top-level
+# directories fails here rather than silently picking one.
+#
+# THE WILDCARD LINK LINE HAS NO CPDL FORM, and this is the one place
+# the conversion is a workaround rather than a translation. The
+# shell built libnl-tiny with
+#
+#     tcc -shared -Wall -Iinclude *.c -o build/libnl-tiny.so
+#
+# and CPDL has no way to expand a glob into one command argument
+# list: `each` takes a literal list, and `glob` binds a single match.
+# Filed as cbs#207. Listing the .c files literally would be a guess
+# that silently drops one when that pinned commit ever changes, so
+# instead the link line moves into a generated makefile and make
+# does the globbing with $(wildcard). make is a declared tool and
+# the makefile is content this recipe authors, the same as the
+# tcc-builtins shim libnl carries -- but the actual command is now
+# in a string CBS does not parse, and the `run` no longer says what
+# runs. That is the cost, and it goes away when cbs#207 lands.
+#
+# THE TOOLWRAP STAYS, AND LOSES ITS ARRAY. hostapd build passes
+# -MMD, which TCC does not accept; the wrapper rewrites it to -MD
+# and delegates. The shell form used a bash array, args+=(...), and
+# that cannot be written here: a block string containing the two
+# characters dollar-brace is REFUSED at publish with
+#
+#   error[CPDL-E3005]: validation: unknown CBS interpolation value
+#
+# even though the specification says block strings do not
+# interpolate and are left unchanged. So "${args[@]}" is impossible,
+# and the wrapper rebuilds its argument list through the positional
+# parameters instead -- same behaviour, no dollar-brace anywhere.
+# Filed as cbs#208. It also gets an explicit #!/usr/bin/bash, which
+# the shell form did not have: it relied on /bin/sh being bash,
+# which is an accident of which package provides bin/sh.
+#
+# THREE .config APPENDS RIDE ON A REPLACE, because CPDL has no
+# append-to-file operation. The TLS line is being rewritten anyway,
+# so the three new lines go into its replacement text. One operation
+# instead of a rewrite plus a heredoc redirect, and the `exactly 1`
+# covers both halves.
+package "hostapd" {
+    version "2.11"
+    release 11
+    format "cixpkg"
+
+    sources {
+        main "hostapd" {
+            url "https://w1.fi/releases/hostapd-2.11.tar.gz"
+            sha256 "2b3facb632fd4f65e32f4bf82a76b4b72c501f995a4f62e330219fe7aed1747a"
+        }
+        extra "libnltiny" {
+            url "https://codeload.github.com/openwrt/libnl-tiny/tar.gz/40493a655d8caa2ccf5206dde1e733abe2920432"
+            sha256 "a3f0456006b72352f0ccc9a653eb2428a03bc3ff3c6987a858b0c060ac19b181"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "openssl"
+        }
+        runtime {
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "2.11-11: converts to CPDL (cix#487). The libnl-tiny unpack becomes an extra source plus a glob binding, replacing an ls of /build/extra, a tar, a second ls and an mv. The .config edits become two replaces with exactly 1 each, the second carrying the three appends since CPDL has none. The wildcard link line moves into a generated makefile (cbs#207), and the toolwrap loses its bash array because a block string may not contain dollar-brace (cbs#208). 2.11-10 could not use its glob in install (cbs#209)."
+    }
+
+    prepare {
+        # -MMD is a GCC spelling TCC does not accept; -MD is the one
+        # it does, and the dependency output is not used here either
+        # way. A bash array, hence the explicit interpreter.
+        mkdir "${build}/toolwrap"
+        write "${build}/toolwrap/tcc-hostapd" """
+        #!/usr/bin/bash
+        # Rebuilds the argument list through the positional
+        # parameters rather than a named array, because a block
+        # string may not contain the two characters dollar-brace at
+        # all -- see this recipe's header.
+        n=$#
+        i=0
+        while [ $i -lt $n ]; do
+        	a=$1
+        	shift
+        	if [ "$a" = "-MMD" ]; then
+        		set -- "$@" -MD
+        	else
+        		set -- "$@" "$a"
+        	fi
+        	i=$((i + 1))
+        done
+        exec tcc "$@"
+        """
+        chmod 0755
+    }
+
+    build {
+        # The directory name carries the pinned commit hash, so it is
+        # bound rather than written out. Exactly one match by default.
+        glob "nltiny" = "${src}/libnltiny/libnl-tiny-*"
+        mkdir "${glob.nltiny}/build"
+        # cbs#207: the link line lives here because CPDL cannot
+        # expand *.c into one command argument list.
+        write "${glob.nltiny}/cix.mk" """
+        SRCS := $(wildcard *.c)
+        all: build/libnl-tiny.so
+        build/libnl-tiny.so: $(SRCS)
+        	tcc -shared -Wall -Iinclude $(SRCS) -o build/libnl-tiny.so
+        """
+        cd "${glob.nltiny}" {
+            run "make" {
+                "-f"
+                "cix.mk"
+            }
+        }
+        require file "${glob.nltiny}/build/libnl-tiny.so" {
+            exists
+            nonempty
+        }
+        copy "${src}/hostapd/hostapd-2.11/hostapd/defconfig" to "${src}/hostapd/hostapd-2.11/hostapd/.config"
+        # The TLS line is rewritten AND carries the three appends,
+        # because CPDL has no append-to-file operation.
+        replace "${src}/hostapd/hostapd-2.11/hostapd/.config" {
+            from "#CONFIG_TLS=openssl"
+            to "CONFIG_TLS=openssl\nCONFIG_LIBNL_TINY=y\nCFLAGS += -I${glob.nltiny}/include -D_GNU_SOURCE\nLDFLAGS += -L${glob.nltiny}/build"
+            exactly 1
+        }
+        replace "${src}/hostapd/hostapd-2.11/hostapd/.config" {
+            from "CONFIG_LIBNL32=y"
+            to "#CONFIG_LIBNL32=y"
+            exactly 1
+        }
+        cd "${src}/hostapd/hostapd-2.11/hostapd" {
+            # -j1 deliberately: hostapd own makefile is not
+            # parallel-safe here.
+            run "make" {
+                "CC=${build}/toolwrap/tcc-hostapd"
+            }
+        }
+    }
+
+    install {
+        # RE-DECLARED, because 2.11-10 bound it in the build phase
+        # and the install phase could not use it: the two copies
+        # taking ordinary ${src} paths succeeded and the third,
+        # taking ${glob.nltiny}, failed with
+        #
+        #   error[CPDL-E4004]: filesystem operation failed:
+        #   `${glob.nltiny}/build/libnl-tiny.so`; errno=1
+        #
+        # The spec says a glob binding is available "for later
+        # operations" and does not say the binding ends with its
+        # phase. Whether that is the intended scope or a defect is
+        # cbs#209; re-declaring costs one line and is correct either
+        # way, since the pattern still matches exactly one directory.
+        glob "nltiny" = "${src}/libnltiny/libnl-tiny-*"
+        mkdir "${dest}/usr/bin"
+        mkdir "${dest}/usr/lib"
+        copy "${src}/hostapd/hostapd-2.11/hostapd/hostapd" to "${dest}/usr/bin/hostapd"
+        copy "${src}/hostapd/hostapd-2.11/hostapd/hostapd_cli" to "${dest}/usr/bin/hostapd_cli"
+        copy "${glob.nltiny}/build/libnl-tiny.so" to "${dest}/usr/lib/libnl-tiny.so"
+        require file "${dest}/usr/bin/hostapd" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/hostapd_cli" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/lib/libnl-tiny.so" {
+            exists
+            nonempty
+        }
+    }
+}
