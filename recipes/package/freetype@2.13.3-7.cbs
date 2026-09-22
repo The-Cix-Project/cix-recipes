@@ -1,0 +1,192 @@
+# freetype -- the font rasteriser grub-mkfont needs, and the last
+# input a self-hosted installer ISO was missing. grub-mkrescue always
+# embeds a .pf2 for the media label, and our grub could not produce
+# one: it was configured without freetype, so grub-mkfont was never
+# built and only its bash completion shipped.
+#
+# Built minimal on purpose. GRUB's font conversion needs glyph
+# rasterisation and nothing else, so PNG, Brotli, HarfBuzz and bzip2
+# are all switched off rather than pulling four libraries in behind a
+# font.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES:
+#
+#   the .eh_frame gate -- was `readelf -SW | grep -q` inside an `if`
+#                       that echoed and exited 1. Becomes one `run`
+#                       with `expect exit 1`: grep answers 1 when it
+#                       finds nothing, which is the passing case. It
+#                       reads the archive bytes directly rather than
+#                       readelf's output, which is both stricter and
+#                       immune to the 64 KiB `stdout file` ceiling
+#                       (cbs#199) that a section dump of a 2.6 MB
+#                       archive would sit right on the edge of.
+#   the find/move of freetype2.pc -- GONE. It was defensive, and the
+#                       measurement says it never fired: libfreetype.a
+#                       is installed at usr/lib in 2.13.3-5 and was
+#                       never moved, so libdir really is /usr/lib, and
+#                       freetype's own install.mk writes the .pc to
+#                       $(libdir)/pkgconfig. `require file` on the one
+#                       correct path replaces a find, a test, a mkdir
+#                       and a case -- and if that path is ever wrong
+#                       the build says so by name instead of silently
+#                       relocating whatever it found first.
+#   the echo + cat of the .pc -- GONE. Diagnostic output the require
+#                       makes unnecessary.
+#   rm -rf usr/share/man, usr/share/doc -- GONE (ADR-0306, cix#491).
+#                       Packages keep their documentation now.
+#
+# 2.13.3-6 IS THE SAME RECIPE AND WAS NEVER BUILT. It is published
+# and immutable (ADR-0107), and it failed twice at the fetch stage,
+# before any of the above ran:
+#
+#   fetch failed (curl exit status 1): OpenSSL SSL_connect:
+#   SSL_ERROR_SYSCALL in connection to download.savannah.gnu.org:443
+#
+# That is savannah specifically, not this host's egress and not TLS
+# in general: in the same window 192.168.15.95 fetched libnl from
+# github.com and net-tools from sourceforge.net successfully through
+# the identical path, and `cixctl storage` showed 13.4 GiB free on
+# /var/lib/cix with health `ok` -- checked first, because a full disk
+# is what a "flaky mirror" looked like once before (cix#503).
+#
+# So this revision adds two mirrors. CPDL lists urls as ordered
+# mirrors sharing one checksum, which is what makes this a non-event
+# rather than a risk: a mirror cannot substitute different bytes
+# without failing a gate that already exists. Same argument as the
+# ftp.gnu.org note in CLAUDE.md, and the same conclusion -- carry a
+# durable second choice rather than re-measure a flapping host.
+# nongnu is savannah's own alternate hostname for exactly this
+# project; sourceforge carries the freetype2 release directory.
+package "freetype" {
+    version "2.13.3"
+    release 7
+    format "cixpkg"
+
+    sources {
+        main "freetype" {
+            url "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.3.tar.xz"
+            url "https://download.savannah.nongnu.org/releases/freetype/freetype-2.13.3.tar.xz"
+            url "https://downloads.sourceforge.net/project/freetype/freetype2/2.13.3/freetype-2.13.3.tar.xz"
+            sha256 "0550350666d427c74daeb85d5ac7bb353acba5f76956395995311a9c6f063289"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "pkgconf"
+            tool "findutils"
+            tool "diffutils"
+            tool "zlib"
+        }
+        runtime {
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "changelog" "2.13.3-7: adds two mirrors. 2.13.3-6 is this recipe and was never built -- it failed twice at fetch with SSL_ERROR_SYSCALL against download.savannah.gnu.org:443, while the same host fetched libnl from github and net-tools from sourceforge in that window with 13.4 GiB free, so the fault is that one server. CPDL urls are ordered mirrors sharing one checksum, so no mirror can substitute different bytes. Otherwise unchanged from -6."
+    }
+
+    build {
+        cd "${src}/freetype/freetype-2.13.3" {
+            # --disable-shared is what keeps this on TCC rather than
+            # the gcc list. libtool asks the compiler for
+            # -Wl,-version-script when it builds a versioned shared
+            # library and TCC answers
+            #
+            #   tcc: error: unsupported linker option '-version-script'
+            #
+            # Nothing needs a shared libfreetype: its one consumer is
+            # grub-mkfont, a build-time tool, so a static link also
+            # means the ISO toolchain has no libfreetype.so to stage
+            # or keep in step.
+            #
+            # -fno-asynchronous-unwind-tables, and why a font needs it:
+            # tcc 0.9.27 emitted no .eh_frame at all, and the 0.9.28rc
+            # snapshot (ADR-0223) turns unwind tables on by default and
+            # emits every FDE relocation as ".text + 0" rather than
+            # each function's own offset. So every FDE claims to
+            # describe code at .text+0 with a different length, they
+            # all overlap, and GNU ld refuses the object with
+            # ".eh_frame_hdr refers to overlapping FDEs". tcc links its
+            # own output fine, so libfreetype.a builds, installs and
+            # verifies -- the failure appears only when GCC links
+            # against it, which is how it surfaced: grub's configure
+            # probes freetype with BUILD_CC, the probe failed to link,
+            # enable_grub_mkfont went to 'no', no unicode.pf2 was
+            # generated, and grub's own gate caught it four minutes
+            # later. The archive also doubled, 2.6 MB to 5.1 MB,
+            # entirely in unwind data nothing here can use. This is
+            # tcc's own documented option, not a post-hoc strip; the
+            # compiler bug is cix#227.
+            #
+            # -O2 is spelled out because setting CFLAGS at all
+            # displaces the default configure would otherwise choose.
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-shared"
+                "--enable-static"
+                "--with-zlib=yes"
+                "--with-png=no"
+                "--with-brotli=no"
+                "--with-harfbuzz=no"
+                "--with-bzip2=no"
+                env "CC" = "tcc"
+                env "CFLAGS" = "-O2 -fno-asynchronous-unwind-tables"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/freetype/freetype-2.13.3" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/libfreetype.a" {
+            exists
+            nonempty
+        }
+        # An archive carrying .eh_frame is one GNU ld will refuse, and
+        # the only symptom downstream is a feature quietly not built
+        # (cix#227). grep answers 1 when it finds nothing, so exit 1
+        # IS the passing case; -F because `.` is a regex metacharacter
+        # and -a because the archive is binary. The section name lives
+        # in each member's .shstrtab, so its literal absence from the
+        # file is exactly the absence of the section.
+        run "grep" {
+            "-a"
+            "-q"
+            "-F"
+            ".eh_frame"
+            "${dest}/usr/lib/libfreetype.a"
+            expect exit 1
+        }
+        # pkgconf searches only /usr/lib/pkgconfig and
+        # /usr/share/pkgconfig here, so a .pc anywhere else is
+        # invisible to grub's configure (cix#174).
+        require file "${dest}/usr/lib/pkgconfig/freetype2.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/freetype2/ft2build.h" {
+            exists
+            nonempty
+        }
+    }
+}
