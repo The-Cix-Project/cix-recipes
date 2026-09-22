@@ -1,0 +1,146 @@
+# btop -- a process monitor. Converted from build.sh to build.cbs
+# (ADR-0305 stage 4, #487), and the first C++ package to do so.
+#
+# WHAT CHANGES: usr/share/doc is no longer deleted (ADR-0306, #491).
+# usr/share/applications and usr/share/icons still are, and that is
+# not the same rule: a .desktop entry and two icons are for a
+# graphical menu, this platform has none, and no image installing
+# btop has one either. Dead weight in every rootfs is a package
+# decision; deleting documentation was a platform policy that was
+# withdrawn. usr/share/btop/themes stays, as before -- btop reads
+# those at runtime and degrades to one built-in theme without them.
+#
+# 1.4.7-2 WAS PUBLISHED AND NEVER BUILT, and this revision is what
+# makes the conversion buildable. It compiled btop in 4m10s and then
+# failed on its own assertion:
+#
+#   error[CPDL-E4001]: runtime: process stdout must be one line
+#
+# `expect { stdout contains }` takes a single line, and btop's
+# --version prints a banner over several. That is cbs#185, and the
+# guide's "what CPDL cannot do yet" table said btop would stay on
+# build.sh because of it.
+#
+# THE STATIC-LINK ASSERTION IS NOW ONE OPERATION. The shell recipe
+# ended with a NEGATIVE check:
+#
+#     if ldd ./bin/btop | grep -q libstdc++; then ... exit 1; fi
+#
+# -- the link must NOT name a shared libstdc++, because btop is the
+# only consumer of a C++ runtime here and the whole point of
+# -static-libstdc++ is that no image installing it needs one. 1.4.7-2
+# expressed that as three operations (bind ldd's output, write it to a
+# file, require `grep -q` over it to exit 1), CPDL having no negative
+# file assertion. It works, and `links` says it directly:
+#
+#     links "${dest}/usr/bin/btop" {
+#         forbids "libstdc++.so.6"
+#     }
+#
+# No temp file, no text parsing, and it reads the ELF's own DT_NEEDED
+# entries rather than ldd's rendering of them. `forbids` is the
+# negative form the earlier revision worked around the absence of --
+# it was there the whole time. Note it takes a FULL SONAME, measured
+# on nftables@1.1.1-5 the same day: `needs "libnftables"` fails on a
+# binary that does link it, because a substring is not a match.
+#
+# The guard is kept rather than dropped because the failure it catches
+# is silent at build time and only appears on someone else's machine
+# -- the shell recipe's own words, and the reason it was written.
+#
+# THE --version CHECK BECOMES A BARE RUN. A nonzero exit fails the
+# build and CBS prints the failing command, which is the half that
+# does the work: it proves the binary links and starts, which is what
+# matters when a missing shared libstdc++ would not fail the build but
+# would fail the first time an operator ran it. Matching "1.4.7" in
+# the banner is not expressible and never caught anything.
+#
+package "btop" {
+    version "1.4.7"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "btop" {
+            url "https://github.com/aristocratos/btop/archive/refs/tags/v1.4.7.tar.gz"
+            sha256 "933de2e4d1b2211a638be463eb6e8616891bfba73aef5d38060bd8319baeefc6"
+        }
+    }
+
+    # Nothing at runtime beyond libc: btop draws its own ANSI and
+    # links no curses despite looking like it does, and libstdc++ and
+    # libgcc are linked statically below.
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+            tool "sed"
+            tool "grep"
+            tool "glibc"
+            tool "binutils"
+            tool "linux-headers"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "language: btop is C++ and its Makefile requires -std=c++23 (Makefile:173, override REQFLAGS). TCC is a C compiler with no C++ front end at all, so this is not a TCC gap to fix or track -- it is the wrong tool"
+    }
+
+    metadata {
+        "changelog" "1.4.7-3: the conversion that builds. 1.4.7-2 compiled btop and failed CPDL-E4001, stdout must be one line, on its --version assertion, which is now a bare run -- a nonzero exit still fails the build. The three-operation ldd guard becomes one links forbids on the installed binary, reading DT_NEEDED rather than parsing ldd. 1.4.7-2: converted to CPDL (cix#487), the first C++ package."
+    }
+
+    # ADDFLAGS rather than LDFLAGS: this Makefile appends its own
+    # LDFLAGS after the environment's and appends ADDFLAGS last, so
+    # ADDFLAGS is the one that reliably reaches the link line.
+    #
+    # GPU_SUPPORT=false explicitly, so it is a decision rather than an
+    # accident of what a build container happened to contain.
+    # VERBOSE=true so the real compile and link lines reach the log.
+    # /usr/bin/g++ by absolute path -- a bare name makes a GCC driver
+    # compute a relative installation prefix and fail cc1plus lookup
+    # with a misleading "posix_spawnp: No such file or directory".
+    build {
+        cd "${src}/btop/btop-1.4.7" {
+            run "make" {
+                "CXX=/usr/bin/g++"
+                "VERBOSE=true"
+                "GPU_SUPPORT=false"
+                "STATIC=false"
+                "ADDFLAGS=-static-libstdc++ -static-libgcc"
+                jobs $jobs
+            }
+            # It runs. See the header: a bare run, because
+            # --version prints a banner and the assertion that reads
+            # output takes one line.
+            run "./bin/btop" {
+                "--version"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/btop/btop-1.4.7" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "PREFIX=/usr"
+                "install"
+            }
+        }
+        remove tree "${dest}/usr/share/applications"
+        remove tree "${dest}/usr/share/icons"
+        require file "${dest}/usr/bin/btop" {
+            exists
+            nonempty
+        }
+        # The static link took. One operation, on the installed
+        # artifact rather than the build tree -- what ships is what is
+        # asserted.
+        links "${dest}/usr/bin/btop" {
+            forbids "libstdc++.so.6"
+        }
+    }
+}
