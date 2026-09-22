@@ -1,0 +1,220 @@
+# net-tools -- ifconfig/netstat/route/nameif, the classic Linux
+# networking toolset. The jump box's operator-facing counterpart to
+# this project's own from-scratch rtnetlink data plane, which never
+# shells out to any of these (CLAUDE.md, Networking Plane).
+#
+# SourceForge is net-tools' real upstream; it has never had a GitHub
+# presence.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE CONFIGURE STEP IS THE WHOLE STORY HERE, in shell and in CPDL.
+# net-tools has no ./configure. It has a custom interactive
+# configure.sh that reads bool prompts from config.in and writes
+# config.h and config.make, and it predates autotools entirely.
+#
+# The standard non-interactive incantation for this tool, `yes '' |
+# make config`, produces a real working build -- ifconfig, netstat
+# and route all compile and run -- whose ifconfig then fails at
+# runtime with
+#
+#   No usable address families found. socket: Success
+#
+# net-tools' own lib/sockets.c prints that only when every
+# compiled-in protocol family's socket() is skipped or fails, and
+# config.in gives HAVE_AFINET a default of y -- so AF_INET support
+# was not compiled in at all, despite the blank-line-accepts-default
+# technique reading as correct against configure.sh's own readln()
+# and bool(). The exact interaction between the piped blank lines and
+# that script's `IFS='@' read` prompt loop was never isolated, and a
+# forensic dive into a 1990s interactive shell script was not worth
+# it. The fix was to bypass the prompt engine: generate config.h and
+# config.make directly from config.in's own declared defaults.
+#
+# IN SHELL that was a `while read` loop with two awk calls per line.
+# IN CPDL it is two awk programs, one per output file, each reading
+# config.in once and writing through `stdout file`. Same rule --
+# every `bool 'DESC' NAME DEFAULT` line, accept the default -- but
+# stated once per file instead of assembled a line at a time, and
+# with no shell I/O in the path to go subtly wrong.
+#
+# THE DEFAULTS ARE VERIFIED AGAINST THE RESULT, not assumed:
+# config.in has 44 bool lines and no other prompt type, and
+# HAVE_AFDECnet defaults to n, which is why installbin's
+# `ln -fs hostname .../nodename` (guarded by ifeq HAVE_AFDECnet) does
+# not run and 2.10-4 installs 16 files rather than 17. The
+# assertions below pin the four hostname symlinks that DO get made
+# and the binaries behind them.
+#
+# WHAT ELSE CHANGES:
+#
+#   rm -rf usr/share/man, usr/man -- GONE (ADR-0306, cix#491). man/
+#                       Makefile's mandir is /usr/share/man, so the
+#                       pages land in the standard place and the
+#                       package keeps them now. This is the one
+#                       difference in output from 2.10-4.
+#   the rarp.c sed   -- becomes `replace ... exactly 1`, which is
+#                       also the "confirmed via a full grep that this
+#                       is the only such construct" claim the shell
+#                       comment made in prose, now enforced.
+package "net-tools" {
+    version "2.10"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "net-tools" {
+            url "https://sourceforge.net/projects/net-tools/files/net-tools-2.10.tar.xz"
+            sha256 "b262435a5241e89bfa51c3cabd5133753952f7a7b7b93f32e08cb9d96f580d69"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2.10-5: converts to CPDL (cix#487). The while-read loop that generated config.h and config.make from config.in's declared defaults becomes two awk programs, one per file, each reading config.in once through stdout file -- same rule, stated once per file instead of assembled a line at a time. The rarp.c sed becomes replace ... exactly 1, which enforces the shell comment's claim that this is the only such construct in the tree. Keeps usr/share/man (cix#491), the one output difference from 2.10-4."
+    }
+
+    build {
+        cd "${src}/net-tools/net-tools-2.10" {
+            # Every `bool 'DESCRIPTION' NAME DEFAULT` line, accepting
+            # the default. NAME is $(NF-1) and DEFAULT is $NF because
+            # the description is a quoted phrase of unknown word
+            # count -- the same reason the shell form reached for awk
+            # rather than positional parameters. config.in carries no
+            # other prompt type in this release.
+            run "awk" {
+                "$1 == \"bool\" { print \"#define \" $(NF-1) \" \" ($NF == \"y\" ? 1 : 0) }"
+                "config.in"
+                stdout file "${src}/net-tools/net-tools-2.10/config.h"
+            }
+            run "awk" {
+                "$1 == \"bool\" { if ($NF == \"y\") print $(NF-1) \"=1\"; else print \"# \" $(NF-1) \"=0\" }"
+                "config.in"
+                stdout file "${src}/net-tools/net-tools-2.10/config.make"
+            }
+            require file "${src}/net-tools/net-tools-2.10/config.h" {
+                exists
+                nonempty
+                contains "#define HAVE_AFINET 1"
+            }
+            require file "${src}/net-tools/net-tools-2.10/config.make" {
+                exists
+                nonempty
+                contains "HAVE_AFINET=1"
+            }
+
+            # rarp.c:45: error: character array initializer must be a
+            # literal, optionally enclosed in braces.
+            #
+            # TCC accepts a plain or braced string literal as a
+            # char-array initializer but not one wrapped in a
+            # parenthesised expression, which is what
+            # `static char no_rarp_message[] = N_("...")` becomes once
+            # N_() expands -- and it expands to a bare parenthesised
+            # string here because I18N's own default is n, so gettext's
+            # marker macro is a no-op.
+            #
+            # Narrowly scoped to this one initializer rather than
+            # touching N_() itself: every other call site uses it as an
+            # ordinary function-call argument, where the restriction
+            # does not apply. `exactly 1` is what makes that scope a
+            # fact instead of a claim.
+            replace "${src}/net-tools/net-tools-2.10/rarp.c" {
+                from "= N_(\"This kernel does not support RARP.\\n\");"
+                to "= \"This kernel does not support RARP.\\n\";"
+                exactly 1
+            }
+
+            run "make" {
+                "CC=tcc"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/net-tools/net-tools-2.10" {
+            # BINDIR and SBINDIR default to plain /bin and /sbin --
+            # paths this project's minimal images do not have at all,
+            # only /usr/bin and /usr/sbin. An earlier build using the
+            # defaults installed a working ifconfig that then failed
+            # at execve() with "No such file or directory", because
+            # /bin/ifconfig was never a resolvable path in any real
+            # container built from this image.
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "BINDIR=/usr/bin"
+                "SBINDIR=/usr/sbin"
+            }
+        }
+        # The four binaries installbin writes unconditionally, plus
+        # the ones behind a default-y guard. `executable` is the
+        # assertion the shell form could not make at all (cbs#189),
+        # and it is the property that actually failed once here.
+        require file "${dest}/usr/bin/ifconfig" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/netstat" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/route" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/hostname" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/nameif" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/arp" {
+            exists
+            executable
+        }
+        # HAVE_HOSTNAME_SYMLINKS defaults to y, so these three exist;
+        # dnsdomainname is made outside that guard. All four are
+        # `ln -fs hostname`, so the link text is the bare name.
+        require symlink "${dest}/usr/bin/dnsdomainname" {
+            exists
+            target "hostname"
+        }
+        require symlink "${dest}/usr/bin/domainname" {
+            exists
+            target "hostname"
+        }
+        require symlink "${dest}/usr/bin/ypdomainname" {
+            exists
+            target "hostname"
+        }
+        require symlink "${dest}/usr/bin/nisdomainname" {
+            exists
+            target "hostname"
+        }
+        # installdata is the half of `make install` that is easy to
+        # lose, since installbin alone produces a package that looks
+        # complete.
+        require file "${dest}/usr/share/man/man8/ifconfig.8" {
+            exists
+            nonempty
+        }
+    }
+}
