@@ -1,0 +1,132 @@
+#
+# libuv -- BIND's bin/dig hard-requires it via pkg-config (its own
+# configure.ac does AC_MSG_ERROR if missing, with no way to build
+# without it even though bin/dig never links it), so this exists as
+# that prerequisite for the jump box's nslookup.
+#
+# THE THREE TOOLWRAPS ARE GONE, AND THEIR PREMISE WAS FALSE.
+#
+# Every revision from 1.51.0-1 fabricated three shell scripts --
+# aclocal-wrap, automake-wrap, libtoolize-wrap, each `exec perl
+# /usr/bin/<tool> "$@"` -- and pointed autogen.sh's ACLOCAL/AUTOMAKE/
+# LIBTOOLIZE at them. The reason given, carried forward unchanged for
+# four revisions, was that "this build sandbox's copies of those are
+# dangling Debian update-alternatives symlink chains that the kernel's
+# #! shebang exec path fails to resolve -- ENOEXEC".
+#
+# Measured on 192.168.15.95, 2026-09-22 by `probe-autotools-exec@3`,
+# in a composed environment declaring the same tools this recipe does:
+#
+#   === aclocal ===
+#     resolves to: /usr/bin/aclocal
+#     ls: -rwxr-xr-x 1 0 0 36020 /usr/bin/aclocal
+#     chain ends at: /usr/bin/aclocal
+#     first line: #!/usr/bin/perl
+#     DIRECT EXEC: OK -- aclocal (GNU automake) 1.16.5
+#   === automake ===    (262055 bytes, same shape, runs)
+#   === libtoolize ===  (136685 bytes, #! /usr/bin/env sh, runs)
+#
+# All three are ORDINARY REGULAR FILES. Not symlinks, not chains,
+# nothing dangling -- `readlink -f` lands on the file itself in every
+# case, their shebangs resolve, and all three run. The premise was
+# true of the old cumulative build sandbox, which carried ambient
+# Debian content; ADR-0199 removed that sandbox and composed
+# environments from declared packages instead, and this comment
+# outlived the thing it described.
+#
+# So autogen.sh's own defaults are correct and there is nothing to
+# override. This also retires the reason CBS was asked for a `via`
+# verb (cix-build-system#219): libuv was its only proposed user, and
+# it was deleted before it was written.
+#
+# WHAT ELSE GOES WITH THEM. 1.51.0-4's prepare phase also carried a
+# bare `run "ls" -la ${src}/libuv` -- debugging left in a published
+# recipe -- and a `require directory` on the extracted tree, which
+# asserts that extraction did what extraction is defined to do. Both
+# are gone; the phase is empty and so is not written.
+#
+# THE ARTIFACT APPROVAL IS DROPPED. 1.51.0-4 carried an
+# artifact_sha256 approving the bytes its own build produced. These
+# are different bytes, and a checksum is never carried forward.
+#
+# WHAT IS NOT TRANSLATED: the defensive `rm -f usr/lib/*.la`.
+# Finalize's clause 3 drops every .la already, and CPDL's `remove
+# glob` FAILS on a glob matching nothing where `rm -f` shrugged.
+#
+package "libuv" {
+    version "1.51.0"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "libuv" {
+            url "https://github.com/libuv/libuv/archive/refs/tags/v1.51.0.tar.gz"
+            sha256 "27e55cf7083913bfb6826ca78cde9de7647cded648d35f24163f2d31bb9f51cd"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            # Still declared, and still needed: aclocal and automake
+            # are perl scripts. What changed is that the kernel runs
+            # them by their own shebang, rather than this recipe
+            # naming the interpreter for them.
+            tool "perl"
+        }
+    }
+
+    metadata {
+        "changelog" "1.51.0-5: the three autogen toolwraps are gone. probe-autotools-exec measured aclocal, automake and libtoolize in a composed environment as ordinary regular files whose shebangs resolve and which exec directly -- the dangling-symlink premise they were written for was true of the pre-ADR-0199 cumulative sandbox and outlived it. Also drops a debugging ls, a require directory that asserted extraction works, and the carried-forward artifact approval."
+    }
+
+    build {
+        cd "${src}/libuv/libuv-1.51.0" {
+            run "./autogen.sh" {
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-static"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libuv/libuv-1.51.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # What BIND's configure actually looks for.
+        require file "${dest}/usr/lib/pkgconfig/libuv.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/libuv.so.1.0.0" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libuv.so.1" {
+            exists
+        }
+    }
+}

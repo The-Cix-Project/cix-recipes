@@ -1,0 +1,127 @@
+#
+# glauth -- a lightweight, single-binary LDAP server, this platform's
+# standard integrable LDAP provider (ADR-0109, chosen over lldap) and
+# the host's own authentication root of trust (ADR-0144): cixd renders
+# users and groups into its config, re-syncs them on every start
+# (ADR-0146), and binds against it for every gated API write.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+# Same tarball at the same digest, same build tags, same one binary.
+#
+# THE SOURCE IS A PREPARED TREE. glauth v2 needs assembly first and a
+# build container has no network at all, so everything a build needs
+# must already be in the tarball: the SQLite backend is upstream's own
+# separate submodule (glauth/glauth-sqlite, pinned by .gitmodules at
+# f34a4dea for the v2.4.0 tag) and is never in a tag tarball; the
+# static-embed shim that glauth's Makefile documents and CI never
+# builds is generated; and `go mod vendor` brings 51 modules in. That
+# is source preparation, not building -- `go mod vendor` downloads
+# source and compiles nothing, and the build below runs on a Cix host
+# with Cix's own Go and gcc. The full assembly procedure is recorded
+# in revision 2.4.0-6's header.
+#
+# It lives in cix-cache under the src- convention (cix#262). Two
+# earlier assemblies were served from scratch LAN servers that were
+# never meant to be permanent and both went away, which is why
+# revisions 2.4.0 through 2.4.0-3 became unbuildable while looking
+# complete. pkg_sha256 is what makes the store a mirror rather than a
+# trust boundary: it approves these exact bytes, wherever served.
+#
+# WHY gcc. CGO_ENABLED=1 is load-bearing: mattn/go-sqlite3 compiles
+# SQLite's own C amalgamation through cmd/cgo, and TCC cannot drive
+# cgo -- cgo batches every C symbol probe into one translation unit
+# and classifies them from a single error list, and TCC stops at the
+# first error (ADR-0170, cix#31). gcc is named by absolute path: a
+# bare name makes the driver compute a wrong relative install prefix
+# and breaks cc1 lookup.
+#
+# THE POST-BUILD GATE IS A BARE RUN, AND ITS COMMENT IS CORRECTED.
+# The shell form ran `./glauth --help | grep -q 'Usage:'` under a
+# comment claiming "the binary must carry the embedded backend it was
+# built for. A build that silently fell back to the noembed default
+# would still exit 0 and only fail at first bind on a live directory."
+# That is a real hazard and it is NOT what the check tested: `--help`
+# prints usage whichever backend is compiled in, so the gate proved
+# only that the binary runs. Carrying the comment across would carry
+# a false claim about what is guarded, so the check is stated as what
+# it is -- does the thing that was built actually run (cix#113) -- and
+# the backend assertion is recorded as absent rather than implied.
+# Asserting it properly needs something that reads the binary's
+# contents or its behaviour against a real directory; neither is
+# written here on faith.
+#
+# The size report is dropped. It printed a byte count nothing read,
+# and 2.4.0-6 exists only because the awk it first used was
+# undeclared.
+#
+package "glauth" {
+    version "2.4.0"
+    release 7
+    format "cixpkg"
+
+    sources {
+        main "glauth" {
+            url "http://192.168.15.31:8080/glauth-src-2.4.0-1-x86_64.tar.gz"
+            sha256 "fb872485f894000a3f68a7065434322124f2173f21398b647207dbcd0d1a8c6d"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "go"
+            tool "binutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "cgo: mattn/go-sqlite3 compiles SQLite through cmd/cgo, whose batched symbol probing needs a compiler that continues past the first error; TCC stops at the first (ADR-0170, cix#31)"
+    }
+
+    metadata {
+        "changelog" "2.4.0-7: converts to CPDL (cix#487). Same tarball, same build tags, same binary. The --help gate becomes a bare run and its comment is corrected: --help prints usage whichever backend is compiled in, so it never tested the embedded SQLite backend it claimed to guard. The byte-count report is dropped."
+    }
+
+    build {
+        mkdir "${build}/gocache"
+        mkdir "${build}/gotmp"
+        cd "${src}/glauth/glauth-2.4.0" {
+            run "go" {
+                "build"
+                "-tags"
+                "embedsqlite"
+                "-ldflags"
+                "-s -w"
+                "-o"
+                "glauth"
+                "."
+                env "GOWORK" = "off"
+                env "GOFLAGS" = "-mod=vendor"
+                env "GOPROXY" = "off"
+                env "GOCACHE" = "${build}/gocache"
+                env "GOTMPDIR" = "${build}/gotmp"
+                env "CGO_ENABLED" = "1"
+                env "CC" = "/usr/bin/gcc"
+                jobs $jobs
+            }
+            # Run what was built (cix#113). See the header for what
+            # this does and does not prove.
+            run "./glauth" {
+                "--help"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin"
+        copy "${src}/glauth/glauth-2.4.0/glauth" to "${dest}/usr/bin/glauth"
+        require file "${dest}/usr/bin/glauth" {
+            exists
+            executable
+            nonempty
+        }
+    }
+}
