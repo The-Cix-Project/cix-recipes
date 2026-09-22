@@ -1,0 +1,164 @@
+#
+# efivar -- libefivar.so.1, the library for reading and writing UEFI
+# variables through efivarfs.
+#
+# Needed because mokutil links it, and mokutil is what enrolls this
+# project's own Secure Boot signing certificate as a MOK during an
+# install (image/src/cix-install.c's enroll_signing_key(), ADR-0015).
+# image/src/mkinstalleriso.c stages both into the installer image, and
+# read them off whatever machine happened to run it -- which is a
+# large part of why `POST /v1/system/iso` cannot run on a real Cix
+# host. Measured, not assumed:
+#
+#   mokutil          libcrypto.so.3  libefivar.so.1  libkeyutils.so.1
+#                    libcrypt.so.1  libc.so.6
+#   libefivar.so.1   libdl.so.2  libc.so.6
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+# No build change: same tarball, same four make variables, same two
+# assertions, and the same two CLI tools dropped.
+#
+# GCC, AND IT IS A REAL CAPABILITY GAP rather than a flag problem.
+# efivar's src/util.h includes <tgmath.h> unconditionally, glibc's
+# <tgmath.h> includes <complex.h>, and TCC cannot parse it -- it stops
+# inside bits/cmathcalls.h on the first _Complex declaration:
+#
+#   /usr/include/x86_64-linux-gnu/bits/cmathcalls.h:55:
+#       error: ';' expected (got "cacos")
+#
+# Reduced to a two-line probe to be sure this is TCC and not efivar:
+# `#include <tgmath.h>` alone exits 1 under TCC and 0 under gcc. TCC
+# has no _Complex support, so no amount of recipe work reaches a
+# different outcome (ADR-0211, ADR-0226). The gcc used is this
+# project's own from the artifact cache -- "not TCC" does not mean
+# "not ours".
+#
+# ENABLE_DOCS=0. An earlier revision said docs were off by default and
+# that was simply wrong -- src/include/defaults.mk line 127 reads
+# `ENABLE_DOCS ?= 1`. The library built perfectly and the run died in
+# docs/ on `mandoc: command not found`, after every real artifact was
+# already linked. mandoc is not worth packaging for man pages that
+# were then discarded anyway.
+#
+# -march=native needs no override, contrary to what the same revision
+# assumed. It is HOST_MARCH in defaults.mk and reaches only
+# HOST_CFLAGS -- the build-time helpers (makeguids) that run on the
+# build machine and are never installed. Confirmed against that
+# build's own log: makeguids carries -march=native and every library
+# object (crc32.o, dp.o, ...) does not. The shipped library was
+# already portable and the flag was a fix for a problem that did not
+# exist.
+#
+# ERRORS_GCC, and why it is the right knob. Retiring libc-dev (#187)
+# moved this build onto glibc 2.44 headers, which carry a C23
+# const-generic bsearch that yields `const void *` for a const BASE.
+# efivar searches two const tables and assigns to a plain
+# `struct efivar_guidname *`, so guid.c:88 and :205 became "assignment
+# discards const qualifier" -- errors, because ERRORS defaults to
+# -Werror, and efivar passes -D_GNU_SOURCE, which turns ISOC23 on
+# despite -std=gnu11. Neither site writes through the pointer: :205
+# memcpy()s out of it and :88 hands it to a reader. The code is
+# correct and glibc became more precise. Const-correcting :88 properly
+# would change an out-parameter's type and ripple into callers -- an
+# upstream API change, not a packaging decision. defaults.mk line 32
+# is `ERRORS ?= -Werror $(call family,ERRORS)`, so ERRORS_GCC appends
+# after -Werror and touches nothing else; overriding CFLAGS would
+# replace OPTIMIZE/DEBUGINFO/WARNINGS wholesale.
+#
+# LIBDIR=/usr/lib defaults to $(PREFIX)/lib64. This project stages
+# runtime libraries in one directory (#184), so it is set rather than
+# moved afterwards -- and it is passed to the BUILD as well as to
+# install, because @@LIBDIR@@ is substituted when efivar.pc is
+# generated, not when it is copied. An earlier revision passed it only
+# to install and shipped a .pc saying libdir=/usr/lib64 while every
+# library sat elsewhere: a file that verifies, resolves, and hands a
+# consumer a -L pointing at nothing. That is what the .pc assertion
+# below exists to catch, and it did.
+#
+package "efivar" {
+    version "39"
+    release 9
+    format "cixpkg"
+
+    sources {
+        # rhboot publishes no release asset for efivar, only the
+        # auto-generated tag tarball, so this fetches codeload
+        # directly -- the same thing sbsigntools does for ccan.
+        main "efivar" {
+            url "https://codeload.github.com/rhboot/efivar/tar.gz/refs/tags/39"
+            sha256 "c9edd15f2eeeea63232f3e669a48e992c7be9aff57ee22672ac31f5eca1609a6"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "binutils"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+        }
+    }
+
+    # Checked rather than assumed: efivar 39 needs no popt (its src
+    # Makefile names it nowhere -- that dependency belongs to the
+    # efibootmgr tools, not this one), and no git, because the release
+    # tarball ships src/include/version.mk carrying a literal
+    # VERSION=39 rather than deriving it from a repository.
+    toolchain "gcc" {
+        reason "missing language feature: glibc's <tgmath.h> pulls in <complex.h>, which TCC does not support"
+    }
+
+    metadata {
+        "changelog" "39-9: converts to CPDL (cix#487). Same tarball, same four make variables, same two CLI tools dropped. The test -e becomes a require, and the case on efivar.pc's contents becomes require file ... contains, which is the assertion that caught a .pc naming a directory no library was in."
+    }
+
+    build {
+        cd "${src}/efivar/efivar-39" {
+            run "make" {
+                "CC=/usr/bin/gcc"
+                "ENABLE_DOCS=0"
+                "LIBDIR=/usr/lib"
+                "ERRORS_GCC=-Wno-error=discarded-qualifiers"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/efivar/efivar-39" {
+            run "make" {
+                "CC=/usr/bin/gcc"
+                "ENABLE_DOCS=0"
+                "install"
+                "DESTDIR=${dest}"
+                "LIBDIR=/usr/lib"
+                "ERRORS_GCC=-Wno-error=discarded-qualifiers"
+            }
+        }
+
+        # The efivar/efisecdb CLI tools are dropped. Nothing in this
+        # project invokes them: what is needed is the shared library
+        # mokutil links against, and shipping two more binaries would
+        # be two more things to reason about for no behaviour.
+        remove tree "${dest}/usr/bin"
+
+        require symlink "${dest}/usr/lib/libefivar.so.1" {
+            exists
+        }
+
+        # It must name the directory the libraries are really in.
+        # The shell form was a `case` over the file's contents; this
+        # is the same assertion as one operation.
+        require file "${dest}/usr/lib/pkgconfig/efivar.pc" {
+            exists
+            contains "libdir=/usr/lib"
+        }
+    }
+}
