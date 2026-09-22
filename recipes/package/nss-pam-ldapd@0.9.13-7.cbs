@@ -1,0 +1,184 @@
+# nss-pam-ldapd -- libnss_ldap.so.2, pam_ldap.so and nslcd: the half
+# of the identity chain that lets a Cix host resolve and authenticate
+# an LDAP account.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE TWO SEDS BECOME TWO TARGETED REPLACES, and the targeting is the
+# change. The shell form ran both seds over both nss/Makefile and
+# pam/Makefile, because sed does not mind matching nothing:
+#
+#   sed -i 's/-Wl,-h,$(NSS_LDAP_SONAME) .../' nss/Makefile pam/Makefile
+#   sed -i 's/-Wl,--version-script,$(srcdir)\/pam_ldap.map//' nss/Makefile pam/Makefile
+#
+# Each only ever matched in one of them -- the first names
+# NSS_LDAP_SONAME and exports.map, the second names pam_ldap.map --
+# so two of those four applications were always no-ops that looked
+# deliberate. `replace ... exactly 1` cannot be written that way: it
+# names the one file and the one match, and a count that stops being
+# right fails the build instead of silently doing nothing.
+#
+# WHY THEY EXIST: TCC cannot honour --version-script, and this build
+# passes one for each shared object. Stripping it from the GENERATED
+# makefiles leaves upstream's tree unmodified. The nss one also
+# rewrites -Wl,-h to -Wl,-soname, which TCC does understand, because
+# an NSS module without a soname is not loadable by name.
+#
+# PT_GNU_STACK IS WHY -6 EXISTS and is worth keeping in view. Without
+# that header the loader reads a shared object as requiring an
+# executable stack and glibc 2.44 refuses it at dlopen with "cannot
+# enable executable stack as shared object requires". The effect was
+# an identity chain that half worked: `getent passwd` returned
+# nothing for an LDAP account while `id` returned the full record,
+# because glibc takes its stack bookkeeping from the main executable
+# and skips the check entirely when that executable is itself
+# unmarked -- so a marked getent was refused and an unmarked id and
+# sshd were not. tcc has emitted the header since 0.9.28rc-10
+# (cix#228); nothing in this recipe does anything about it, and the
+# note is here so a future reader does not go looking.
+package "nss-pam-ldapd" {
+    version "0.9.13"
+    release 7
+    format "cixpkg"
+
+    sources {
+        main "nss-pam-ldapd" {
+            url "https://arthurdejong.org/nss-pam-ldapd/nss-pam-ldapd-0.9.13.tar.gz"
+            sha256 "e01784e17cb533bb66bd0601e205e785263445c3c2df7a6f90232ab4131c716d"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "openldap-client"
+            tool "linux-pam"
+            tool "openssl"
+        }
+        runtime {
+            package "openldap-client"
+            package "linux-pam"
+        }
+    }
+
+    metadata {
+        "changelog" "0.9.13-7: converts to CPDL (cix#487). Same tarball, same configure line, same five make -C steps, same three installed files. The two seds become two targeted replaces with exactly 1 each: the shell form ran both over both nss/Makefile and pam/Makefile, and two of those four applications were always no-ops that looked deliberate, because the first names NSS_LDAP_SONAME and the second pam_ldap.map. The three installed objects are now asserted, which the shell form did not do at all."
+    }
+
+    build {
+        cd "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13" {
+            # __STDC_NO_VLA__: TCC cannot parse glibc's regexec()
+            # prototype, whose regmatch_t parameter uses a C99
+            # VLA-in-prototype sized by the NEXT parameter. The
+            # header has an #ifndef __STDC_NO_VLA__ branch for a
+            # compiler without VLA support, which is accurate here.
+            #
+            # ac_cv_func_pthread_kill_other_threads_np=no tells
+            # autoconf the answer directly rather than letting its
+            # link probe decide; the function is a glibc-internal
+            # name this build does not need.
+            run "./configure" {
+                "--prefix=/usr"
+                "--sysconfdir=/etc"
+                "--libdir=/usr/lib"
+                "--with-pam-seclib-dir=/usr/lib/security"
+                "--with-nslcd-pidfile=/run/nslcd/nslcd.pid"
+                "--with-nslcd-socket=/run/nslcd/socket"
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-D__STDC_NO_VLA__=1"
+                env "LDFLAGS" = "-L/usr/lib"
+                env "LIBS" = "-llber -lssl -lcrypto"
+                env "ac_cv_func_pthread_kill_other_threads_np" = "no"
+            }
+            # TCC does not implement --version-script, and -Wl,-h is
+            # a spelling it does not take either; -Wl,-soname is.
+            replace "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13/nss/Makefile" {
+                from "-Wl,-h,$(NSS_LDAP_SONAME) -Wl,--version-script,exports.map"
+                to "-Wl,-soname,$(NSS_LDAP_SONAME)"
+                exactly 1
+            }
+            replace "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13/pam/Makefile" {
+                from "-Wl,--version-script,$(srcdir)/pam_ldap.map"
+                to ""
+                exactly 1
+            }
+            # Built directory by directory, in dependency order, the
+            # way upstream's own top-level Makefile does it.
+            run "make" {
+                "-C"
+                "compat"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "common"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "nss"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "pam"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "nslcd"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13" {
+            run "make" {
+                "-C"
+                "nss"
+                "install"
+                "DESTDIR=${dest}"
+            }
+            run "make" {
+                "-C"
+                "pam"
+                "install"
+                "DESTDIR=${dest}"
+            }
+            run "make" {
+                "-C"
+                "nslcd"
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # All three, because this package is only useful when all
+        # three are present: the NSS module answers name lookups, the
+        # PAM module authenticates, and nslcd is the daemon both talk
+        # to. A build producing two of them satisfies make and leaves
+        # an identity chain that half works -- which is exactly the
+        # shape of the PT_GNU_STACK failure -6 was cut for.
+        require file "${dest}/usr/lib/libnss_ldap.so.2" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/security/pam_ldap.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/sbin/nslcd" {
+            exists
+            executable
+        }
+    }
+}
