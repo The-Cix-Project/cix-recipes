@@ -1,0 +1,184 @@
+#
+# go-bootstrap -- Go 1.4, the last release written in C, which exists
+# only to compile the Go that compiles every later Go. It is never a
+# runtime dependency of anything.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE TOOLWRAP IS GONE, AND THIS ONE COULD NOT BE SOLVED BY MOVING
+# FLAGS INTO CC -- which is worth writing down, because that is what
+# worked for hostapd and sbsigntools and it fails here for a precise
+# reason. make.bash line 133 is:
+#
+#   ${CC:-gcc} $mflag -O2 -Wall -Werror -o cmd/dist/dist ...
+#
+# The wrapper appended its flags AFTER "$@", so `-Wno-error` landed to
+# the right of make.bash's own `-Werror` and won. Flags in CC arrive
+# to the LEFT of everything, where `-Werror` then overrides them, so
+# the obvious translation silently reinstates the behaviour the
+# wrapper existed to suppress.
+#
+# So the flag is removed where it is written, which is a literal in
+# make.bash and therefore a `replace` -- the same answer hostapd's
+# -MMD and sbsigntools' --std= both had (cbs#223). This is better than
+# the wrapper rather than merely equivalent: -Werror is DELETED
+# instead of being fought, so nothing depends on argument order, and
+# `exactly` asserts that the line is still the line this recipe
+# believes it is.
+#
+# WHY -Werror GOES AT ALL. make.bash asks for it, and 2014 C compiled
+# by a 2026 compiler will keep producing new diagnostics indefinitely.
+# None of them are defects in a compiler that exists only to build the
+# next compiler, and failing the bootstrap over a changed warning
+# would break this package every time gcc gets stricter.
+#
+# -std=gnu99 IS the substantive fix and it stays, in CC, where order
+# does not matter: gcc 16 defaults to C23, where `bool` is a KEYWORD,
+# and this source opens with `typedef int bool;` which C23 forbids
+# outright. gnu99 is what this code was written against, so this
+# restores its own assumptions rather than working around them.
+#
+# THE THREE GATES ALL CONVERT, and the last one gets better. The shell
+# form ran the built compiler, checked its version string, compiled a
+# program that exits 7, ran it and compared `$?` to 7 -- because a
+# toolchain that builds and then produces broken binaries is the
+# failure worth catching. `expect exit 7` says that directly.
+#
+package "go-bootstrap" {
+    version "1.4"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "gobootstrap" {
+            url "https://dl.google.com/go/go1.4-bootstrap-20171003.tar.gz"
+            sha256 "f4ff5b5eb3a3cae1c993723f3eab519c5bae18866b5e5f96fe1102f0cb5c3e52"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "Go 1.4's own C toolchain and make.bash assume a GCC-compatible driver; this is 2014 C that predates any expectation of another compiler, and it is bootstrap-only code that never ships in a package"
+    }
+
+    metadata {
+        "changelog" "1.4-8: removes every src testdata directory rather than one stale path. 1.4-7 built and installed and was rejected by the finalize policy, which cannot strip Go foreign-architecture ELF fixtures. The shell form rm -rf named a Go 1.4-era path this tarball lacks and silenced its own failure, so it removed nothing. 1.4-6: converts to CPDL (cix#487); the gcc toolwrap is gone, -Werror deleted from make.bash because CC flags land left of it, and the exit-7 check becomes expect exit 7."
+    }
+
+    build {
+        # See the header: this cannot be a CC flag, because CC's flags
+        # land to the left of make.bash's own -Werror.
+        replace "${src}/gobootstrap/go/src/make.bash" {
+            from "-Wall -Werror"
+            to "-Wall"
+            exactly 1
+        }
+
+        # TMPDIR must EXIST; make.bash mkdtemp()s in it and does not
+        # create it. 1.4-6 set the variable and not the directory:
+        #   go tool dist: mkdtemp(.../gotmp/go-cbuild-OPKilf):
+        #   No such file or directory
+        mkdir "${build}/gotmp"
+
+        cd "${src}/gobootstrap/go/src" {
+            run "./make.bash" {
+                env "CC" = "/usr/bin/gcc -std=gnu99"
+                env "TMPDIR" = "${build}/gotmp"
+                env "GOROOT_FINAL" = "/usr/lib/go-bootstrap"
+                env "CGO_ENABLED" = "0"
+                env "GOOS" = "linux"
+                env "GOARCH" = "amd64"
+            }
+        }
+
+        # It runs, and it is the compiler claimed. `go version` prints
+        # one line, so this is one of the few places the single-line
+        # stdout assertion actually fits.
+        cd "${src}/gobootstrap/go" {
+            run "./bin/go" {
+                "version"
+                env "GOROOT" = "${src}/gobootstrap/go"
+                expect {
+                    stdout contains "go1.4"
+                }
+            }
+        }
+
+        # And it produces WORKING binaries, which is a different
+        # question from whether it builds. A toolchain that compiles
+        # and emits something that does not run is the failure this
+        # catches, and it is silent everywhere else.
+        mkdir "${build}/gochk"
+        write "${build}/gochk/hello.go" """
+        package main
+        import "os"
+        func main() { os.Exit(7) }
+        """
+        cd "${src}/gobootstrap/go" {
+            run "./bin/go" {
+                "build"
+                "-o"
+                "${build}/gochk/hello"
+                "${build}/gochk/hello.go"
+                env "GOROOT" = "${src}/gobootstrap/go"
+                env "TMPDIR" = "${build}/gotmp"
+            }
+        }
+        run "${build}/gochk/hello" {
+            expect exit 7
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib/go-bootstrap"
+        copy tree "${src}/gobootstrap/go/bin" to "${dest}/usr/lib/go-bootstrap/bin"
+        copy tree "${src}/gobootstrap/go/pkg" to "${dest}/usr/lib/go-bootstrap/pkg"
+        copy tree "${src}/gobootstrap/go/src" to "${dest}/usr/lib/go-bootstrap/src"
+        copy "${src}/gobootstrap/go/VERSION" to "${dest}/usr/lib/go-bootstrap/VERSION"
+        # `lib` is not present in every Go 1.4 tree; the shell form
+        # expressed that as a cp with a fallback cp, which said the
+        # whole list twice to make one entry optional.
+        copy tree "${src}/gobootstrap/go/lib" to "${dest}/usr/lib/go-bootstrap/lib" allow_failure
+
+        # EVERY testdata directory, not one named path. These are
+        # fixtures for `go test` of the standard library, and this
+        # compiler exists only to build the next Go -- it never runs
+        # those tests. Several are object files for OTHER
+        # ARCHITECTURES, which ADR-0251's finalize policy cannot
+        # process, and that is what rejected 1.4-7 after a complete,
+        # successful build and install:
+        #
+        #   strip: Unable to recognise the format of the input file
+        #     .../src/debug/elf/testdata/go-relocation-test-gcc482-aarch64.obj
+        #   cix: strip --strip-unneeded failed on ...
+        #   error[CPDL-E4001]: finalize: finalization policy rejected
+        #     the staged tree
+        #
+        # The shell form had `rm -rf .../src/pkg/debug/dwarf/testdata
+        # 2>/dev/null || true` -- the right idea at a Go 1.4-era path
+        # this tarball does not have, silenced so it never said so. It
+        # removed nothing, for every revision it existed in, and the
+        # package kept building only because the finalize policy
+        # postdates its last artifact (cix#328: the policy runs when a
+        # package is BUILT, and the artifact tier installs approved
+        # bytes rather than rebuilding, so anything published before
+        # 2026-09-06 keeps shipping unexamined).
+        remove tree glob "${dest}/usr/lib/go-bootstrap/src/**/testdata" allow_failure
+
+        require file "${dest}/usr/lib/go-bootstrap/bin/go" {
+            exists
+            executable
+        }
+    }
+}
