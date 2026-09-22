@@ -1,0 +1,141 @@
+# bird -- the BGP/OSPF routing daemon the router image runs.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# BOTH OF THIS RECIPE'S GATES BECOME ORDINARY OPERATIONS, and that is
+# the interesting part, because both existed to catch a specific real
+# failure and both were awkward to write in shell.
+#
+#   the compiler-identity gate was `grep -E ... Makefile >/dev/null ||
+#                       { echo; grep; exit 1; }`. In CPDL a `run` that
+#                       exits nonzero fails the build, so the guard IS
+#                       the grep -- no `||`, no echo, no second grep
+#                       to print the evidence, because CBS prints the
+#                       failing command and its output already.
+#
+#                       It stays whitespace-tolerant on purpose.
+#                       2.19.1-8 matched "CC = " with spaces while
+#                       bird's Makefile writes "CC=/usr/bin/gcc" with
+#                       none, so the gate failed a build that had done
+#                       exactly what was asked -- and printed the line
+#                       proving itself wrong as it did. An assertion
+#                       whose pattern is wrong is a bug in the
+#                       assertion.
+#
+#   the "does it run" gate was `out=$(./bird --version 2>&1)`, a
+#                       `case` on the output and two failure branches.
+#                       It becomes `expect { stdout contains "2.19.1" }`
+#                       on the run itself. A make that exits 0 is not
+#                       evidence the binary works -- the lesson of
+#                       cix#122 and cix#216 both -- and this is now
+#                       four words instead of nine lines.
+#
+# THE GCC DECLARATION IS UNCHANGED and is not a workaround: bird's
+# configure rejects tcc BY NAME, so no compiler capability can satisfy
+# it (ADR-0226 makes gcc an ordinary choice for a third-party package
+# and asks only that the reason be recorded). Cix's gcc is Cix-built
+# and three-stage bootstrapped, so this is exactly as self-hosted as
+# a tcc build.
+package "bird" {
+    version "2.19.1"
+    release 11
+    format "cixpkg"
+
+    sources {
+        main "bird" {
+            url "https://bird.nic.cz/download/bird-2.19.1.tar.gz"
+            sha256 "e91aedac07da4f2718f269f969f65dbcd12f4b58248a784fd32e587b7b4dd7e4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "binutils"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            tool "bison"
+            tool "flex"
+            tool "ncurses"
+            tool "readline"
+        }
+        runtime {
+            package "ncurses"
+            package "readline"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "compiler identity check: configure rejects tcc by name, so no capability can satisfy it"
+    }
+
+    metadata {
+        "changelog" "2.19.1-11: converts to CPDL (cix#487). Same tarball, same autoreconf and configure line, same four installed files. Both gates become operations rather than shell: the compiler-identity check is a bare run, since a nonzero exit fails the build and CBS prints the failing command itself, and the ./bird --version check becomes expect { stdout contains } on the run. gcc is unchanged and is not a workaround -- configure rejects tcc by name (ADR-0226)."
+    }
+
+    build {
+        cd "${src}/bird/bird-2.19.1" {
+            run "autoreconf" {
+                "-fi"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--runstatedir=/run"
+                env "CC" = "/usr/bin/gcc"
+            }
+            # bird's configure is what rejected tcc, so a silent
+            # fallback to some other compiler is exactly the failure
+            # worth catching. A nonzero grep fails the build.
+            run "grep" {
+                "-E"
+                "^CC[[:space:]]*=[[:space:]]*/usr/bin/gcc"
+                "Makefile"
+            }
+            run "make" {
+                jobs $jobs
+            }
+            # Run what was built.
+            run "./bird" {
+                "--version"
+                expect {
+                    stdout contains "2.19.1"
+                }
+            }
+        }
+    }
+
+    install {
+        cd "${src}/bird/bird-2.19.1" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/sbin/bird" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/birdc" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/birdcl" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/etc/bird.conf" {
+            exists
+            nonempty
+        }
+    }
+}
