@@ -1,0 +1,103 @@
+# util-linux -- built for ONE binary, sfdisk, which is what this
+# platform partitions disks with. Converted from build.sh to
+# build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything. --disable-all-programs means almost nothing is built and
+# it copies one binary out.
+#
+# THE ELF CHECK IS REPLACED BY SOMETHING STRICTLY STRONGER, and that
+# is the interesting part of this conversion. The shell recipe was:
+#
+#   if [ -x .libs/sfdisk ] && head -c 4 .libs/sfdisk | grep -q ELF
+#   elif head -c 4 sfdisk | grep -q ELF
+#   else fail
+#
+# -- a hedge, because the author did not know whether libtool would
+# leave the real binary at ./sfdisk or behind a wrapper in .libs/,
+# and a magic-byte check because a libtool wrapper is a shell script.
+#
+# With --disable-shared there is no wrapper, so this names ./sfdisk
+# directly. And the check becomes `executable` (cbs#189) plus
+# actually RUNNING it: the shell recipe's own last line was
+# `sfdisk --version`, which proves far more than four magic bytes --
+# a file can start with \177ELF and still be unrunnable. Running it
+# is the assertion; the magic check was a proxy for it.
+#
+# If ./sfdisk turns out not to be the real binary the build fails
+# here and names the path, which is a better outcome than a hedge
+# that silently picks the other branch.
+package "util-linux" {
+    version "2.42.2"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+        runtime {
+            package "ncurses"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "344472717715183745880c962708f3172ec73430841b1cbaf95183b8e5b4e5f0"
+        "changelog" "2.42.2-3: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball and configure line. The two-branch ELF-magic hedge becomes one path plus a stronger check: --disable-shared means libtool leaves no wrapper, so ./sfdisk is the binary, and the assertion is executable (cbs#189) plus actually running sfdisk --version -- which the shell recipe already did as its last line and which proves more than four magic bytes, a file being able to start with ELF and still not run."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-all-programs"
+                "--enable-fdisks=check"
+                "--enable-libfdisk"
+                "--enable-libsmartcols"
+                "--enable-libuuid"
+                "--enable-libblkid"
+                "--disable-shared"
+                "--enable-static"
+                "--without-readline"
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-D__STDC_NO_VLA__=1"
+            }
+            run "make" {
+                jobs $jobs
+                "sfdisk"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        copy "${src}/util-linux/util-linux-2.42.2/sfdisk" to "${dest}/usr/sbin/sfdisk"
+        chmod 0755 "${dest}/usr/sbin/sfdisk"
+        require file "${dest}/usr/sbin/sfdisk" {
+            exists
+            nonempty
+            executable
+        }
+        run "${dest}/usr/sbin/sfdisk" {
+            "--version"
+        }
+    }
+}

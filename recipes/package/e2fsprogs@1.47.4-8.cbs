@@ -1,0 +1,110 @@
+# e2fsprogs -- built for ONE binary, mke2fs, installed as mkfs.ext4.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THE _INLINE_ REWRITE is the reason this package needs patching at
+# all, and the three `replace … exactly 1` below are the same edit
+# the shell did with one global sed across three headers.
+#
+# e2fsprogs defines `#define _INLINE_ extern inline` and relies on
+# the GCC semantics for it. TCC's inline linkage differs -- what
+# links and what collides has REVERSED across the compiler upgrade
+# (ADR-0223): bare `inline` used to fail with "defined twice" and
+# now links, while `extern inline` used to link and now fails. The
+# safe spelling on both is plain `static inline`, and what this
+# patch does is remove the storage class entirely, leaving
+# `#define _INLINE_`, with -DNO_INLINE_FUNCS telling the source to
+# emit real functions instead.
+#
+# The grep-after-the-sed guard is gone, as the recipe guide
+# prescribes: `exactly 1` on each file refuses to mutate unless the
+# line is there, and names the file when it is not -- which is more
+# than the grep did, since the grep could not tell WHICH of the
+# three headers had drifted.
+package "e2fsprogs" {
+    version "1.47.4"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "e2fsprogs" {
+            url "https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.47.4/e2fsprogs-1.47.4.tar.gz"
+            sha256 "da274408bebbfd13a5a2fc3cfc66e3ffff17c48534673aa67f88d49b99123b96"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "b50da52528f0299a8af1d543ff8897de03135290166bf89f502f9700f6bb8d68"
+        "changelog" "1.47.4-8: the three _INLINE_ rewrites are exactly 2, 2 and 1 -- measured by reading the headers out of the release tarball rather than discovered a build at a time, 1.47.4-7 having guessed 1 for each. The shell recipe did all five with one global sed and recorded none of it. 1.47.4-7: converted to build.cbs (ADR-0305) as a .cixpkg (ADR-0307); the grep-after guard goes, exactly N naming WHICH header drifted where the grep could not."
+    }
+
+    prepare {
+        # 2, 2 and 1 -- MEASURED, by reading the three headers out
+        # of the release tarball, not discovered a build at a time.
+        # 1.47.4-7 guessed 1 for each and the first answered
+        # "expected 1 matches but found 2"; three guesses would have
+        # cost three builds. The shell's single global sed did all
+        # five silently and recorded none of it, so an upstream
+        # change to any one of them was invisible. Now it is not.
+        replace "${src}/e2fsprogs/e2fsprogs-1.47.4/lib/ext2fs/bitops.h" {
+            from "#define _INLINE_ extern inline"
+            to "#define _INLINE_"
+            exactly 2
+        }
+        replace "${src}/e2fsprogs/e2fsprogs-1.47.4/lib/ext2fs/kernel-jbd.h" {
+            from "#define _INLINE_ extern inline"
+            to "#define _INLINE_"
+            exactly 2
+        }
+        replace "${src}/e2fsprogs/e2fsprogs-1.47.4/lib/ext2fs/ext2fs.h" {
+            from "#define _INLINE_ extern inline"
+            to "#define _INLINE_"
+            exactly 1
+        }
+    }
+
+    build {
+        cd "${src}/e2fsprogs/e2fsprogs-1.47.4" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-nls"
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-DNO_INLINE_FUNCS"
+            }
+            run "make" {
+                jobs $jobs
+                "PROG_SUBDIRS=misc"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        copy "${src}/e2fsprogs/e2fsprogs-1.47.4/misc/mke2fs" to "${dest}/usr/sbin/mkfs.ext4"
+        chmod 0755 "${dest}/usr/sbin/mkfs.ext4"
+        require file "${dest}/usr/sbin/mkfs.ext4" {
+            exists
+            nonempty
+            executable
+        }
+    }
+}
