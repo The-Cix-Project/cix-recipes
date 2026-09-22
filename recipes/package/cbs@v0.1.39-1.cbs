@@ -1,0 +1,200 @@
+# cbs v0.1.39-1: the block-string runtime fix (cbs#216), on top of
+# the seven operations v0.1.34 brought.
+#
+# cbs#216 IS WHY THIS REVISION EXISTS AND IS WORTH READING. #208
+# fixed the VALIDATOR and not the RUNTIME: src/fs.c resolved a
+# `write`'s content with operation->flag, the token kind of the
+# PATH, so a block string containing dollar-brace passed validation
+# and was then silently substituted to EMPTY when written.
+#
+# That was strictly worse than the bug it replaced. Before, a
+# publish was refused with CPDL-E3005 -- loud, early, harmless.
+# After, hostapd@2.11-13 published cleanly, its toolwrap's
+# `exec tcc "${args[@]}"` was written as `exec tcc ""`, and the
+# build died four operations later inside make with
+#
+#   tcc: error: file '' not found
+#
+# naming nothing to do with the cause. A silent wrong file rather
+# than a refusal is the failure shape this project has been bitten
+# by before -- the squashfs endianness bug and the do-while
+# miscompile -- and the reason the maxims treat a wrong answer as
+# worse than a crash. The fix is one argument:
+#
+#   second = cbs_resolve_value(operation->second_value,
+#                              operation->second_flag, context);
+#
+# v0.1.34's own seven, all filed from this corpus in one day of
+# converting recipes:
+#
+#   #205 non-archive main sources   -- unblocked ca-certificates and
+#        rtw88-firmware AT ALL; neither has a tarball to point at
+#   #206 stderr capture/assertions  -- restored bird's --version gate
+#   #207 globs as run arguments     -- hostapd's link line
+#   #208 literal ${} in block strings
+#   #209 glob bindings across phases
+#   #210 anchored source replacements -- libcap's shebang, which
+#        also measured that libcap ships TWELVE line-1 bash
+#        shebangs, a number the shell sed rewrote silently
+#   #211 named post-install check cases
+#
+package "cbs" {
+    version "v0.1.39"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.39.tar.gz"
+            sha256 "ba5e4f6051d573f27738d306378bbb85d60400d321a989ce9fb337cee75c3373"
+        }
+        # zstd 1.5.4, for upstream-test. Declared as a source so the
+        # daemon fetches and checksum-verifies it host-side; never
+        # fetched from inside the build.
+        extra "zstd" {
+            url "https://github.com/facebook/zstd/archive/refs/tags/v1.5.4.tar.gz"
+            sha256 "35ad983197f8f8eb0c963877bf8be50490a0b3df54b4edeb8399ba8a8b2f60a4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "tar"
+            tool "gzip"
+            # curl, for libcurl.so.4. CBS dlopen()s it to fetch, and
+            # tests/cli-build-test.sh serves a source over a local
+            # http-server and has cbs fetch it -- so the suite needs the
+            # library even though nothing here reaches the network.
+            #
+            # Dropped by the first draft of this translation, and the
+            # build caught it: `make test` ran the recipe corpus, 50
+            # parser cases, the metadata test and the upstream smoke
+            # test, then failed in cli-build-test.sh. A declaration
+            # system earning its keep on its own recipe.
+            tool "curl"
+            tool "libarchive"
+            tool "zstd"
+            tool "linux-headers"
+        }
+        runtime {
+            package "libarchive"
+            package "zstd"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
+        "changelog" "v0.1.39-1: carries cbs#216, the block-string runtime fix. #208 fixed the validator and not the runtime: fs.c resolved a write content with the PATH token kind, so a block string containing dollar-brace published and was silently substituted to empty. hostapd@2.11-13 wrote exec tcc \"\" and died four operations later inside make on file not found. A silent wrong file rather than a refusal is worse than the bug it replaced. Also carries v0.1.34 seven operations."
+    }
+
+    prepare {
+        #
+        # THE MAIN source extracts into ${src}/<source-name>/,
+        # preserving the archive's own top-level directory. An EXTRA
+        # source no longer does: v0.1.34 made the specification true
+        # -- an extra source "remains a named verified input until an
+        # explicit extract or materialize operation uses it" -- so
+        # anything reaching for ${src}/<extra-name>/ now finds
+        # nothing. hostapd@2.11-12 found that out with
+        # "glob binding expected 1 matches but found 0".
+        #
+        # Listed before it is required so that the log answers what the
+        # gitea archive's top-level directory is actually called, rather
+        # than only whether one guess was right. This sandbox compiles
+        # and unpacks nothing, so the box is the only place that can
+        # answer it, and one build cycle is the price of that rule.
+        #
+        run "ls" {
+            "-la"
+            "${src}/cbs"
+        }
+        require directory "${src}/cbs/cix-build-system" {
+            exists
+        }
+        #
+        # The zstd deprecation define, appended to the Makefile rather
+        # than passed on the command line.
+        #
+        # This is the shell recipe's hardest-won detail and the reason
+        # this phase exists at all. A make command-line assignment has
+        # the highest precedence of all and cannot be appended to, so
+        # passing CPPFLAGS there silently discards the Makefile's own
+        #
+        #   CPPFLAGS += -DCBS_VERSION=\"$(CBS_VERSION)\"
+        #
+        # and src/main.c falls through to `#define CBS_VERSION
+        # "unknown"`. That is why `cbs --version` said `cbs unknown`
+        # through revisions -3 to -7 of the shell recipe: the version
+        # was being computed and thrown away.
+        #
+        # Anchored on the CBS_VERSION line, and `exactly 1`, so that if
+        # upstream moves or renames it the edit fails loudly here
+        # rather than producing a binary that builds and reports the
+        # wrong version. The shell recipe relies on a sed that matches
+        # nothing failing later at zstd.h; CPDL can simply insist.
+        #
+        replace "${src}/cbs/cix-build-system/Makefile" {
+            from "CPPFLAGS += -DCBS_VERSION=\\\"$(CBS_VERSION)\\\""
+            to "CPPFLAGS += -DCBS_VERSION=\\\"$(CBS_VERSION)\\\"\nCPPFLAGS += -DZSTD_DISABLE_DEPRECATE_WARNINGS"
+            exactly 1
+        }
+    }
+
+    build {
+        # CC=tcc explicitly, never a bare cc: the build sandbox's
+        # default compiler has silently become real GCC before (#109),
+        # and a build system compiled by the wrong compiler is the least
+        # useful place for that to go unnoticed.
+        cd "${src}/cbs/cix-build-system" {
+            run "make" {
+                env "CC" = "tcc"
+                jobs $jobs
+            }
+        }
+    }
+
+    check {
+        # The whole upstream suite, as a real gate -- restored to the
+        # plain form every cbs revision before v0.1.27-1 had.
+        #
+        # v0.1.27-1's check carried five build cycles of scaffolding
+        # after ./tests/archive-test failed under `make test` while
+        # passing standalone, printing nothing either way. That is
+        # cix-build-system#180, and this release carries its fix:
+        # "make archive-test report which check failed". So the
+        # scaffolding is gone -- if the test fails now it says which
+        # assertion, which is what the issue asked for and what makes a
+        # diagnostic revision unnecessary.
+        cd "${src}/cbs/cix-build-system" {
+            run "make" {
+                "test"
+                env "CC" = "tcc"
+                env "CBS_UPSTREAM_CACHE" = "/build/cbscache"
+                env "TMPDIR" = "/run"
+                jobs $jobs
+            }
+            # It runs, and it knows its own version.
+            run "./cbs" {
+                "--version"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" chmod 0755
+        copy "${src}/cbs/cix-build-system/cbs" to "${dest}/usr/bin/cbs"
+        require file "${dest}/usr/bin/cbs" {
+            exists
+        }
+    }
+}
