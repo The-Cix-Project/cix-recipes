@@ -1,0 +1,118 @@
+# ca-certificates -- the Mozilla CA root store, so a container can
+# verify TLS at all.
+#
+# Found missing while trying to rebuild glauth (cix#262): preparing
+# its source needs HTTPS to proxy.golang.org, and NOTHING in this
+# platform's containers could verify a TLS certificate. The host has
+# a bundle -- mkbootroot stages the build host's -- but a container
+# gets its rootfs from an image, and no image carried roots.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THIS PACKAGE COULD NOT BE WRITTEN IN CPDL AT ALL UNTIL cbs#205.
+# A bare cacert.pem is not an archive, and CBS extracted every
+# declared source unconditionally, so `cbs_extract_archive()`
+# refused it with "archive format is not tar, pax, or zip" before a
+# single operation ran. Re-hosting the bundle inside a tarball built
+# here would have defeated the point: for a trust store, "the
+# publisher's bytes" IS the security property, which is why the
+# checksum was verified against curl's own published .sha256 rather
+# than merely "it downloaded":
+#
+#   computed:  f66dff1bdf8f96060b8177976f8b7d9254bc89bc4db933d769f7384d28480bc9
+#   published: f66dff1bdf8f96060b8177976f8b7d9254bc89bc4db933d769f7384d28480bc9
+#
+# v0.1.34 preserves a non-archive main source byte-for-byte at
+# ${src}/<name>/<basename>, so the recipe is now ordinary.
+#
+# THE CHECKS GET STRONGER RATHER THAN MERELY TRANSLATED, and they
+# move into named post-install cases (cbs#211) -- the first recipe
+# in this corpus to use them. The shell form counted BEGIN
+# CERTIFICATE lines and required more than 100, to catch a truncated
+# download or an HTML error page. `pkg_sha256` already makes that
+# impossible: bytes that hash correctly ARE the full bundle. What a
+# count could never check is the thing that can actually go wrong
+# here -- that each of the three installed copies is the bundle.
+# `same_as` compares them byte-for-byte against the verified source.
+#
+# Versioned by the bundle's own date rather than a software version,
+# because that is what it is: a dated snapshot of a trust store.
+package "ca-certificates" {
+    version "2026.09.03"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "cacerts" {
+            url "https://curl.se/ca/cacert.pem"
+            sha256 "f66dff1bdf8f96060b8177976f8b7d9254bc89bc4db933d769f7384d28480bc9"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2026.09.03-2: converts to CPDL (cix#487), impossible until cbs#205. A bare cacert.pem is not an archive and CBS extracted every source unconditionally, so this could not be expressed at all; a non-archive main source is now preserved byte-for-byte. The cert-count and header checks move into named post-install check cases (cbs#211) and get stronger: same_as proves all three installed copies are byte-identical to the verified source, which a count never did."
+    }
+
+    # DECLARED BEFORE install, EXECUTED AFTER IT. CPDL fixes the
+    # declaration order as prepare, configure, build, check,
+    # install -- writing check last is refused with CPDL-E3003
+    # "package declaration appears out of order" -- while CBS
+    # runs check after install so a case can inspect the staged
+    # artifact. Both halves matter here: every case below asserts
+    # on ${dest}.
+    check {
+        case "the source really is the Mozilla bundle" {
+            require file "${src}/cacerts/cacert.pem" {
+                exists
+                nonempty
+                contains "## Bundle of CA Root Certificates"
+            }
+        }
+        case "all three consumer paths carry that exact bundle" {
+            # What a certificate count could never check. A copy that
+            # truncated, or landed at the wrong path, or got written
+            # twice from different sources, fails here by name.
+            require file "${dest}/etc/ssl/certs/ca-certificates.crt" {
+                exists
+                same_as "${src}/cacerts/cacert.pem"
+            }
+            require file "${dest}/etc/ssl/cert.pem" {
+                exists
+                same_as "${src}/cacerts/cacert.pem"
+            }
+            require file "${dest}/etc/pki/tls/certs/ca-bundle.crt" {
+                exists
+                same_as "${src}/cacerts/cacert.pem"
+            }
+        }
+    }
+    install {
+        # Three paths, because three consumers disagree about where
+        # roots live and each only looks in its own:
+        #
+        #   /etc/ssl/certs/ca-certificates.crt  Debian-style; what
+        #       Go's crypto/x509 checks first and most tools default to
+        #   /etc/ssl/cert.pem                   OpenSSL's own default
+        #   /etc/pki/tls/certs/ca-bundle.crt    Red Hat-style; also on
+        #       Go's search list
+        #
+        # Copies rather than symlinks: these are read by processes
+        # inside a container whose rootfs may be assembled from
+        # several packages, and a dangling symlink fails in exactly
+        # the silent way this package exists to prevent. 185 KB.
+        mkdir "${dest}/etc/ssl/certs"
+        mkdir "${dest}/etc/pki/tls/certs"
+        copy "${src}/cacerts/cacert.pem" to "${dest}/etc/ssl/certs/ca-certificates.crt"
+        copy "${src}/cacerts/cacert.pem" to "${dest}/etc/ssl/cert.pem"
+        copy "${src}/cacerts/cacert.pem" to "${dest}/etc/pki/tls/certs/ca-bundle.crt"
+    }
+
+}

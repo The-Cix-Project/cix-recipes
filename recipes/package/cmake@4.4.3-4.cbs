@@ -1,0 +1,132 @@
+# cmake -- needed to build fastfetch, and whatever else arrives with
+# a CMakeLists.txt rather than a configure script.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE GATE IS THE WHOLE POINT OF THIS RECIPE, and it survives the
+# conversion intact. A `make` that exits 0 says a cmake binary was
+# linked; it says nothing about whether that cmake can do its job.
+# So the build writes a two-file project, configures it, builds it,
+# runs the result, and requires the exact string back. Four steps,
+# each of which a broken cmake fails at a different one of.
+#
+# The two heredocs become block strings, which process no escapes
+# and no interpolation, so the CMakeLists and the C stay byte for
+# byte what the heredocs emitted. Neither contains dollar-brace, so
+# neither runs into cbs#208.
+#
+# The scratch tree moves from /run/cmake-gate into the build root.
+# CPDL confines paths to the build roots, and that is the right
+# place for scratch anyway -- /run was only ever chosen because this
+# platform's minimal images have no /tmp. The final `rm -rf` goes
+# with it: the build root is discarded.
+#
+# --parallel takes ${jobs} rather than a command substitution,
+# because the job count is a value CBS already knows and CPDL does
+# no command substitution.
+#
+# gcc, and it is not a TCC gap to fix or track: CMake is C++17 and
+# TCC has no C++ front end at all, so this is the wrong tool rather
+# than a missing feature -- the same reasoning btop records
+# (ADR-0226).
+package "cmake" {
+    version "4.4.3"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "cmake" {
+            url "https://cmake.org/files/v4.4/cmake-4.4.3.tar.gz"
+            sha256 "c46400618b4f1f2b43507f24fb22f3ae830c3416cf23b776e16e1d413aa892f0"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "findutils"
+            tool "binutils"
+            tool "glibc"
+            tool "linux-headers"
+            tool "openssl"
+            tool "pkgconf"
+        }
+        runtime {
+            package "openssl"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "language: CMake is C++17 and TCC has no C++ front end at all, so this is not a TCC gap to fix or track -- it is the wrong tool, the same reasoning btop 1.4.7-1 records. Measured against gcc 16.2.0-13, which is installed in cix-builder with g++, libstdc++ and the C++ headers."
+    }
+
+    metadata {
+        "changelog" "4.4.3-4: converts to CPDL (cix#487). Same tarball, same bootstrap and make lines, same 4156 files. The end-to-end gate survives whole -- the cmake just built still has to configure, build and RUN a real project -- with its two heredocs becoming block strings and the output check becoming stdout file plus require contains. Its scratch tree moves out of /run into the build root, where CPDL confines paths. No workaround for any CBS gap."
+    }
+
+    build {
+        cd "${src}/cmake/cmake-4.4.3" {
+            run "./bootstrap" {
+                "--prefix=/usr"
+                "--parallel=${jobs}"
+                "--no-qt-gui"
+                "--no-system-libs"
+            }
+            run "make" {
+                jobs $jobs
+            }
+            # THE GATE. A two-file project, configured, built and
+            # run, because a linked cmake binary is not a working
+            # one.
+            mkdir "${build}/cmake-gate/src"
+            write "${build}/cmake-gate/src/CMakeLists.txt" """
+            cmake_minimum_required(VERSION 3.12.0)
+            project(cixgate C)
+            add_executable(cixgate main.c)
+            """
+            write "${build}/cmake-gate/src/main.c" """
+            int main(void) { printf("cmake-gate-ok\n"); return 0; }
+            """
+            run "./bin/cmake" {
+                "-S"
+                "${build}/cmake-gate/src"
+                "-B"
+                "${build}/cmake-gate/build"
+                "-DCMAKE_BUILD_TYPE=Release"
+            }
+            run "./bin/cmake" {
+                "--build"
+                "${build}/cmake-gate/build"
+            }
+            run "${build}/cmake-gate/build/cixgate" {
+                stdout file "${build}/cmake-gate/out.txt"
+            }
+            require file "${build}/cmake-gate/out.txt" {
+                exists
+                contains "cmake-gate-ok"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/cmake/cmake-4.4.3" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "install"
+            }
+        }
+        require file "${dest}/usr/bin/cmake" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/ctest" {
+            exists
+            executable
+        }
+    }
+}

@@ -1,0 +1,179 @@
+# hostapd -- the 802.11 access point daemon the wifi_router image
+# runs, built against OpenWrt libnl-tiny rather than full libnl.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE SECOND SOURCE STOPS BEING A MANUAL UNPACK. The shell form
+# listed /build/extra, picked the first entry, tar xzf it, listed
+# libnl-tiny-* to find what came out, and mv it to a fixed name --
+# five steps and three failure messages, all of which existed
+# because ADR-0036 hands a non-first source to the recipe as an
+# opaque file. CBS extracts every declared source into $src/<name>/,
+# so the tarball is already unpacked; the only unknown left is the
+# directory name, which carries the pinned commit hash, and
+# `glob "nltiny" = ...` binds it. That operation requires exactly one
+# match by default, so a tarball that ever produced two top-level
+# directories fails here rather than silently picking one.
+#
+# ALL THREE WORKAROUNDS 2.11-11 CARRIED ARE GONE, because cbs
+# v0.1.34 landed the three operations they stood in for. They were
+# tracked in cix#509 and this revision is what that list is for.
+#
+#   cbs#207  the libnl-tiny link line was hidden in a generated
+#            makefile so `make` could expand *.c. `args glob` puts
+#            it back in one `run` that says what it does.
+#   cbs#208  the toolwrap rebuilt its argument list through the
+#            positional parameters, because a block string
+#            containing dollar-brace was refused at publish. The
+#            bash array is back.
+#   cbs#209  the glob binding was declared twice, once per phase.
+#            One declaration now, used in both.
+#
+# Worth recording that none of the three was discovered by reading
+# the specification: each was found by a recipe failing, filed the
+# same day, fixed and tagged the same day. The workaround list
+# existed so they would not survive by inertia, and this is it
+# working.
+#
+# THE TOOLWRAP ITSELF STAYS. hostapd's build passes -MMD, which TCC
+# does not accept; the wrapper rewrites it to -MD and delegates. It
+# keeps the explicit #!/usr/bin/bash the shell form did not have:
+# it uses a bash array, and relying on /bin/sh being bash is an
+# accident of which package provides bin/sh.
+#
+package "hostapd" {
+    version "2.11"
+    release 13
+    format "cixpkg"
+
+    sources {
+        main "hostapd" {
+            url "https://w1.fi/releases/hostapd-2.11.tar.gz"
+            sha256 "2b3facb632fd4f65e32f4bf82a76b4b72c501f995a4f62e330219fe7aed1747a"
+        }
+        extra "libnltiny" {
+            url "https://codeload.github.com/openwrt/libnl-tiny/tar.gz/40493a655d8caa2ccf5206dde1e733abe2920432"
+            sha256 "a3f0456006b72352f0ccc9a653eb2428a03bc3ff3c6987a858b0c060ac19b181"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "openssl"
+        }
+        runtime {
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "2.11-13: reverts all three workarounds 2.11-11 carried, cbs v0.1.34 having landed the operations they stood in for (cix#509). The libnl-tiny link line comes out of a generated makefile into one run with args glob (cbs#207); the toolwrap gets its bash array back (cbs#208); and the glob binding is gone entirely rather than declared twice (cbs#209) -- v0.1.34 stops auto-extracting extra sources, so an explicit extract ... as names the directory instead of discovering it."
+    }
+
+    prepare {
+        # -MMD is a GCC spelling TCC does not accept; -MD is the one
+        # it does, and the dependency output is not used here either
+        # way. A bash array, hence the explicit interpreter.
+        mkdir "${build}/toolwrap"
+        write "${build}/toolwrap/tcc-hostapd" """
+        #!/usr/bin/bash
+        args=()
+        for a in "$@"; do
+        	if [ "$a" = "-MMD" ]; then
+        		args+=("-MD")
+        	else
+        		args+=("$a")
+        	fi
+        done
+        exec tcc "${args[@]}"
+        """
+        chmod 0755
+    }
+
+    build {
+        # EXTRACTED EXPLICITLY, AND THE GLOB IS GONE. Through
+        # v0.1.33 CBS extracted every declared source at prepare
+        # time, so an extra source arrived already unpacked under a
+        # directory named for the pinned commit, and the only way to
+        # reach it was to bind that name with a glob. v0.1.34 makes
+        # the spec true -- an extra source "remains a named verified
+        # input until an explicit extract or materialize operation
+        # uses it" -- and `as` renames the archive's single top-level
+        # directory on the way in. So the path is chosen here rather
+        # than discovered, and 2.11-12's binding found zero matches:
+        #
+        #   error[CPDL-E4005]: glob binding expected 1 matches but found 0
+        extract $source.libnltiny into "${src}" as "nltiny"
+        mkdir "${src}/nltiny/build"
+        # One command again. cbs#207 landed `args glob`, so the
+        # link line says what it does instead of hiding in a
+        # generated makefile. `exactly` is deliberately omitted: the
+        # file count of a pinned upstream commit is not a fact this
+        # recipe should assert, only that there is at least one.
+        cd "${src}/nltiny" {
+            run "tcc" {
+                "-shared"
+                "-Wall"
+                "-Iinclude"
+                args glob "${src}/nltiny/*.c"
+                "-o"
+                "build/libnl-tiny.so"
+            }
+        }
+        require file "${src}/nltiny/build/libnl-tiny.so" {
+            exists
+            nonempty
+        }
+        copy "${src}/hostapd/hostapd-2.11/hostapd/defconfig" to "${src}/hostapd/hostapd-2.11/hostapd/.config"
+        # The TLS line is rewritten AND carries the three appends,
+        # because CPDL has no append-to-file operation.
+        replace "${src}/hostapd/hostapd-2.11/hostapd/.config" {
+            from "#CONFIG_TLS=openssl"
+            to "CONFIG_TLS=openssl\nCONFIG_LIBNL_TINY=y\nCFLAGS += -I${src}/nltiny/include -D_GNU_SOURCE\nLDFLAGS += -L${src}/nltiny/build"
+            exactly 1
+        }
+        replace "${src}/hostapd/hostapd-2.11/hostapd/.config" {
+            from "CONFIG_LIBNL32=y"
+            to "#CONFIG_LIBNL32=y"
+            exactly 1
+        }
+        cd "${src}/hostapd/hostapd-2.11/hostapd" {
+            # -j1 deliberately: hostapd own makefile is not
+            # parallel-safe here.
+            run "make" {
+                "CC=${build}/toolwrap/tcc-hostapd"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin"
+        mkdir "${dest}/usr/lib"
+        copy "${src}/hostapd/hostapd-2.11/hostapd/hostapd" to "${dest}/usr/bin/hostapd"
+        copy "${src}/hostapd/hostapd-2.11/hostapd/hostapd_cli" to "${dest}/usr/bin/hostapd_cli"
+        copy "${src}/nltiny/build/libnl-tiny.so" to "${dest}/usr/lib/libnl-tiny.so"
+        require file "${dest}/usr/bin/hostapd" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/hostapd_cli" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/lib/libnl-tiny.so" {
+            exists
+            nonempty
+        }
+    }
+}
