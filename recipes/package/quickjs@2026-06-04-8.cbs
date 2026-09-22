@@ -1,0 +1,195 @@
+# QuickJS -- the JS engine test_web_syntax links to parse the
+# dashboard's own JavaScript. Converted from build.sh to build.cbs
+# (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything from a staged tree. It copies one archive and one header.
+#
+# FIVE GUARDS, AND THREE OF THEM ARE NEGATIVE -- which is why this
+# package waited. `require file { contains }` asserts presence and
+# CPDL has no "must not contain". The form used here is grep's own
+# exit status: grep exits 1 when it finds nothing, so
+# `run "grep" { … expect exit 1 }` IS the negative assertion, and it
+# is honest about what it checks rather than approximating it.
+#
+# WHY EACH ONE EXISTS -- none is decorative, and two guard silent
+# ABI divergence rather than a crash:
+#
+#   quickjs.o present      the archive must contain the engine.
+#   JS_Eval exported       and must export its entry point.
+#   quickjs-libc.o ABSENT  that member is the only one referencing
+#                          dlopen/fork/execve (measured with nm: 11
+#                          references there, 0 in the other five).
+#                          It is deleted because cix-builder's glibc
+#                          ships no libdl.so stub, so -ldl fails at
+#                          link even though every symbol is in libc.
+#   no dlopen undefined    proof the deletion actually took.
+#   no TImode helper       -U__SIZEOF_INT128__ must have taken. If
+#                          it did not, gcc emits __udivti3 that tcc
+#                          cannot resolve -- AND, worse, quickjs.h
+#                          picks JS_LIMB_BITS off that same macro,
+#                          which sets the width of a JSValueUnion
+#                          member. A gcc-built library and a
+#                          tcc-compiled header would then disagree
+#                          about a public struct passed by value.
+#                          The nm gate catches the link error; the
+#                          consumer's own _Static_assert on
+#                          JS_LIMB_BITS catches the ABI half. Gate
+#                          both arms, not just the one that failed.
+package "quickjs" {
+    version "2026-06-04"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "quickjs" {
+            url "https://bellard.org/quickjs/quickjs-2026-06-04.tar.xz"
+            sha256 "b376e839b322978313d929fd20663b11ba58b75df5a46c126dd19ea2fa70ad2a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "binutils"
+            tool "sed"
+            tool "grep"
+            tool "findutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "carried from 2026-06-04-4 and not re-measured against the pinned tcc 0.9.28rc. The -U__SIZEOF_INT128__ flag this recipe depends on is a gcc spelling, so a move to tcc would be a real port rather than a flag change"
+    }
+
+    metadata {
+        "artifact_sha256" "d5ce12ad769e00f9c21bc0e6f91922efb2485ddcbed058ea63ebe2bbc1f4e55c"
+        "changelog" "2026-06-04-8: -U__SIZEOF_INT128__ moves from CC into the Makefile CFLAGS, because a recipe cannot set CC for make. CBS injects CC=<declared compiler> into MAKEFLAGS, which silently beats the recipe own CC= -- measured with a probe, where even a control CC=PLAIN was discarded (cbs#202). Editing the Makefile CC= line would not help either, MAKEFLAGS beating a file assignment. CFLAGS is not injected, so the flag goes there, anchored on the unconditional CFLAGS+=-fwrapv."
+    }
+
+    prepare {
+        # -U__SIZEOF_INT128__ GOES IN THE MAKEFILE, not in CC, and
+        # that is forced rather than chosen. CBS injects its own
+        # `CC=<declared compiler>` into MAKEFLAGS, which make treats
+        # as a command-line assignment, and that beats the `CC=` a
+        # recipe passes -- silently. Measured with a throwaway probe
+        # (cbs#202): a control `CC=PLAIN` was discarded too, and the
+        # makefile reported ORIGIN[command line] MAKEFLAGS[ -- CC=tcc].
+        #
+        # So neither `CC=` as an argument nor editing the Makefile's
+        # own CC= line can work; a MAKEFLAGS assignment beats both.
+        # CFLAGS is not injected, so the flag goes there.
+        #
+        # Anchored on CFLAGS+=-fwrapv, which is unconditional and
+        # occurs once -- counted in the release tarball. The comment
+        # that follows it on the same line stays a comment, since
+        # make starts the comment at the #.
+        #
+        # Why the flag is load-bearing: quickjs.h picks JS_LIMB_BITS
+        # off __SIZEOF_INT128__, and that sets the width of a
+        # JSValueUnion member -- a public struct passed by value. A
+        # gcc-built library and a tcc-compiled consumer disagreeing
+        # about it disagree about an ABI. The undefined __udivti3 the
+        # gate below catches is the loud half of that.
+        insert "${src}/quickjs/quickjs-2026-06-04/Makefile" {
+            after "CFLAGS+=-fwrapv"
+            write " -U__SIZEOF_INT128__"
+            exactly 1
+        }
+    }
+
+    build {
+        cd "${src}/quickjs/quickjs-2026-06-04" {
+            run "make" {
+                "AR=ar"
+                "libquickjs.a"
+            }
+            run "ar" {
+                "t"
+                "libquickjs.a"
+                stdout file "${src}/quickjs/members.txt"
+            }
+            require file "${src}/quickjs/members.txt" {
+                exists
+                contains "quickjs.o"
+            }
+            # JS_Eval is asserted against the ARCHIVE'S OWN BYTES,
+            # not against nm output, and that is weaker by one step.
+            # 2026-06-04-5 ran `nm libquickjs.a` into a stdout file
+            # and failed: "process stdout exceeds the 64 KiB limit"
+            # (cbs#199) -- nm over a whole archive is far larger than
+            # that, and rightly so; the limit is for asserting on a
+            # command's output, not for dumping a symbol table.
+            #
+            # `contains` searches a byte string, so this proves the
+            # name JS_Eval appears in the archive -- which for a
+            # compiled object means its symbol table -- but not that
+            # it is a DEFINED text symbol. The negative checks below
+            # still use nm, because `nm -u` lists only undefined
+            # symbols and is small enough to pass through.
+            require file "${src}/quickjs/quickjs-2026-06-04/libquickjs.a" {
+                exists
+                contains "JS_Eval"
+            }
+            run "ar" {
+                "d"
+                "libquickjs.a"
+                "quickjs-libc.o"
+            }
+            run "ranlib" {
+                "libquickjs.a"
+            }
+            # Negative: quickjs-libc.o must be GONE.
+            run "ar" {
+                "t"
+                "libquickjs.a"
+                stdout file "${src}/quickjs/members2.txt"
+            }
+            run "grep" {
+                "-q"
+                "quickjs-libc.o"
+                "${src}/quickjs/members2.txt"
+                expect exit 1
+            }
+            run "nm" {
+                "-u"
+                "libquickjs.a"
+                stdout file "${src}/quickjs/undef.txt"
+            }
+            # Negative: no dlopen family left, or a consumer needs
+            # -ldl and cix-builder cannot link it.
+            run "grep" {
+                "-qE"
+                " (dlopen|dlsym|dlclose)$"
+                "${src}/quickjs/undef.txt"
+                expect exit 1
+            }
+            # Negative: no libgcc TImode helper, or
+            # -U__SIZEOF_INT128__ did not take.
+            run "grep" {
+                "-qE"
+                " __[a-z]+ti[0-9]+$"
+                "${src}/quickjs/undef.txt"
+                expect exit 1
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib" chmod 0755
+        mkdir "${dest}/usr/include" chmod 0755
+        copy "${src}/quickjs/quickjs-2026-06-04/libquickjs.a" to "${dest}/usr/lib/libquickjs.a"
+        copy "${src}/quickjs/quickjs-2026-06-04/quickjs.h" to "${dest}/usr/include/quickjs.h"
+        require file "${dest}/usr/lib/libquickjs.a" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/quickjs.h" {
+            exists
+            nonempty
+        }
+    }
+}
