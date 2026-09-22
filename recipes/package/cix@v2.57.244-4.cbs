@@ -1,0 +1,228 @@
+#
+# cix -- the platform itself: cix-init, cixd, cixctl, mkbootroot,
+# cix-install, cix-recover, mkinstalleriso, cix-boot.efi, cix-xorriso,
+# and the web dashboard. This is what `pkg hostbuild cix --upgrade
+# --wait --deploy` builds and ships.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+# Same tag at the same digest, same nine binaries, same selftest, same
+# negative control.
+#
+# THE NEGATIVE CONTROL IS THE HEART OF THIS RECIPE. A selftest that
+# passes proves nothing unless it can fail, so the build poisons the
+# console session struct -- reintroducing cix#296 -- rebuilds cixd,
+# and runs the console-input test again, which MUST now fail. If it
+# passes against a build carrying the bug, the test is not detecting
+# what it was written for and its earlier pass means nothing, so this
+# build is refused. The poison is then reverted and cixd rebuilt
+# clean, and that restore is asserted before anything ships.
+#
+# CPDL states both halves better than the shell did.
+#
+#   The poison and the restore were `sed -i` followed by `grep -q` to
+#   check the sed had taken. `replace ... exactly 1` is both: the
+#   count must match BEFORE a byte is written, so an edit that would
+#   not apply fails on the operation rather than on a verification
+#   afterwards. If main.c moves, this fails naming the operation
+#   instead of shipping a build whose control was never armed.
+#
+#   The "must now fail" run was `rc=0; ./build/test_console_exec ||
+#   rc=$?` then a test for rc = 0. test_console_exec returns 1 on
+#   every failure path, so `expect exit 1` is exact -- and it is
+#   STRONGER, because a test binary that crashed, or that could not
+#   start, no longer counts as "it failed, good". Only the specific
+#   failure the control is designed to provoke satisfies it.
+#
+# WHAT CANNOT BE CARRIED OVER: the shell tailed 30 lines of the failed
+# run's log to make the failure legible. CBS prints the failing
+# command and the run's own output reaches the build log, so the
+# diagnostic is not lost, only its formatting.
+#
+package "cix" {
+    version "v2.57.244"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.244.tar.gz"
+            sha256 "284890375f22f51ab843e1f8d8467530c0d8964964d8c25db12cafa659a925e0"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "tar"
+            tool "gzip"
+            tool "binutils"
+            tool "openssl"
+            tool "libarchive"
+            tool "curl"
+            tool "quickjs"
+            tool "minisign"
+            # cix-boot.efi is built with gcc: a PE/COFF EFI image needs
+            # the MS ABI, which TCC does not emit.
+            tool "gcc"
+        }
+        runtime {
+            package "openssl"
+            package "libarchive"
+            package "curl"
+        }
+    }
+
+    metadata {
+        "changelog" "v2.57.244-4: no parallelism anywhere, matching the shell recipe exactly. v2.57.244-2 put jobs $jobs on all four makes and the suite failed on the volume tests; -3 removed it from the selftest only and failed identically. The shell recipe passed at this tag in this environment with no -j at all, so the remaining suspect is the parallel build of the test binaries themselves."
+    }
+
+    build {
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=v2.57.244"
+                "build/cix-init"
+                "build/cixd"
+                "build/cixctl"
+                "build/mkbootroot"
+                "build/cix-install"
+                "build/cix-recover"
+                "build/mkinstalleriso"
+                "build/cix-boot.efi"
+                "build/cix-xorriso"
+            }
+
+            # SERIAL, AND SO IS EVERY OTHER make IN THIS RECIPE.
+            # v2.57.244-2 put `jobs $jobs` on all four and the suite
+            # failed:
+            #
+            #   FAIL: volume delete refused (409) while a container
+            #         definition references it
+            #   FAIL: volume deletes once nothing references it
+            #   VOLUME RESULT: FAIL (21)
+            #
+            # The shell recipe ran every make in this build with no
+            # -j at all, and the conversion added parallelism to all
+            # four of them without evidence it was safe. The suite
+            # forks real daemons on fixed ports and creates real
+            # containers and bridges, so running its binaries
+            # concurrently races on shared state -- which is exactly
+            # what a volume-reference test failing looks like.
+            #
+            # v2.57.244-3 removed it from THIS make only, kept it on
+            # the three that build the binaries, and failed
+            # identically -- 764,335 ms against 761,849 ms. That ruled
+            # out the selftest's own -j and not the others: the suite
+            # runs binaries this recipe built, and a Makefile that is
+            # not parallel-safe produces a bad one silently. The shell
+            # recipe passed at this exact tag in this exact
+            # environment, with no -j anywhere, which is the control.
+            #
+            # So: no parallelism at all. A conversion's job is to be
+            # equivalent; making a build faster is a separate change
+            # with its own burden of proof.
+            run "make" {
+                "CIX_VERSION=v2.57.244"
+                "selftest"
+            }
+        }
+
+        # cix#296: poison the console session struct. See the header --
+        # this is what makes the selftest above mean something.
+        replace "${src}/cix/cix/daemon/src/main.c" {
+            from "\tmemset(sess, 0, sizeof(*sess));"
+            to "\tmemset(sess, 0xff, sizeof(*sess)); /* #296 proof */"
+            exactly 1
+        }
+
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=v2.57.244"
+                "build/cixd"
+            }
+
+            # It must now detect the bug. Exactly 1 -- the code
+            # test_console_exec returns on a real detection.
+            run "build/test_console_exec" {
+                expect exit 1
+            }
+        }
+
+        # Restore, and assert the restore. A build that shipped the
+        # poisoned memset would be shipping cix#296 deliberately.
+        replace "${src}/cix/cix/daemon/src/main.c" {
+            from "\tmemset(sess, 0xff, sizeof(*sess)); /* #296 proof */"
+            to "\tmemset(sess, 0, sizeof(*sess));"
+            exactly 1
+        }
+
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=v2.57.244"
+                "build/cixd"
+            }
+        }
+    }
+
+    install {
+        # The hostbuild artifact is flat: mkbootroot reads these from
+        # the artifact root, not from a usr/bin prefix.
+        copy "${src}/cix/cix/build/cix-init" to "${dest}/cix-init"
+        copy "${src}/cix/cix/build/cixd" to "${dest}/cixd"
+        copy "${src}/cix/cix/build/cixctl" to "${dest}/cixctl"
+        copy "${src}/cix/cix/build/mkbootroot" to "${dest}/mkbootroot"
+        copy "${src}/cix/cix/build/cix-install" to "${dest}/cix-install"
+        copy "${src}/cix/cix/build/cix-recover" to "${dest}/cix-recover"
+        copy "${src}/cix/cix/build/mkinstalleriso" to "${dest}/mkinstalleriso"
+        copy "${src}/cix/cix/build/cix-boot.efi" to "${dest}/cix-boot.efi"
+        copy "${src}/cix/cix/build/cix-xorriso" to "${dest}/cix-xorriso"
+        copy tree "${src}/cix/cix/web" to "${dest}/web"
+
+        # Without these the assembled control plane serves a blank
+        # dashboard -- which looks like a running system.
+        require file "${dest}/web/index.html" {
+            exists
+            nonempty
+        }
+        require file "${dest}/web/app.js" {
+            exists
+            nonempty
+        }
+        require file "${dest}/web/style.css" {
+            exists
+            nonempty
+        }
+        require file "${dest}/web/api.js" {
+            exists
+            nonempty
+        }
+
+        require file "${dest}/cixd" {
+            exists
+            executable
+        }
+        require file "${dest}/cix-init" {
+            exists
+            executable
+        }
+
+        # cix-boot.efi must be a PE image. Two bytes captured and
+        # asserted, which is exact for a two-byte file -- the same
+        # shape squashfs-tools uses for its squashfs magic.
+        run "dd" {
+            "if=${dest}/cix-boot.efi"
+            "bs=1"
+            "count=2"
+            stdout file "${build}/efi-magic"
+        }
+        require file "${build}/efi-magic" {
+            exists
+            contains "MZ"
+        }
+    }
+}
