@@ -1,0 +1,229 @@
+# Linux-PAM -- libpam and the twelve modules this platform uses.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES: the two `rm -f .../*.la` are not translated.
+# Finalize drops every .la, and `remove glob` fails on a glob
+# matching nothing where `rm -f` shrugged (cbs#188) -- and the
+# second of them pointed at /lib64/security, a path this build does
+# not produce at all with --libdir=/usr/lib.
+#
+# THE ONE PATCH teaches pam_cc_compat.h that TCC understands the
+# construct behind PAM_GNUC_PREREQ(3, 0). Counted in the release
+# tarball before writing: exactly one occurrence, so `exactly 1` is
+# measured rather than claimed.
+#
+# THIRTEEN EXPLICIT `make -C` PAIRS, build and install, rather than
+# a loop. CPDL has `each`, and this is the shape it fits -- but the
+# body would be one `run` per phase and the guide says a
+# single-operation body is written out as N lines. Thirteen names
+# in source order also reads as the dependency order it actually
+# is: libpam_internal before libpam, libpam before the modules.
+#
+# ac_cv_func_pthread_kill_other_threads_np=no is a cache variable,
+# which is autoconf's own supported way to correct a probe, and is
+# truthful: glibc dropped that function.
+package "linux-pam" {
+    version "1.6.1"
+    release 10
+    format "cixpkg"
+
+    sources {
+        main "linux-pam" {
+            url "https://github.com/linux-pam/linux-pam/releases/download/v1.6.1/Linux-PAM-1.6.1.tar.xz"
+            sha256 "f8923c740159052d719dbfc2a2f81942d68dd34fcaf61c706a02c9b80feeef8e"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "libxcrypt"
+            tool "diffutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1.6.1-10: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest and the same configure line. The pam_cc_compat.h patch is exactly 1, counted in the release tarball rather than claimed. The two rm -f of .la files are not translated: finalize drops every .la, remove glob fails on no match (cbs#188), and the second pointed at /lib64/security, which this build does not produce with --libdir=/usr/lib."
+    }
+
+    prepare {
+        replace "${src}/linux-pam/Linux-PAM-1.6.1/libpam/include/pam_cc_compat.h" {
+            from "#if PAM_GNUC_PREREQ(3, 0)"
+            to "#if PAM_GNUC_PREREQ(3, 0) || defined(__TINYC__)"
+            exactly 1
+        }
+    }
+
+    build {
+        cd "${src}/linux-pam/Linux-PAM-1.6.1" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-nls"
+                "--disable-doc"
+                "--disable-selinux"
+                "--disable-audit"
+                "--disable-systemd"
+                "--disable-econf"
+                "--disable-nis"
+                "--disable-db"
+                "--disable-lckpwdf"
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-D__STDC_NO_VLA__=1"
+                env "ac_cv_func_pthread_kill_other_threads_np" = "no"
+            }
+            run "make" {
+                "-C"
+                "libpam_internal"
+            }
+            run "make" {
+                "-C"
+                "libpam"
+            }
+            run "make" {
+                "-C"
+                "libpam_misc"
+            }
+            run "make" {
+                "-C"
+                "libpamc"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_unix"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_permit"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_deny"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_env"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_limits"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_rootok"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_warn"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_mkhomedir"
+            }
+            run "make" {
+                "-C"
+                "conf"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/linux-pam/Linux-PAM-1.6.1" {
+            run "make" {
+                "-C"
+                "libpam_internal"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "libpam"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "libpam_misc"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "libpamc"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_unix"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_permit"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_deny"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_env"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_limits"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_rootok"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_warn"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "modules/pam_mkhomedir"
+                "DESTDIR=${dest}"
+                "install"
+            }
+            run "make" {
+                "-C"
+                "conf"
+                "DESTDIR=${dest}"
+                "install"
+            }
+        }
+        require file "${dest}/usr/lib/libpam.so.0.85.1" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/security/pam_appl.h" {
+            exists
+            nonempty
+        }
+    }
+}
