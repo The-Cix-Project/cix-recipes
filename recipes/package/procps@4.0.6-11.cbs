@@ -1,0 +1,190 @@
+# procps -- ps, free, kill, pgrep, top's smaller relatives and
+# sysctl: the process tools the jump box gives an operator.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHY THE TOUCHES COME FIRST, and why they are not cosmetic. This
+# builds from the RELEASE TARBALL, which ships configure, aclocal.m4
+# and every Makefile.in already generated -- that is the whole of
+# 4.0.6-9, and it is what removed autogen.sh, autopoint, gettext and
+# three perl shebang wrappers from this recipe at once (cix#220).
+# The tarball's mtimes can leave a generated file looking older than
+# its source, at which point make decides it is stale and tries to
+# regenerate it, which reintroduces exactly the dependency chain that
+# revision removed. The touches make that impossible.
+#
+# THE dso_stub IS A REAL TCC/glibc CRT GAP, not a procps problem.
+# Direct tcc linking with no libtool driving it can leave
+# __dso_handle undefined -- glibc's static-destructor bookkeeping
+# expects a symbol the normal CRT path supplies. The stub is weak, so
+# it is silently superseded wherever the toolchain already provides a
+# real one, and supplies the definition wherever it does not. It is
+# compiled from this recipe rather than patched into upstream source.
+#
+# WHAT CHANGES IN THE CONVERSION:
+#
+#   $(pwd)/dso_stub.o becomes the absolute source path, because CPDL
+#                     does no command substitution and the build
+#                     directory is a value it already knows.
+#   rm -rf usr/share  -- GONE (ADR-0306, cix#491). Packages keep
+#                     their documentation now. The other removals
+#                     stay: usr/include, usr/lib/pkgconfig and the
+#                     .a/.la/.so development symlink are about not
+#                     shipping a library interface this package does
+#                     not offer, which is a different question from
+#                     documentation.
+#   the two long make argument lists are spelled out once each
+#                     instead of coming from a shell variable
+#                     defined between the two functions -- CPDL has
+#                     no variables, and the list was only ever
+#                     written once anyway.
+package "procps" {
+    version "4.0.6"
+    release 11
+    format "cixpkg"
+
+    sources {
+        main "procps" {
+            url "https://downloads.sourceforge.net/project/procps-ng/Production/procps-ng-4.0.6.tar.xz"
+            sha256 "67bea6fbc3a42a535a0230c9e891e5ddfb4d9d39422d46565a2990d1ace15216"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            tool "perl"
+            tool "ncurses"
+            tool "pkgconf"
+        }
+        runtime {
+            # `watch` links libncursesw.so.6, and every revision of
+            # this recipe up to 4.0.6-10 declared pkg_depends="" --
+            # so the dependency was satisfied only by ncurses
+            # happening to be in the same image. 4.0.6-10 is the
+            # revision that found it, because cix#389's
+            # undeclared-link gate refused the install by name:
+            #
+            #   usr/bin/watch links "libncursesw.so.6", which nothing
+            #   it declares provides
+            #
+            # ncurses was already installed in jumpbox at 6.6-10, so
+            # nothing was broken -- but nothing said this package
+            # needed it either, and an image built without ncurses
+            # would have shipped a `watch` that could not start.
+            package "ncurses"
+        }
+    }
+
+    metadata {
+        "changelog" "4.0.6-11: converts to CPDL (cix#487), and declares the ncurses runtime dependency every revision before it was missing. usr/bin/watch links libncursesw.so.6 and pkg_depends was empty, so the dependency held only because ncurses happened to be in the same image; cix#389's undeclared-link gate refused 4.0.6-10 by name. Otherwise the same tarball, configure and make lines and the same eighteen binaries. rm -rf usr/share is dropped (cix#491); the include, pkgconfig and .a/.la/.so removals stay."
+    }
+
+    build {
+        cd "${src}/procps/procps-ng-4.0.6" {
+            # Before anything else: make must not think a shipped
+            # generated file is stale. See the header.
+            run "touch" {
+                "aclocal.m4"
+                "configure"
+                "config.h.in"
+            }
+            run "find" {
+                "."
+                "-name"
+                "Makefile.in"
+                "-exec"
+                "touch"
+                "{}"
+                "+"
+            }
+            write "${src}/procps/procps-ng-4.0.6/dso_stub.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+            run "tcc" {
+                "-c"
+                "dso_stub.c"
+                "-o"
+                "dso_stub.o"
+            }
+            # __STDC_NO_VLA__ steers glibc's <regex.h> onto its own
+            # no-VLA branch. __GNUC__=0 keeps third-party headers off
+            # their GCC arm. _GCC_LIMITS_H_ and __thread= are the two
+            # this build needs to get past its own feature probes.
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-nls"
+                "--disable-pidwait"
+                "--disable-numa"
+                env "CC" = "tcc"
+                env "ac_cv_prog_cc_c99" = "-std=gnu99"
+                env "LIBS" = "${src}/procps/procps-ng-4.0.6/dso_stub.o"
+                env "CFLAGS" = "-D__STDC_NO_VLA__=1 -D__GNUC__=0 -D__GNUC_MINOR__=0 -D_GCC_LIMITS_H_ -D__thread="
+            }
+            run "make" {
+                "SUBDIRS=local po-man po"
+                "bin_PROGRAMS=src/ps/pscommand src/free src/pgrep src/pkill src/pmap src/pwdx src/tload src/uptime src/vmstat src/pidof src/kill src/w src/watch src/slabtop src/hugetop"
+                "sbin_PROGRAMS=src/sysctl"
+                "library_libproc2_la_LDFLAGS=-version-info $(LIBproc2_CURRENT):$(LIBproc2_REVISION):$(LIBproc2_AGE) -no-undefined"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/procps/procps-ng-4.0.6" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "SUBDIRS=local po-man po"
+                "bin_PROGRAMS=src/ps/pscommand src/free src/pgrep src/pkill src/pmap src/pwdx src/tload src/uptime src/vmstat src/pidof src/kill src/w src/watch src/slabtop src/hugetop"
+                "sbin_PROGRAMS=src/sysctl"
+                "library_libproc2_la_LDFLAGS=-version-info $(LIBproc2_CURRENT):$(LIBproc2_REVISION):$(LIBproc2_AGE) -no-undefined"
+            }
+        }
+        # Not documentation -- a library interface this package does
+        # not offer. procps ships libproc2 so its own tools can link
+        # it; nothing else in this image set builds against it, and a
+        # header plus a .pc plus a development symlink would say
+        # otherwise.
+        remove tree "${dest}/usr/include"
+        remove tree "${dest}/usr/lib/pkgconfig"
+        remove "${dest}/usr/lib/libproc2.a" allow_failure
+        remove "${dest}/usr/lib/libproc2.la" allow_failure
+        remove "${dest}/usr/lib/libproc2.so"
+        require file "${dest}/usr/bin/ps" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/free" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/sysctl" {
+            exists
+            executable
+        }
+        # The real file and the soname consumers resolve. cbs#175's
+        # trap: the soname is a symlink, so require file refuses it.
+        require file "${dest}/usr/lib/libproc2.so.1.0.1" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libproc2.so.1" {
+            exists
+            target "libproc2.so.1.0.1"
+        }
+    }
+}
