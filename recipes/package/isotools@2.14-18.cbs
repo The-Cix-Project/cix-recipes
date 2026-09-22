@@ -1,0 +1,189 @@
+#
+# isotools -- the installer-ISO toolchain as one package: grub-mkrescue
+# and its x86_64-efi module tree, sbsign/sbverify, xorriso, mtools,
+# mokutil, mkfs.fat, the signed shim pair, and the shared libraries
+# all of that needs. `POST /v1/system/iso` runs these off a real Cix
+# host instead of off whatever machine happened to have them.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THIS RECIPE BUILDS NOTHING. It is a bundle: every file it installs
+# comes from a package already composed into its build environment.
+# The grub tarball is a PROVENANCE ANCHOR and is never touched by a
+# build step -- it states which grub these binaries are, so the
+# version in this recipe means something checkable rather than being
+# a number someone typed.
+#
+# THE SOURCE MOVES TO mirrors.kernel.org. ftp.gnu.org refused a fetch
+# on 192.168.15.95 earlier the same day with `SSL_ERROR_SYSCALL`
+# (cix#409's intermittent reachability), which took binutils-dev and
+# everything behind it down. Same bytes, same sha256 -- the checksum
+# is what makes a mirror a mirror rather than a trust boundary.
+#
+# THE TWO LIBRARY SEARCH LOOPS BECOME `stage library`. The shell form
+# carried the same twelve-line block twice: for each library, try
+# /usr/lib, then /lib/x86_64-linux-gnu, then
+# /usr/lib/x86_64-linux-gnu, take the first hit, fail with a message
+# naming the library if none matched. That is precisely what
+# cbs#178's operation does, and it names every directory it searched
+# when it fails -- so the hardcoded multiarch list goes with the
+# loops, which matters because a multiarch triplet is a Debian
+# convention and this platform has one architecture (cix#184).
+#
+# THE NINE PREFLIGHT `test` GATES ARE DROPPED, and that is a real
+# decision rather than tidying. Each checked that a tool was present
+# and failed with "install X onto --build-image= first" -- advice from
+# before ADR-0199, when a build image was hand-curated and could
+# genuinely be missing something. A composed environment is built from
+# the declared list or it does not start, so the gates now guard
+# against a state that cannot occur, while their message tells the
+# reader to do something that no longer exists. A missing file also
+# fails the `copy` that needs it, naming the exact path. The one gate
+# that tests something composition cannot -- that the grub in the
+# environment is the version this recipe claims -- is KEPT.
+#
+package "isotools" {
+    version "2.14"
+    release 18
+    format "cixpkg"
+
+    sources {
+        main "grub" {
+            url "https://mirrors.kernel.org/gnu/grub/grub-2.14.tar.xz"
+            sha256 "bc8d3c73535b8838d8c8e2654d73edc4e6ae8c8acdb45d5df5dc9a1547446d43"
+        }
+    }
+
+    requires {
+        build {
+            # DECLARED: WHAT THIS RECIPE ACTUALLY USES, which is a
+            # short list, because it builds nothing. 2.14-17 declared
+            # a compiler and a full build toolchain -- tcc, make,
+            # linux-headers, sed, grep, gawk, binutils, findutils,
+            # diffutils, coreutils -- none of which any phase here
+            # invokes, and was refused:
+            #
+            #   more than 32 packages in the composed build environment
+            #
+            # The cap is real (PKG_BUILDENV_MAX_TOOLS) but it was not
+            # the defect. A declaration is a statement about what a
+            # recipe needs, and copying a boilerplate list into a
+            # bundle recipe made that statement false, then made the
+            # environment pay for it in transitive dependencies. The
+            # fix is to declare what is used.
+            #
+            # bash stays even though no phase runs a script: it is the
+            # phase interpreter itself, and a recipe without it does
+            # not fail, it TIMES OUT (cbs#224).
+            tool "bash"
+
+            # The bundle's contents.
+            tool "grub"
+            tool "sbsigntools"
+            tool "xorriso"
+            tool "mtools"
+            tool "mokutil"
+            tool "shim"
+            tool "dosfstools"
+
+            # What those link against, and what `stage library` goes
+            # looking for.
+            tool "glibc"
+            tool "libxcrypt"
+            tool "efivar"
+            tool "keyutils"
+            tool "openssl"
+            tool "zlib"
+        }
+    }
+
+    metadata {
+        "changelog" "2.14-18: declares what it uses. 2.14-17 carried a compiler and a full build toolchain into a recipe that builds nothing and was refused with more than 32 packages in the composed build environment -- the cap is real but the over-declaration was the defect. Converts to CPDL (cix#487); the grub provenance tarball moves to mirrors.kernel.org after ftp.gnu.org refused a fetch the same day (cix#409); the two twelve-line library search loops become eleven stage library operations (cbs#178)."
+    }
+
+    build {
+        # The one preflight worth keeping: composition guarantees that
+        # a grub is present, not that it is the grub this recipe says
+        # it bundles. `--version` prints one line, so this is one of
+        # the few places the single-line stdout assertion fits.
+        run "/usr/bin/grub-mkrescue" {
+            "--version"
+            expect {
+                stdout contains "2.14"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/bin"
+        mkdir "${dest}/sbin"
+        mkdir "${dest}/lib64"
+        mkdir "${dest}/usr/lib"
+        mkdir "${dest}/shim"
+
+        copy "/usr/bin/grub-mkrescue" to "${dest}/bin/grub-mkrescue"
+        copy "/usr/bin/sbsign" to "${dest}/bin/sbsign"
+        copy "/usr/bin/sbverify" to "${dest}/bin/sbverify"
+        copy "/usr/bin/xorriso" to "${dest}/bin/xorriso"
+        copy "/usr/bin/mtools" to "${dest}/bin/mtools"
+        copy "/usr/bin/mokutil" to "${dest}/bin/mokutil"
+        copy "/usr/sbin/mkfs.fat" to "${dest}/sbin/mkfs.fat"
+
+        # mtools dispatches on argv[0].
+        symlink "mtools" to "${dest}/bin/mcopy"
+        symlink "mtools" to "${dest}/bin/mformat"
+
+        copy tree "/usr/lib/grub/x86_64-efi" to "${dest}/lib/grub/x86_64-efi"
+        copy tree "/usr/share/grub" to "${dest}/share/grub"
+
+        copy "/usr/lib/shim/shimx64.efi.signed" to "${dest}/shim/shimx64.efi.signed"
+        copy "/usr/lib/shim/mmx64.efi.signed" to "${dest}/shim/mmx64.efi.signed"
+
+        # The loader itself is not a library in the sense `stage
+        # library` searches for, and it lives at a fixed ABI path.
+        copy "/lib64/ld-linux-x86-64.so.2" to "${dest}/lib64/ld-linux-x86-64.so.2"
+
+        stage library "libc.so.6" into "${dest}/usr/lib"
+        stage library "libcrypto.so.3" into "${dest}/usr/lib"
+        stage library "libssl.so.3" into "${dest}/usr/lib"
+        stage library "libz.so.1" into "${dest}/usr/lib"
+        stage library "libz.so.1.3.2" into "${dest}/usr/lib"
+        stage library "libefivar.so.1" into "${dest}/usr/lib"
+        stage library "libefivar.so.1.39" into "${dest}/usr/lib"
+        stage library "libkeyutils.so.1" into "${dest}/usr/lib"
+        stage library "libkeyutils.so.1.10" into "${dest}/usr/lib"
+        stage library "libcrypt.so.2" into "${dest}/usr/lib"
+        stage library "libcrypt.so.2.0.0" into "${dest}/usr/lib"
+
+        # What POST /v1/system/iso actually reaches for. Asserted
+        # rather than inferred from a copy exiting 0 (cix#113).
+        require file "${dest}/bin/grub-mkrescue" {
+            exists
+            executable
+        }
+        require file "${dest}/bin/sbsign" {
+            exists
+            executable
+        }
+        require file "${dest}/bin/xorriso" {
+            exists
+            executable
+        }
+        require file "${dest}/sbin/mkfs.fat" {
+            exists
+            executable
+        }
+        require file "${dest}/shim/shimx64.efi.signed" {
+            exists
+            nonempty
+        }
+        require file "${dest}/shim/mmx64.efi.signed" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/bin/mformat" {
+            exists
+            target "mtools"
+        }
+    }
+}

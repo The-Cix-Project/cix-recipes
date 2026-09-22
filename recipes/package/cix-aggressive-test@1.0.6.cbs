@@ -1,0 +1,130 @@
+#
+# cix-aggressive-test -- does the control plane stay up when something
+# is actively trying to stop it?
+#
+# A HOSTILE package, deliberately separate from cix-tests. That one
+# asserts the platform works, across roughly seventy binaries and every
+# subsystem. This one asserts a single different thing: that cixd
+# cannot be wedged. There are no scenarios to pass here, only a daemon
+# that either kept answering or did not, and one verdict saying which.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHY IT EXISTS. cixd is single-threaded: one epoll loop serves the
+# API, the container runtime and every long operation, so a blocking
+# call anywhere in it is a total outage -- no API, no health endpoint,
+# and no way to read the diagnostic that already knows the answer. Two
+# have been found the hard way and each cost a manual reset of a real
+# host: cix#283 during a C++ package build, and cix#294, a console pty
+# master opened blocking and read from the epoll loop, which on
+# 2026-09-05 held 192.168.15.95 in n_tty_read for over seventeen
+# minutes with the box otherwise idle. Each was diagnosed after the
+# fact from a wchan, one at a time. Attack is a better instrument than
+# inspection.
+#
+# THE NEGATIVE CONTROL IS THE POINT OF THIS RECIPE, and CPDL states it
+# better than the shell did. A harness that passes proves nothing
+# unless it can also fail, so this build attacks twice: once against
+# the real daemon, which must survive; then it REVERTS the cix#294 fix
+# in exec.c and attacks again, and that run must FAIL. If it does not,
+# the harness has stopped measuring what it claims and the first pass
+# cannot be trusted either.
+#
+# test_aggressive's exit codes are explicit (test/test_aggressive.c):
+#
+#   0  EXIT_FIT      attacked, and the control plane held
+#   1  EXIT_FINDING  attacked, and it did not
+#   2  EXIT_NO_RUN   never got as far as attacking anything
+#
+# so the second run is `expect exit 1` -- EXACTLY one, which is
+# stronger than the shell form's `-ne 0`. There, a reverted build that
+# never ran (2) and a reverted build the harness failed to notice (0)
+# were distinguished by two hand-written branches; here 0 and 2 both
+# fail on their own, because neither is evidence the harness works.
+#
+# The revert itself is a `replace ... exactly 1`, which subsumes the
+# shell's follow-up `grep -q` that checked the sed had taken: a count
+# that must match before any byte is written says the same thing
+# earlier, and says it about the edit rather than about the file
+# afterwards. If exec.c moves, this fails naming the operation instead
+# of vouching for a harness it could not arm.
+#
+package "cix-aggressive-test" {
+    version "1.0"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.53.47.tar.gz"
+            sha256 "42fb146b90a652e194213ecae7e34a3424fd8fc6dc9883dcae5327dfa4578afa"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "openssl"
+            tool "gcc"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1.0-6: converts to CPDL (cix#487). The negative control gets sharper: the reverted-fix run is expect exit 1 exactly, where the shell form used -ne 0 plus a hand-written branch for the no-run code, so a reverted build that never ran and one the harness failed to notice now both fail on their own. The sed revert becomes replace ... exactly 1, which subsumes the grep that checked the sed had taken."
+    }
+
+    build {
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=1.0-6"
+                "build/cixd"
+                "build/test_aggressive"
+                "build/daemon_child"
+                "build/console_term_child"
+                jobs $jobs
+            }
+
+            # 1/2: hostile run against this build. It must survive.
+            # Exit 0 only -- a harness that could not set itself up
+            # (2) claims nothing about this build and is not a pass.
+            run "build/test_aggressive" {
+            }
+
+            # 2/2: arm the control. Reverting cix#294 puts the console
+            # pty master back to a blocking open, which is what held a
+            # real host in n_tty_read for seventeen minutes.
+            replace "${src}/cix/cix/daemon/src/exec.c" {
+                from "O_RDWR | O_NOCTTY | O_CLOEXEC | O_NONBLOCK);"
+                to "O_RDWR | O_NOCTTY | O_CLOEXEC);"
+                exactly 1
+            }
+
+            run "make" {
+                "CIX_VERSION=1.0-6"
+                "build/cixd"
+                jobs $jobs
+            }
+
+            # The harness must now find the fault it was written for.
+            # Exactly 1: a 0 means it has stopped measuring what it
+            # claims, and a 2 means it never attacked, and neither
+            # makes the pass above trustworthy.
+            run "build/test_aggressive" {
+                expect exit 1
+            }
+        }
+    }
+
+    install {
+        # Nothing is installed. The product of this build is the
+        # verdict in its log, and putting an attack harness onto a
+        # host would be shipping a weapon to serve a job only a test
+        # host has.
+        mkdir "${dest}"
+    }
+}
