@@ -1,0 +1,203 @@
+# elfutils -- libelf, the ELF object file library. Confirmed missing
+# empirically (ADR-0056): a kernel hostbuild against the dev toolchain
+# image failed at tools/objtool, which needs it for ORC metadata, with
+# "cannot find -lelf".
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE syslimits.h WORKAROUND IS GONE, AND THAT IS THE WHOLE STORY.
+#
+# Every revision from 0.192-5 onward opened pkg_build() by asking gcc
+# its version, computing .../include-fixed/, and writing a correct
+# #include_next chaining wrapper into syslimits.h -- because the gcc
+# installed in this sandbox at the time shipped that file as a
+# byte-for-byte copy of limits.h, so glibc own /usr/include/limits.h
+# was never reached through <limits.h> and PATH_MAX did not exist.
+#
+# That is not true of gcc 16.2.0. Measured on 192.168.15.95,
+# 2026-09-22, by recipes/package/probe-gcc-limits@3 in a real build
+# container:
+#
+#   ABSENT  /usr/lib/gcc/x86_64-pc-linux-gnu/16.2.0/include-fixed/syslimits.h
+#   PATH_MAX=4096
+#   MB_LEN_MAX=16
+#
+# The file does not exist -- modern gcc no longer generates it -- and
+# the chain is correct without it. So the block is not merely
+# unnecessary: its own `test -d "$GCC_FIXED_DIR" || exit 1` guard
+# would fail the build.
+#
+# This matters for the conversion specifically, because that write
+# targets a path OUTSIDE the confined build roots and CPDL cannot
+# make it. Had the defect still been present, this package could not
+# have been expressed in CPDL at all without either a language
+# escape or a gcc rebuild. It is not present, so the honest
+# translation is to delete the workaround rather than to preserve it.
+#
+# WHY ONLY libelf IS BUILT. elfutils src/ tools and libdw link
+# liblzma/libbz2/zlib for compressed-debuginfo support and failed at
+# link during 0.192-5 (undefined lzma_end, and a real ABI mismatch,
+# /lib/libz.so.1: undefined reference to __va_start). None of it is
+# needed: the kernel tools/objtool links -lelf and nothing else. So
+# `make -C lib` first -- libelf.so genuinely depends on
+# ../lib/libeu.a per libelf/Makefile.am own libelf_so_DEPS -- then
+# `make -C libelf`, and the debuginfod/demangler switches stay at
+# configure time because configure probes for them regardless.
+#
+# THE TWO STALE .pc CHECKS BECOME require glob ... exactly 0, which
+# is CPDL form for "this must not exist". `make -C config install`
+# would install libdw.pc and libdebuginfod.pc alongside libelf.pc,
+# describing two libraries this package deliberately does not ship --
+# false claims, which fail later and more confusingly than a missing
+# file. libelf.pc is copied individually for that reason, and it
+# matters: iproute2 configure probes for libelf through pkg-config
+# and degrades SILENTLY, printing "ELF support: no" and building an
+# ip without BPF program loading, exiting 0 the whole way.
+package "elfutils" {
+    version "0.192"
+    release 14
+    format "cixpkg"
+
+    sources {
+        main "elfutils" {
+            url "https://sourceware.org/elfutils/ftp/0.192/elfutils-0.192.tar.bz2"
+            sha256 "616099beae24aba11f9b63d86ca6cc8d566d968b802391334c91df54eab416b4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "bison"
+            tool "flex"
+            tool "m4"
+            # Named here as well as in runtime: a composed environment
+            # is built from the build list ALONE, so the headers and
+            # libraries libelf links for compressed-section support
+            # have to be present to compile against, not merely
+            # installed alongside the result.
+            tool "zlib"
+            tool "xz"
+            tool "bzip2"
+            tool "zstd"
+        }
+        runtime {
+            # libelf.so.1 links all three. Read off the built library
+            # rather than reasoned about -- through 0.192-6 this was
+            # empty, so the dev image carried a libelf that could not
+            # load for as long as nothing happened to check (cix#110).
+            package "zlib"
+            package "xz"
+            package "bzip2"
+            # zstd joined the list and nobody noticed. The comment
+            # this set came from was a readelf of libelf.so.1 in the
+            # 0.192-6 era and read libz, liblzma, libbz2, libc.
+            # 0.192-13 was refused by cix#389 name:
+            #
+            #   usr/lib/libelf-0.192.so links "libzstd.so.1", which
+            #   nothing it declares provides
+            #
+            # elfutils 0.192 supports zstd-compressed sections, and
+            # zstd is in the build sandbox now because cbs itself
+            # needs it -- so the link got recorded the moment the
+            # sandbox grew the library, with nothing saying so. Same
+            # shape as cix#110, and the reason that gate exists.
+            package "zstd"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "needs re-measurement: recorded as a __thread parsing gap, which tcc 0.9.28rc-10 no longer has (cix#222) -- the real current blocker has not been measured since the compiler changed. Separately, the syslimits.h defect that forced /usr/bin/gcc by absolute path is gone (probe-gcc-limits/3), so the gcc question here is now only about __thread."
+    }
+
+    metadata {
+        "changelog" "0.192-14: converts to CPDL (cix#487), deletes the syslimits.h workaround, and declares the zstd runtime dependency. probe-gcc-limits/3 measured on 2026-09-22 that gcc 16.2.0 has no include-fixed/syslimits.h at all and that PATH_MAX and MB_LEN_MAX are correct without it, so the workaround is dead and its own test -d guard would have failed. 0.192-13 was then refused by cix#389: libelf links libzstd.so.1, which no revision has ever declared. The stale-.pc checks become require glob exactly 0."
+    }
+
+    build {
+        cd "${src}/elfutils/elfutils-0.192" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-debuginfod"
+                "--disable-libdebuginfod"
+                "--disable-demangler"
+                env "CC" = "/usr/bin/gcc"
+            }
+            # lib/ first: libelf.so depends on ../lib/libeu.a.
+            run "make" {
+                "-C"
+                "lib"
+                "CC=/usr/bin/gcc"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "libelf"
+                "CC=/usr/bin/gcc"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/elfutils/elfutils-0.192" {
+            run "make" {
+                "-C"
+                "libelf"
+                "install"
+                "DESTDIR=${dest}"
+                "CC=/usr/bin/gcc"
+            }
+        }
+        # libelf.pc is generated by configure at config/libelf.pc but
+        # INSTALLED by config/Makefile, which this recipe never runs.
+        # So a fully installed libelf was invisible to pkg-config.
+        mkdir "${dest}/usr/lib/pkgconfig"
+        copy "${src}/elfutils/elfutils-0.192/config/libelf.pc" to "${dest}/usr/lib/pkgconfig/libelf.pc"
+        require file "${dest}/usr/lib/pkgconfig/libelf.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/libelf.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/gelf.h" {
+            exists
+            nonempty
+        }
+        # The real shared object, then the two names that point at
+        # it. cbs#175: require file refuses a symlink.
+        require file "${dest}/usr/lib/libelf-0.192.so" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libelf.so.1" {
+            exists
+            target "libelf-0.192.so"
+        }
+        require symlink "${dest}/usr/lib/libelf.so" {
+            exists
+        }
+        # These describe libraries this package deliberately does not
+        # ship. `require glob ... exactly 0` is CPDL form for a
+        # negative existence check.
+        require glob "${dest}/usr/lib/pkgconfig/libdw.pc" {
+            exactly 0
+        }
+        require glob "${dest}/usr/lib/pkgconfig/libdebuginfod.pc" {
+            exactly 0
+        }
+    }
+}
