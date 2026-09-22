@@ -1,0 +1,143 @@
+# dhcpcd -- the DHCP client. Converted from build.sh to build.cbs
+# (ADR-0305 stage 4, cix#487).
+#
+# IT WAITED FOR `truncate` (cbs#191). Its patch to compat/
+# setproctitle.c was a Python heredoc doing index-based surgery:
+# find a literal line, discard it AND EVERYTHING AFTER IT, then do
+# one literal replace. The second half was always expressible; the
+# first had no operation until cbs#191, so the whole thing stayed a
+# heredoc and the package stayed on build.sh.
+#
+# Both counts were read out of the release tarball: one anchor
+# each, and 672 bytes discarded after the truncate point.
+#
+# WHY THE PATCH: the symbol-versioning tail exists to give a SHARED
+# library two ABI versions of one symbol, which a build linking
+# statically against its own compat objects has no use for -- and
+# it left `setproctitle` defined as nothing at all, with
+# setproctitle_impl a local `t` symbol. Making the implementation
+# the public function is the fix; no behaviour changes.
+#
+# THE THREE HOOK COPIES ARE UNCONDITIONAL, and that is a
+# correction. The shell guarded each with `[ -f "$h" ] && cp`, and
+# checking the source tarball suggested 30-hostname did not exist
+# -- but the INSTALLED 10.5.2-8 package contains all three. They
+# are generated from .in templates during the build, like
+# dhcpcd-run-hooks, which is also absent from the tarball. A
+# tarball tells you about sources, not about post-build state.
+#
+# So the conditional was hiding nothing here. Unconditional copies
+# are better: if a hook ever does stop being produced, the build
+# says so instead of quietly shipping a dhcpcd that obtains a lease
+# and does nothing with it.
+#
+# stdalign.h is supplied because it is a COMPILER-provided C11
+# header and this build image has none -- confirmed the hard way,
+# building clean in a dev sandbox where gcc's copy is on the
+# include path and failing on the real image. alignas maps to the
+# attribute form, not the _Alignas keyword, because the build
+# image's TCC does not implement _Alignas.
+package "dhcpcd" {
+    version "10.5.2"
+    release 9
+    format "cixpkg"
+
+    sources {
+        main "dhcpcd" {
+            url "https://github.com/NetworkConfiguration/dhcpcd/releases/download/v10.5.2/dhcpcd-10.5.2.tar.xz"
+            sha256 "3e476657fdb6eeb38b277da3a48d0ac0113ecce5858ebdcddff2b629faed52b4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "openssl"
+        }
+        runtime {
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "d3e08d21b07ab5da04de9f85102b3980de08cecdeb7cfe3eeb64d8dc44a7a8b6"
+        "changelog" "10.5.2-9: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). It waited for truncate (cbs#191): its setproctitle patch was a Python heredoc that found a literal line and discarded everything after it, which had no CPDL operation. Both anchor counts read from the tarball. The three hook copies become unconditional -- the installed 10.5.2-8 has all three, they are generated from .in templates, and a conditional would hide one going missing."
+    }
+
+    prepare {
+        truncate "${src}/dhcpcd/dhcpcd-10.5.2/compat/setproctitle.c" {
+            from "libbsd_symver_default(setproctitle, setproctitle_impl, LIBBSD_0.5);"
+            exactly 1
+        }
+        replace "${src}/dhcpcd/dhcpcd-10.5.2/compat/setproctitle.c" {
+            from "__printflike(1, 2) static void\nsetproctitle_impl(const char *fmt, ...)"
+            to "__printflike(1, 2) void\nsetproctitle(const char *fmt, ...)"
+            exactly 1
+        }
+        write "${src}/dhcpcd/dhcpcd-10.5.2/stdalign.h" "/* Supplied by this recipe: the build image has no compiler-provided\n * stdalign.h. C11 7.15 defines the header as exactly these four\n * macros. alignas uses the attribute form deliberately -- this\n * image's TCC has no _Alignas keyword. */\n#ifndef _STDALIGN_H\n#define _STDALIGN_H\n#define alignas(x) __attribute__((__aligned__(x)))\n#define alignof _Alignof\n#define __alignas_is_defined 1\n#define __alignof_is_defined 1\n#endif\n"
+        write "${src}/dhcpcd/dhcpcd-10.5.2/dso_handle.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+    }
+
+    build {
+        cd "${src}/dhcpcd/dhcpcd-10.5.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--sysconfdir=/etc"
+                "--libexecdir=/usr/libexec"
+                "--dbdir=/var/lib/dhcpcd"
+                "--rundir=/run"
+                "--disable-privsep"
+                "--disable-inet6"
+                "--disable-dhcp6"
+                "--disable-auth"
+                env "CC" = "tcc"
+            }
+            run "tcc" {
+                "-c"
+                "dso_handle.c"
+                "-o"
+                "dso_handle.o"
+            }
+            run "make" {
+                "LDADD=-lcrypto ${src}/dhcpcd/dhcpcd-10.5.2/dso_handle.o"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        mkdir "${dest}/usr/libexec/dhcpcd-hooks" chmod 0755
+        mkdir "${dest}/var/lib/dhcpcd" chmod 0755
+        mkdir "${dest}/etc" chmod 0755
+        copy "${src}/dhcpcd/dhcpcd-10.5.2/src/dhcpcd" to "${dest}/usr/sbin/dhcpcd"
+        chmod 0755 "${dest}/usr/sbin/dhcpcd"
+        # The hook script and its hooks are how dhcpcd applies a
+        # lease -- without them it obtains an address and does
+        # nothing with it.
+        copy "${src}/dhcpcd/dhcpcd-10.5.2/hooks/dhcpcd-run-hooks" to "${dest}/usr/libexec/dhcpcd-run-hooks"
+        chmod 0755 "${dest}/usr/libexec/dhcpcd-run-hooks"
+        copy "${src}/dhcpcd/dhcpcd-10.5.2/hooks/01-test" to "${dest}/usr/libexec/dhcpcd-hooks/01-test"
+        copy "${src}/dhcpcd/dhcpcd-10.5.2/hooks/20-resolv.conf" to "${dest}/usr/libexec/dhcpcd-hooks/20-resolv.conf"
+        copy "${src}/dhcpcd/dhcpcd-10.5.2/hooks/30-hostname" to "${dest}/usr/libexec/dhcpcd-hooks/30-hostname"
+        copy "${src}/dhcpcd/dhcpcd-10.5.2/src/dhcpcd.conf" to "${dest}/etc/dhcpcd.conf"
+        require file "${dest}/usr/sbin/dhcpcd" {
+            exists
+            nonempty
+            executable
+        }
+        require file "${dest}/usr/libexec/dhcpcd-run-hooks" {
+            exists
+            nonempty
+        }
+    }
+}
