@@ -1,0 +1,161 @@
+# wireless-regdb -- the regulatory database cfg80211 loads to learn
+# which radio channels and transmit powers are legal where (cix#30).
+#
+# THIS IS NOT A FIRMWARE BLOB, AND THE DIFFERENCE IS THE WHOLE POINT.
+# rtw88-firmware ships a binary this platform cannot build, an
+# owner-approved exception to the Build Provenance Mandate. This is
+# the opposite case: regulatory.db is GENERATED from db.txt, a plain
+# text file in this tarball, by db2fw.py, a script in the same
+# tarball whose only imports are io, struct, hashlib, sys, math and
+# its own bundled dbparse. No vendor tooling, nothing that cannot run
+# on a Cix host. So Cix builds it, and the build phase PROVES that
+# rather than asserting it -- it regenerates the database and
+# compares against the one upstream shipped.
+#
+# THE .p7s SHIPS TOO, AND THAT IS LOAD-BEARING. The kernel demands a
+# signature whenever CFG80211_REQUIRE_SIGNED_REGDB is set, and here
+# it always is by construction: that symbol's prompt is conditional
+# on CFG80211_CERTIFICATION_ONUS, so with that off it has no prompt,
+# cannot be set from .config, and olddefconfig forces its `default y`
+# (measured directly, probe-wifi-driver/4). Upstream signs
+# regulatory.db with a key already in the kernel's own
+# net/wireless/certs/, and this recipe reproduces regulatory.db
+# byte-for-byte -- so upstream's detached signature validates over
+# OUR build, and this platform needs no signing key.
+#
+# Without the byte-for-byte check, a .db differing by one byte would
+# fail signature verification at boot, cfg80211 would fall back to
+# the world domain, and the only symptom would be an access point
+# refusing channels it should allow.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# TWO SHELL IDIOMS COLLAPSE INTO ONE OPERATION EACH, and both are
+# strictly better than what they replace:
+#
+#   the sha256sum comparison -- `ours=$(sha256sum ...)`,
+#                       `theirs=$(sha256sum ...)`, echo both, compare,
+#                       and a five-line failure message -- becomes
+#                       `require file { same_as }`. That compares the
+#                       files byte for byte rather than comparing two
+#                       hex strings of them, which is the thing the
+#                       recipe actually means.
+#   the RGDB magic check becomes `head -c 4` into a file and
+#                       `contains "RGDB"`. A four-byte file that
+#                       CONTAINS those four bytes IS those four
+#                       bytes, so this is exact rather than the
+#                       substring search `contains` usually is. The
+#                       shell form went through od and hex because it
+#                       had to avoid calling grep -- which is what
+#                       2026.09.03-2 exists to fix, after the -1 gate
+#                       called an undeclared grep and reported the
+#                       database as malformed while printing bytes
+#                       that spell RGDB.
+#
+#   the interpreter probe -- a `for c in python3 python ...` loop
+#                       around `command -v` -- is GONE. A composed
+#                       build environment (ADR-0199) contains exactly
+#                       the declared tools, so there is nothing to
+#                       discover: `python` installs usr/bin/python3,
+#                       and if it ever did not, `run "python3"`
+#                       failing by name says so more clearly than a
+#                       probe that falls through to a generic "no
+#                       python interpreter found".
+package "wireless-regdb" {
+    version "2026.09.03"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "wireless-regdb" {
+            url "https://mirrors.kernel.org/pub/software/network/wireless-regdb/wireless-regdb-2026.09.03.tar.xz"
+            sha256 "b22e0901227b820cd1c280abe681a15b773a5103a5e10dc442e94ebb34cbf58d"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "python"
+        }
+    }
+
+    # Declared AFTER requires and before metadata: the validator
+    # enforces the order the CPDL grammar lists package items in,
+    # and answers anything else with CPDL-E3003 "package declaration
+    # appears out of order" pointing at the NEXT block rather than
+    # at the one that is early.
+    build_image "cix-builder"
+
+    metadata {
+        "changelog" "2026.09.03-3: converts to CPDL (cix#487). Same tarball, same regeneration from db.txt, same two installed files. The sha256sum-and-compare becomes require file { same_as }, comparing the databases byte for byte rather than two hex strings of them. The RGDB check becomes head -c 4 into a file plus contains, exact for a four-byte file and needing no od. The command -v interpreter probe is dropped: a composed environment holds exactly the declared tools."
+    }
+
+    build {
+        cd "${src}/wireless-regdb/wireless-regdb-2026.09.03" {
+            # Upstream's prebuilt copy goes aside so the regeneration
+            # cannot overwrite the thing it is about to be compared
+            # against. This tarball always ships one; `move` fails
+            # loudly if that ever stops being true, where the shell
+            # form's `if [ -f ... ]` quietly skipped the whole
+            # provenance check and printed a note.
+            move "${src}/wireless-regdb/wireless-regdb-2026.09.03/regulatory.db" to "${src}/wireless-regdb/wireless-regdb-2026.09.03/upstream-regulatory.db"
+            run "python3" {
+                "./db2fw.py"
+                "regulatory.db"
+                "db.txt"
+            }
+            # The provenance claim, as an assertion rather than an
+            # echo. If generation is not deterministic here, or db.txt
+            # and the shipped binary disagree, this package's whole
+            # argument is false and the build stops.
+            require file "${src}/wireless-regdb/wireless-regdb-2026.09.03/regulatory.db" {
+                exists
+                nonempty
+                same_as "${src}/wireless-regdb/wireless-regdb-2026.09.03/upstream-regulatory.db"
+            }
+            # A checksum proves the bytes are the ones approved, never
+            # that they are the right KIND of thing -- a cgit HTML
+            # error page once passed for a firmware file during this
+            # very investigation.
+            run "head" {
+                "-c"
+                "4"
+                "regulatory.db"
+                stdout file "${src}/wireless-regdb/magic"
+            }
+            require file "${src}/wireless-regdb/magic" {
+                exists
+                nonempty
+                contains "RGDB"
+            }
+        }
+    }
+
+    install {
+        # /lib/firmware, because that is where request_firmware()
+        # looks -- net/wireless/reg.c calls request_firmware_nowait
+        # for "regulatory.db". Not /usr/lib/firmware: the search path
+        # is the kernel's own constant, not a libdir this platform
+        # chooses (cix#184 governs where LIBRARIES live, and this is
+        # not one).
+        mkdir "${dest}/lib/firmware"
+        copy "${src}/wireless-regdb/wireless-regdb-2026.09.03/regulatory.db" to "${dest}/lib/firmware/regulatory.db"
+        chmod 0644 "${dest}/lib/firmware/regulatory.db"
+        # The detached signature, upstream's own, over the bytes just
+        # proved identical to upstream's. Without it the kernel
+        # refuses the database and silently falls back to the world
+        # regulatory domain.
+        copy "${src}/wireless-regdb/wireless-regdb-2026.09.03/regulatory.db.p7s" to "${dest}/lib/firmware/regulatory.db.p7s"
+        chmod 0644 "${dest}/lib/firmware/regulatory.db.p7s"
+        require file "${dest}/lib/firmware/regulatory.db" {
+            exists
+            nonempty
+        }
+        require file "${dest}/lib/firmware/regulatory.db.p7s" {
+            exists
+            nonempty
+        }
+    }
+}
