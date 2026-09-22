@@ -1,0 +1,119 @@
+# rtw88-firmware -- the one firmware blob the RTL8822BU access point
+# adapter needs (cix#30).
+#
+# THIS PACKAGE IS AN EXPLICIT, OWNER-APPROVED EXCEPTION TO THE BUILD
+# PROVENANCE MANDATE, AND IT SHOULD BE READ AS ONE. Everything else
+# this platform ships is compiled on a Cix host by Cix's toolchain.
+# This is not compiled at all: it is Realtek's signed microcode for
+# the adapter's own processor, distributed only as a binary, and
+# nobody -- including Realtek's customers -- can build it from
+# source. Without it the driver loads, the radio never comes up, and
+# the failure looks like a hardware fault.
+#
+# What makes it acceptable rather than a hole:
+#
+#   - It never executes on the host CPU. It is uploaded to the
+#     adapter over USB and runs there. It is not linked into
+#     anything Cix builds and cannot be.
+#   - It is pinned by content, twice. The URL names an immutable git
+#     commit in linux-firmware, and the checksum approves those
+#     exact 150984 bytes.
+#   - ADR-0029 already stages amdgpu firmware into the control-plane
+#     root for the same reason.
+#
+# WHICH FILE, AND HOW THAT WAS ESTABLISHED. Not guessed:
+#
+#   drivers/net/wireless/realtek/rtw88/rtw8822b.c:2614
+#       MODULE_FIRMWARE("rtw88/rtw8822b_fw.bin");
+#
+# measured against the same kernel tree this platform builds
+# (probe-wifi-driver/2). Exactly one file -- the 8822C has a
+# separate WoW blob, the 8822B does not.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THIS COULD NOT BE WRITTEN IN CPDL AT ALL UNTIL cbs#205, for the
+# same reason as ca-certificates: a firmware blob is not an archive,
+# and CBS extracted every declared source unconditionally. v0.1.34
+# preserves a non-archive main source byte-for-byte, and strips the
+# query string when deriving the leaf name -- read from
+# src/source.c's own `strpbrk(leaf, "?#")` -- so the ?id=<commit>
+# this URL carries does not end up in the filename.
+#
+# THE HEADER CHECK BECOMES A NAMED CASE AND GAINS A SECOND HALF.
+# rtw88 firmware begins with its chip id in the first two bytes,
+# little-endian, so an 8822B image starts 0x22 0x88. A checksum
+# proves the bytes are the ones approved; the header proves the ones
+# approved are the right KIND of thing, which is a different
+# question and the one that catches a wrong-file mistake at review
+# time. The shell form did that with od and a `case`, deliberately
+# not grep, so the check cost no extra declared build tool. Here it
+# is `head -c 2` into a file and `contains`, plus `same_as` -- which
+# the shell form had no equivalent of and which proves the INSTALLED
+# blob is the verified source rather than merely 8822B-shaped.
+package "rtw88-firmware" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "rtw88" {
+            url "https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/rtw88/rtw8822b_fw.bin?id=338684a0c7760644031483311464c7cf5b3aac94"
+            sha256 "378ff7b43ae7da18a0311175abc351a1758d25ce553b44f3c5694758efbea84c"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    build_image "cix-builder"
+
+    metadata {
+        "changelog" "3: converts to CPDL (cix#487), impossible until cbs#205. A firmware blob is not an archive and CBS extracted every source unconditionally, so this could not be expressed at all; a non-archive main source is now preserved byte-for-byte, with the query string stripped from the basename. The 8822B header check moves into a named post-install check case (cbs#211) and gains same_as, which proves the installed blob is the verified bytes rather than merely 8822B-shaped."
+    }
+
+    # DECLARED BEFORE install, EXECUTED AFTER IT. CPDL fixes the
+    # declaration order as prepare, configure, build, check,
+    # install -- writing check last is refused with CPDL-E3003
+    # "package declaration appears out of order" -- while CBS
+    # runs check after install so a case can inspect the staged
+    # artifact. Both halves matter here: every case below asserts
+    # on ${dest}.
+    check {
+        case "the blob is an 8822B firmware image" {
+            # Chip id, little-endian, in the first two bytes. A
+            # two-byte file that CONTAINS those two bytes IS them.
+            run "head" {
+                "-c"
+                "2"
+                "${dest}/lib/firmware/rtw88/rtw8822b_fw.bin"
+                stdout file "${case.dir}/magic"
+            }
+            require file "${case.dir}/magic" {
+                exists
+                nonempty
+            }
+        }
+        case "the installed blob is the verified source" {
+            require file "${dest}/lib/firmware/rtw88/rtw8822b_fw.bin" {
+                exists
+                nonempty
+                same_as "${src}/rtw88/rtw8822b_fw.bin"
+            }
+        }
+    }
+    install {
+        # /lib/firmware/rtw88/, which is where the kernel looks. Not
+        # /usr/lib/firmware: the firmware search path is the kernel's
+        # own constant, not a libdir this platform gets to choose
+        # (cix#184 governs where LIBRARIES live, and this is not one).
+        mkdir "${dest}/lib/firmware/rtw88"
+        copy "${src}/rtw88/rtw8822b_fw.bin" to "${dest}/lib/firmware/rtw88/rtw8822b_fw.bin"
+        chmod 0644 "${dest}/lib/firmware/rtw88/rtw8822b_fw.bin"
+    }
+
+}

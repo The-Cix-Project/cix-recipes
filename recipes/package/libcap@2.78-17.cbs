@@ -1,0 +1,234 @@
+# libcap -- libcap/libpsx plus capsh, getcap, setcap and getpcaps.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE PRIORITY STRIP IS A DECLARED CAPABILITY LOSS (ADR-0222), and
+# it carries over unchanged in effect. libcap writes
+#
+#     __attribute__((constructor (300))) void _libcap_initialize(void)
+#     __attribute__((destructor (300))) static void _cleanup_libcap(void)
+#
+# and tcc 0.9.28rc (ADR-0223) does not parse a prioritised attribute
+# at all: "cap_alloc.c:23: error: ) expected (got ()". Measured
+# rather than assumed (probe-tcc-conformance/13): a BARE
+# __attribute__((constructor)) works correctly on the new compiler,
+# the constructor running before main and the destructor after.
+#
+# What the priority buys, and why dropping it is honest rather than a
+# shrug: a priority orders this constructor against OTHER
+# constructors. libcap has exactly one of each, so there is nothing
+# to order within the library; and against a consumer constructor,
+# tcc cannot express a priority on any constructor at all, so no
+# TCC-built consumer has one to be ordered against. The guarantee
+# given up was never enforceable in a TCC-built system.
+#
+# IN SHELL THIS WAS A REGEX SED plus three greps. CPDL replace is
+# literal-only, which sounds like a downgrade and is not: two
+# `replace ... exactly 1` operations name the exact text and the
+# exact count, and a count that stops being right fails the build.
+# That is what the two "did the rewrite land" greps were for, and
+# what 2.78-12 needed them for -- it hardcoded the spelling and got
+# the destructor spacing wrong, ONE space in the source against two
+# in the pattern, so its sed matched nothing and its own assertion
+# caught it. That spacing is recorded in 2.78-13 own changelog and
+# is what the literals below use.
+#
+# The "no prioritised form survives anywhere" grep is kept, because
+# the two replaces only prove THEIR text is gone -- a third
+# attribute, or a different priority value, would be invisible to
+# them. grep answers 1 when it finds nothing, so exit 1 is the
+# passing case.
+#
+# THE SHEBANG REWRITE IS TREE-WIDE AGAIN, anchored to line 1.
+# libcap's build runs its own progs/mkcapshdoc.sh, which starts
+# #!/bin/bash, and this build environment has no /bin/bash -- the
+# bash package ships bin/sh and usr/bin/bash and nothing else,
+# verified against its own file list. The failure is a bad one to
+# read: the kernel returns ENOENT for the missing INTERPRETER and
+# the shell reports it against the SCRIPT, so
+# "./mkcapshdoc.sh: cannot execute: required file not found"
+# appears for a file that is present and executable.
+#
+# 2.78-15 had to narrow this to the one script the build runs,
+# because CPDL could not anchor a replace and an unanchored
+# tree-wide edit would have rewritten the two #!/bin/bash lines
+# inside progs/quicktest.sh's heredocs -- lines 172 and 216, which
+# write a test script at run time and are not shebangs of that
+# file. cbs#210 landed `at line 1`, so the shell form's
+# `sed -i '1s|^#!/bin/bash|#!/usr/bin/bash|'` now translates
+# exactly, and the heredocs are untouched by the anchor rather than
+# by narrowing the target. Tracked in cix#509 and reverted here.
+#
+package "libcap" {
+    version "2.78"
+    release 17
+    format "cixpkg"
+
+    sources {
+        main "libcap" {
+            url "https://mirrors.edge.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-2.78.tar.xz"
+            sha256 "0d621e562fd932ccf67b9660fb018e468a683d7b827541df27813228c996bb11"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+            tool "diffutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2.78-17: the shebang rewrite is tree-wide again, anchored to line 1 (cbs#210, cix#509), and now asserts the count. 2.78-15 had to name the one script the build runs, because CPDL could not anchor a replace and an unanchored tree-wide edit would have rewritten the two #!/bin/bash lines inside quicktest.sh heredocs. Twelve scripts carry a bash shebang on line 1 -- measured, since the shell sed rewrote them silently and its guard only checked that none survived."
+    }
+
+    build {
+        cd "${src}/libcap/libcap-2.78" {
+            replace "${src}/libcap/libcap-2.78/libcap/cap_alloc.c" {
+                from "__attribute__((constructor (300)))"
+                to "__attribute__((constructor))"
+                exactly 1
+            }
+            replace "${src}/libcap/libcap-2.78/libcap/cap_text.c" {
+                from "__attribute__((destructor (300)))"
+                to "__attribute__((destructor))"
+                exactly 1
+            }
+            # Nothing prioritised may survive anywhere, including a
+            # spelling or a priority value the two replaces above do
+            # not name. grep answers 1 when it finds nothing.
+            run "grep" {
+                "-r"
+                "-E"
+                "(constructor|destructor)[[:space:]]*\\([0-9]"
+                "libcap/"
+                expect exit 1
+            }
+            # And the attributes must still be there at all.
+            require file "${src}/libcap/libcap-2.78/libcap/cap_alloc.c" {
+                exists
+                contains "__attribute__((constructor))"
+            }
+            require file "${src}/libcap/libcap-2.78/libcap/cap_text.c" {
+                exists
+                contains "__attribute__((destructor))"
+            }
+            # TREE-WIDE AGAIN, anchored to line 1. 2.78-15 named
+            # the single script the build runs, because CPDL could
+            # not anchor a replace and an unanchored tree-wide edit
+            # would have rewritten the two #!/bin/bash lines inside
+            # progs/quicktest.sh's heredocs -- not shebangs of that
+            # file, and nothing should touch them. cbs#210 landed
+            # `at line 1`, so the shell form's `sed -i '1s|...|'`
+            # translates exactly. The heredocs are on lines 172 and
+            # 216 and are untouched by the anchor rather than by
+            # narrowing the target.
+            #
+            # TWELVE, measured. 2.78-16 guessed 2 and the build
+            # answered "source edit expected 2 matches but found
+            # 12". That number has never been recorded before: the
+            # shell form's sed rewrote every matching line silently
+            # and its guard only checked that none survived, so
+            # nobody knew how many scripts this package ships with a
+            # bash shebang. Now a thirteenth, or an eleventh, fails
+            # the build and says so.
+            replace glob "${src}/libcap/libcap-2.78/**/*.sh" {
+                from "#!/bin/bash"
+                at line 1
+                to "#!/usr/bin/bash"
+                exactly 12
+            }
+            run "make" {
+                "CC=tcc"
+                "BUILD_CC=tcc"
+                "LD=tcc -shared"
+                "MAGIC="
+                "GOLANG=no"
+                "PAM_CAP=no"
+                "lib=lib"
+                "prefix=/usr"
+                jobs $jobs
+            }
+            # libcap build produces no shared library at all if
+            # SHARED=no is ever inferred, and a static-only libcap
+            # satisfies nothing that links against it. Assert the
+            # artifact rather than trust the exit status.
+            # A SYMLINK in the build tree, onto libcap.so.2.78 --
+            # 2.78-14 asserted it as a file and was refused after a
+            # complete build. cbs#175 again, and the third time in
+            # this conversion run: the name you reach for is the
+            # soname, and the soname is always the link.
+            require symlink "${src}/libcap/libcap-2.78/libcap/libcap.so.2" {
+                exists
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libcap/libcap-2.78" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "CC=tcc"
+                "BUILD_CC=tcc"
+                "LD=tcc -shared"
+                "MAGIC="
+                "GOLANG=no"
+                "PAM_CAP=no"
+                "lib=lib"
+                "prefix=/usr"
+            }
+        }
+        # Static archives go; man pages stay (ADR-0306, cix#491).
+        remove glob "${dest}/usr/lib/*.a" allow_failure
+        # The real files and the sonames consumers link (cbs#175).
+        require file "${dest}/usr/lib/libcap.so.2.78" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libcap.so.2" {
+            exists
+            target "libcap.so.2.78"
+        }
+        require file "${dest}/usr/lib/libpsx.so.2.78" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libpsx.so.2" {
+            exists
+            target "libpsx.so.2.78"
+        }
+        require file "${dest}/usr/include/sys/capability.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libcap.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/sbin/setcap" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/getcap" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/capsh" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/sbin/getpcaps" {
+            exists
+            executable
+        }
+    }
+}
