@@ -1,0 +1,158 @@
+# perl -- the interpreter openssl Configure, grub build and several
+# recipes here all need.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE TWO RUNTIME GATES SURVIVE INTACT, and they are the important
+# half of this recipe. A make that exits 0 is not evidence perl
+# works:
+#
+#   XS-OK    the built perl must load a real XS module (Cwd), which
+#            is what an XS link failure would break
+#   CRYPT    crypt("password","ab") must return a hash starting "ab",
+#            which is what proves libxcrypt was actually linked
+#
+# In shell each was a command substitution into a `case`. Here each
+# is a `run` with `stdout file` and a `require file { contains }` --
+# the same test, and one that cannot be fooled by the command
+# failing in a way that leaves the variable empty.
+#
+# THE DESTDIR-ROOT CHECK GETS STRONGER. The shell form counted
+# regular files at the top of the destdir with find -maxdepth 1 and
+# required zero, because man pages leaking into the image ROOT is a
+# real failure this package had (cix#267). `require glob "${dest}/*"
+# { exactly 1 }` says the same thing better: perl installs exactly
+# one top-level entry, usr, so a stray file OR a stray directory
+# fails it, where the shell form only saw files.
+#
+# ONE THING IS LOST, AND IT IS NAMED RATHER THAN QUIETLY DROPPED.
+# The shell form read the preprocessor command Configure recorded in
+# config.sh and RAN it against a probe file, checking that it really
+# preprocesses:
+#
+#   cmd=$(sed -n "s/^cpprun='\(.*\)'$/\1/p" config.sh)
+#   eval "$cmd" /run/cix-cpp-probe.c
+#
+# CPDL has no form for executing a command whose text comes out of a
+# file, and should not: that is a shell, and its absence is the
+# point of the language. So this asserts only that Configure
+# recorded the two variables at all, and the executable half is
+# gone. What that costs: a recorded cpprun that exists but does not
+# preprocess would now be caught by the build failing rather than by
+# a named gate. The probe dates from the TCC era (cix#25); this
+# recipe has passed -Dcc=/usr/bin/gcc since, so the command being
+# recorded is the compiler that just ran.
+package "perl" {
+    version "5.40.1"
+    release 8
+    format "cixpkg"
+
+    sources {
+        main "perl" {
+            url "https://www.cpan.org/src/5.0/perl-5.40.1.tar.gz"
+            sha256 "02f8c45bb379ed0c3de7514fad48c714fd46be8f0b536bfd5320050165a1ee26"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "binutils"
+            tool "libxcrypt"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+        }
+        runtime {
+            package "libxcrypt"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "codegen/parse: an XS module's link step crashes tcc itself; miniperl builds correctly since cix#216 was fixed"
+    }
+
+    metadata {
+        "changelog" "5.40.1-8: converts to CPDL (cix#487). Same tarball, same Configure line, same 1823 files. The two runtime gates survive as stdout file plus require contains -- the built perl still has to load a real XS module and still has to have a working crypt(). The destdir-root stray check becomes require glob exactly 1, which is stronger: it catches a stray directory too. The cpprun probe loses its executable half, which has no CPDL form; see the header for what that costs."
+    }
+
+    build {
+        cd "${src}/perl/perl-5.40.1" {
+            # -des is "use every default, ask nothing", which is why
+            # the shell form's </dev/null is not needed: Configure
+            # never reads stdin under it.
+            run "./Configure" {
+                "-des"
+                "-Dcc=/usr/bin/gcc"
+                "-Dprefix=/usr"
+                "-Dusethreads"
+            }
+            # Configure must have recorded both preprocessor
+            # commands. See the header for the half of this check
+            # that CPDL cannot express.
+            require file "${src}/perl/perl-5.40.1/config.sh" {
+                exists
+                contains "cpprun='"
+            }
+            require file "${src}/perl/perl-5.40.1/config.sh" {
+                exists
+                contains "cppstdin='"
+            }
+            run "make" {
+                jobs $jobs
+            }
+            # It runs, and it loads a real XS module.
+            run "./perl" {
+                "-Ilib"
+                "-e"
+                "use Cwd; print \"XS-OK:\", (Cwd::getcwd() ne \"\" ? 1 : 0);"
+                stdout file "${build}/perl-xs.txt"
+            }
+            require file "${build}/perl-xs.txt" {
+                exists
+                contains "XS-OK:1"
+            }
+            # And crypt() works, which is what proves libxcrypt was
+            # linked rather than merely declared.
+            run "./perl" {
+                "-Ilib"
+                "-e"
+                "my $h = crypt(\"password\",\"ab\"); print \"CRYPT:\", (defined $h && $h =~ /^ab/ ? 1 : 0);"
+                stdout file "${build}/perl-crypt.txt"
+            }
+            require file "${build}/perl-crypt.txt" {
+                exists
+                contains "CRYPT:1"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/perl/perl-5.40.1" {
+            run "make" {
+                "install.perl"
+                "DESTDIR=${dest}"
+            }
+        }
+        # Exactly one top-level entry, usr. A man page leaking into
+        # the image ROOT is a real failure this package had
+        # (cix#267), and this catches a stray directory as well as a
+        # stray file.
+        require glob "${dest}/*" {
+            exactly 1
+        }
+        require directory "${dest}/usr/lib/perl5" {
+            exists
+        }
+        require file "${dest}/usr/bin/perl" {
+            exists
+            executable
+        }
+    }
+}
