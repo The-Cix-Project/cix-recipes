@@ -1,0 +1,249 @@
+#
+# GNU gettext -- the i18n tools (msgfmt, xgettext, msgmerge, ...),
+# libintl, and above all autopoint, which is the reason this package
+# exists: GRUB 2.14 lists gettext among its own hard build
+# requirements. Staged onto the build/toolchain image only, never into
+# a runtime image, the same role m4/bison/flex/autoconf already have.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING ABOUT THE BUILD CHANGES: same tarball at the same digest,
+# same configure line with the same four environment corrections, the
+# same build-lib-then-everything sequence, and the same three
+# assertions. What changes is that every one of them is an operation
+# CBS can see rather than shell it cannot.
+#
+# THE _LDADD FIX IS THE ONE THING THAT IS NOT A STRAIGHT TRANSLATION.
+# The shell form was a sed with two addresses and a negated match:
+#
+#   sed -i '/_LDADD = libgettextsrc\.la/{ /\$(LDADD)/! s/$/ $(LDADD)/ }'
+#
+# -- append " $(LDADD)" at END OF LINE, to lines that name
+# libgettextsrc.la and do not already carry it. CPDL has no patterns,
+# and `insert` writes immediately after a literal match, so the same
+# 16 lines get `$(LDADD)` in a DIFFERENT POSITION: straight after
+# `libgettextsrc.la` rather than at the end.
+#
+# That is a real behavioural difference and it is deliberate, because
+# the position is load-bearing in a --disable-shared build. A static
+# archive is a bag of objects with no recorded dependencies, so the
+# linker resolves strictly left to right: a library must appear BEFORE
+# the ones that satisfy its undefined symbols. $(LDADD) is
+# libgettextlib.la, whose own references (iconv, and the rest of the
+# @...@ substitutions on those lines) are satisfied by entries the
+# shell form placed it AFTER. So the new position is the more correct
+# of the two, not merely an acceptable one -- and this recipe's
+# history is the argument for saying so out loud: the whole of #220
+# was link-order and absorption failures that reported success.
+#
+# The negated-match guard is dropped rather than reproduced. It
+# existed so a re-run would not double the flag; `cldr_plurals_LDADD`
+# already carries `$(LDADD)` and now gets a second one, which is a
+# duplicate archive on a link line and resolves identically. That is
+# why the count is `exactly 16` -- every line naming libgettextsrc.la,
+# not the fifteen that lacked the flag. The shell form's own gate
+# asserted the same 16 after the fact; here the count IS the gate, and
+# it runs before any byte is written.
+#
+# TWO THINGS ARE DELIBERATELY NOT CARRIED OVER.
+#
+# The "reported, not required" probe -- a loop that printed which of
+# tar/xz/bzip2/diff/patch/perl/m4/install/ln were absent without
+# failing -- is gone, because CPDL has no operation that reports
+# without failing, and inventing shell to keep it would defeat the
+# conversion. The loss is real and worth naming: that loop existed to
+# make the NEXT undeclared tool cheap to find. What replaces it is
+# cbs#224, filed on 2026-09-22 -- a build phase whose tool is missing
+# should name it rather than fail obscurely, which is a better answer
+# than every recipe carrying its own detector.
+#
+# The three REQUIRED tools stay, as `require file`, because their
+# absence produces a WRONG BUILD rather than a failed one and that is
+# the entire lesson of #220: libtool without `find` absorbs no
+# convenience archive and reports success; configure without `cmp`
+# decides `dd` does not work and takes another branch. Paths measured
+# on 192.168.15.95, 2026-09-22, from each package's own file list --
+# findutils 4.10.0-6 ships usr/bin/find, gzip 1.13-4 ships
+# usr/bin/gzip, diffutils 3.10-8 ships usr/bin/cmp.
+#
+# AND THE PACKAGE GETS BIGGER, deliberately: the install no longer
+# deletes usr/share/{doc,man,info}. ADR-0306 withdrew ADR-0251's
+# clause 4 (cix#491), so a package keeps its documentation.
+#
+package "gettext" {
+    version "1.0"
+    release 18
+    format "cixpkg"
+
+    sources {
+        main "gettext" {
+            url "https://mirrors.kernel.org/gnu/gettext/gettext-1.0.tar.xz"
+            sha256 "71132a3fb71e68245b8f2ac4e9e97137d3e5c02f415636eb508ae607bc01add7"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "gzip"
+        }
+    }
+
+    metadata {
+        "changelog" "1.0-18: converts to CPDL (cix#487). Same tarball, same configure line, same sequence, same assertions. The _LDADD sed becomes insert ... exactly 16, putting $(LDADD) directly after libgettextsrc.la rather than at end of line -- the more correct position for a --disable-shared link, where order decides resolution. The required-tool checks become require file. Stops deleting usr/share doc, man and info (ADR-0306, cix#491)."
+    }
+
+    build {
+        # Absence of any of these produces a WRONG build rather than a
+        # failed one, so they are asserted before anything runs. This
+        # is the generalisation of #220, kept from the shell form.
+        require file "/usr/bin/find" {
+            exists
+            executable
+        }
+        require file "/usr/bin/gzip" {
+            exists
+            executable
+        }
+        require file "/usr/bin/cmp" {
+            exists
+            executable
+        }
+
+        # Every tool links the gnulib archive, not just one (#220).
+        # automake's per-target _LDADD REPLACES the global LDADD rather
+        # than adding to it, and LDADD is where libgettextlib.la lives,
+        # so fifteen of the sixteen tools never saw it and msgcmp
+        # failed to link on a dozen gnulib symbols. Upstream gets away
+        # with it for a shared build, where libgettextsrc.so records
+        # the dependency; a .a records nothing.
+        insert "${src}/gettext/gettext-1.0/gettext-tools/src/Makefile.in" {
+            after "_LDADD = libgettextsrc.la"
+            write " $(LDADD)"
+            exactly 16
+        }
+
+        cd "${src}/gettext/gettext-1.0" {
+            # gl_cv_libcroco_use_included is truthful rather than
+            # forced: the bundled libcroco genuinely is the one to use
+            # here, because this platform has no other.
+            #
+            # The two posix_spawn cache variables correct an answer
+            # autoconf cannot reach on its own, first recorded by
+            # m4 1.4.20-2. glibc 2.44 exports the _np name as a real
+            # symbol and gives the POSIX-2024 name only as a
+            # header-level asm alias; AC_CHECK_FUNC declares the
+            # function itself by design, so it links a bare name that
+            # does not exist and concludes it is absent. gnulib then
+            # emits its own prototype after the system header and the
+            # two collide at spawn.h. Saying yes is true for any
+            # translation unit that includes <spawn.h>, which is the
+            # only legitimate way to call it, and it lands on gnulib's
+            # safer REPLACE branch where gnulib compiles its own.
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-shared"
+                "--disable-java"
+                "--disable-native-java"
+                "--disable-openmp"
+                "--without-emacs"
+                env "CC" = "tcc"
+                env "gl_cv_libcroco_use_included" = "yes"
+                env "ac_cv_func_posix_spawn_file_actions_addchdir" = "yes"
+                env "ac_cv_func_posix_spawn_file_actions_addfchdir" = "yes"
+            }
+
+            # lib alone, before the rest. Building the whole
+            # libtextstyle subdirectory also builds adhoc-tests, whose
+            # own hello links against libtextstyle.la -- so it fails on
+            # exactly the symbols the next assertion is about, before
+            # the assertion can report on the library itself.
+            run "make" {
+                "-C"
+                "libtextstyle/lib"
+                jobs $jobs
+            }
+
+            # libtool absorbed the bundled convenience archives.
+            # 1.0-8 through 1.0-14 did this merge by hand with ar, on
+            # the belief that libtool would not; libtool does, and what
+            # it could not do was run `find`. This is the measurement
+            # that identified the problem (1.0-7: 412 renamed libcroco
+            # definitions present in libcroco_rpl.a, ZERO in
+            # libtextstyle.a), now asserted on libtool's own output.
+            run "nm" {
+                "libtextstyle/lib/.libs/libtextstyle.a"
+                expect {
+                    stdout contains "T libtextstyle_cr_"
+                }
+            }
+
+            run "make" {
+                jobs $jobs
+            }
+
+            # The same absorption one library along. gettext-tools
+            # bundles libxml2 as the convenience archive libxml_rpl.la,
+            # named in libgettextlib's LIBADD, and src/its.c calls into
+            # it directly -- unabsorbed, msgfmt fails on xmlNewNode and
+            # a dozen more. A successful make already implies this, so
+            # this asserts it rather than leaving it inferred from
+            # something else having succeeded.
+            run "nm" {
+                "gettext-tools/gnulib-lib/.libs/libgettextlib.a"
+                expect {
+                    stdout contains "T xmlNewNode"
+                }
+            }
+
+            # Run what was built (cix#113). msgfmt is the tool; a
+            # make that exits 0 is not evidence it works.
+            run "gettext-tools/src/msgfmt" {
+                "--version"
+                expect {
+                    stdout contains "msgfmt"
+                }
+            }
+        }
+
+        # autopoint is the only reason this package exists, and it
+        # moved: gettext 0.x had gettext-tools/misc/autopoint, 1.0 has
+        # gettext-tools/autotools/autopoint.in. 1.0-16 built completely
+        # and failed here, on a path from an older release.
+        require file "${src}/gettext/gettext-1.0/gettext-tools/autotools/autopoint" {
+            exists
+            executable
+        }
+    }
+
+    install {
+        cd "${src}/gettext/gettext-1.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/msgfmt" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/autopoint" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/xgettext" {
+            exists
+            executable
+        }
+    }
+}
