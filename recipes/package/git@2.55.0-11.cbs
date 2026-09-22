@@ -1,0 +1,130 @@
+# NO_INSTALL_HARDLINKS=1 ON INSTALL, and it is not a preference.
+# 2.55.0-10 built and was refused at packaging:
+#
+#   manifest: usr/bin/git is a hard link (link count 150);
+#   CIXPKG entries must have exactly one link
+#
+# git installs its ~150 builtins as hard links to one binary, and
+# CIXPKG refuses a regular file whose link count is not 1
+# (cix-build-system#182). binutils and automake hit the same wall
+# and were fixed by removing the duplicate name and re-creating it
+# as a symlink -- viable for two names, absurd for 150.
+#
+# git ships the switch: NO_INSTALL_HARDLINKS makes `make install`
+# create symlinks instead. That is upstream's own supported option
+# for exactly this situation rather than anything this platform
+# invented, and it is why git needs no per-name surgery.
+#
+# git. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THE FUZZ_OBJS STRIP IS WHY THIS WAITED. The shell form was a regex
+# sed with an anchored .* --
+#
+#   sed -i 's|^FUZZ_OBJS += .*$||' Makefile
+#
+# -- and CPDL's replace is literal only. `until line` (cbs#177) is
+# that pattern as an operation: match the literal prefix and
+# everything after it up to the newline, which is exactly what
+# `^FUZZ_OBJS += .*$` meant. The delimiter is never part of the
+# match, so the line ending survives and the Makefile keeps its
+# shape.
+#
+# The grep-after-the-sed guard is gone, as the recipe guide
+# prescribes: `exactly N` refuses to mutate anything unless the count
+# matches and names the file and the number when it does not, which
+# is strictly more than the grep did.
+#
+# `exactly 9` is MEASURED. 2.55.0-9 claimed 1 and the build answered
+# "expected 1 matches but found 9" -- git's Makefile appends to
+# FUZZ_OBJS nine times, which the shell's global sed did silently and
+# recorded nowhere. Now a tenth appearing, or one of the nine going
+# away, fails the build instead of being stripped unnoticed.
+#
+# -D__STDC_NO_VLA__=1: glibc's regex.h sizes regexec()'s match array
+# with a C99 VLA-in-prototype expression TCC's parser rejects, and
+# the header has an explicit branch for a compiler without VLA
+# support, which TCC genuinely is.
+package "git" {
+    version "2.55.0"
+    release 11
+    format "cixpkg"
+
+    sources {
+        main "git" {
+            url "https://www.kernel.org/pub/software/scm/git/git-2.55.0.tar.xz"
+            sha256 "457fdb04dc8728e007d4688695e6912e6f680727920f2a40bf11eacc17505357"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "zlib"
+            tool "perl"
+            tool "tar"
+        }
+        runtime {
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "258dc9967c3c7fd2d187c7949bdcc08098994e2f8395db7df39a5e8e337c4928"
+        "changelog" "2.55.0-11: passes NO_INSTALL_HARDLINKS=1 to make install. 2.55.0-10 built and was refused at packaging -- usr/bin/git is a hard link with link count 150, and CIXPKG requires exactly one (cbs#182). git installs its ~150 builtins as hard links to one binary; the remove-and-symlink fix binutils and automake used is absurd at that count, and git ships the switch for it. 2.55.0-10: FUZZ_OBJS strip is exactly 9, measured. 2.55.0-9: converted to build.cbs using until line (cbs#177)."
+    }
+
+    build {
+        cd "${src}/git/git-2.55.0" {
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-D__STDC_NO_VLA__=1"
+            }
+            replace "${src}/git/git-2.55.0/Makefile" {
+                from "FUZZ_OBJS += "
+                until line
+                to ""
+                exactly 9
+            }
+            run "make" {
+                jobs $jobs
+                "NO_RUST=1"
+                "NO_GETTEXT=1"
+                "NO_TCLTK=1"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/git/git-2.55.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "prefix=/usr"
+                "NO_RUST=1"
+                "NO_GETTEXT=1"
+                "NO_TCLTK=1"
+                "NO_INSTALL_HARDLINKS=1"
+            }
+        }
+        require file "${dest}/usr/bin/git" {
+            exists
+            nonempty
+        }
+    }
+}

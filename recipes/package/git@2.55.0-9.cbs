@@ -1,0 +1,109 @@
+# git. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything.
+#
+# THE FUZZ_OBJS STRIP IS WHY THIS WAITED. The shell form was a regex
+# sed with an anchored .* --
+#
+#   sed -i 's|^FUZZ_OBJS += .*$||' Makefile
+#
+# -- and CPDL's replace is literal only. `until line` (cbs#177) is
+# that pattern as an operation: match the literal prefix and
+# everything after it up to the newline, which is exactly what
+# `^FUZZ_OBJS += .*$` meant. The delimiter is never part of the
+# match, so the line ending survives and the Makefile keeps its
+# shape.
+#
+# The grep-after-the-sed guard is gone, as the recipe guide
+# prescribes: `exactly N` refuses to mutate anything unless the count
+# matches and names the file and the number when it does not, which
+# is strictly more than the grep did.
+#
+# `exactly 1` is a CLAIM -- the shell used a global sed and recorded
+# no count. If it is wrong the build says so and the real number gets
+# written down here instead of being lost again.
+#
+# -D__STDC_NO_VLA__=1: glibc's regex.h sizes regexec()'s match array
+# with a C99 VLA-in-prototype expression TCC's parser rejects, and
+# the header has an explicit branch for a compiler without VLA
+# support, which TCC genuinely is.
+package "git" {
+    version "2.55.0"
+    release 9
+    format "cixpkg"
+
+    sources {
+        main "git" {
+            url "https://www.kernel.org/pub/software/scm/git/git-2.55.0.tar.xz"
+            sha256 "457fdb04dc8728e007d4688695e6912e6f680727920f2a40bf11eacc17505357"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "zlib"
+            tool "perl"
+            tool "tar"
+        }
+        runtime {
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "changelog" "2.55.0-9: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest and the same configure and make lines. It waited on cbs#177: the FUZZ_OBJS strip was a regex sed with an anchored .* and CPDL replace is literal only, so until line is that pattern as an operation. The grep-after guard goes, exactly N being strictly more than it did."
+    }
+
+    build {
+        cd "${src}/git/git-2.55.0" {
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-D__STDC_NO_VLA__=1"
+            }
+            replace "${src}/git/git-2.55.0/Makefile" {
+                from "FUZZ_OBJS += "
+                until line
+                to ""
+                exactly 1
+            }
+            run "make" {
+                jobs $jobs
+                "NO_RUST=1"
+                "NO_GETTEXT=1"
+                "NO_TCLTK=1"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/git/git-2.55.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "prefix=/usr"
+                "NO_RUST=1"
+                "NO_GETTEXT=1"
+                "NO_TCLTK=1"
+            }
+        }
+        require file "${dest}/usr/bin/git" {
+            exists
+            nonempty
+        }
+    }
+}

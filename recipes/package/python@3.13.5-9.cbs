@@ -1,0 +1,99 @@
+# CPython. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# cix#487).
+#
+# WHAT CHANGES:
+#
+#   usr/share/man  -- no longer deleted (ADR-0306, cix#491).
+#   test, idlelib, tkinter, idle3, idle3.13 -- still deleted. Those
+#                     are this package's own judgement about what it
+#                     ships: a test suite, and an IDE plus the Tk
+#                     bindings it needs, on a platform that packages
+#                     no Tk and has no display.
+#
+# __pycache__ uses `remove tree glob`, which is the find -exec the
+# shell recipe ran:
+#
+#   find … -name "__pycache__" -type d -exec rm -rf {} +
+#
+# `remove` alone takes files, empty directories and symlinks; a
+# non-empty directory needs `tree`, and the glob form applies it
+# across the matches. These directories are always present after a
+# CPython install -- the build byte-compiles the standard library --
+# so the no-match-fails behaviour that makes a defensive `rm -f`
+# untranslatable (cbs#188) is not a risk here.
+package "python" {
+    version "3.13.5"
+    release 9
+    format "cixpkg"
+
+    sources {
+        main "python" {
+            url "https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz"
+            sha256 "e6190f52699b534ee203d9f417bdbca05a92f23e35c19c691a50ed2942835385"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "binutils"
+            tool "linux-headers"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "pkgconf"
+            tool "findutils"
+            tool "m4"
+            tool "zlib"
+            tool "bzip2"
+        }
+        runtime {
+            package "zlib"
+            package "bzip2"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "carried from 3.13.5-8 and not re-measured against the pinned tcc 0.9.28rc. CPython is a large C codebase with its own configure-driven feature detection, which is the shape most likely to find a compiler gap, but that is a prediction and ADR-0226 asks for a measurement with a date"
+    }
+
+    metadata {
+        "changelog" "3.13.5-9: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball at the same digest and the same configure line. Stops deleting usr/share/man (ADR-0306, cix#491); still drops the test suite, idlelib, tkinter and the idle3 entry points, which are this package's own judgement on a platform that packages no Tk. The __pycache__ sweep becomes remove tree glob, which is what the find -exec did."
+    }
+
+    build {
+        cd "${src}/python/Python-3.13.5" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--enable-shared"
+                "--with-ensurepip=no"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/python/Python-3.13.5" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        remove tree "${dest}/usr/lib/python3.13/test"
+        remove tree "${dest}/usr/lib/python3.13/idlelib"
+        remove tree "${dest}/usr/lib/python3.13/tkinter"
+        remove "${dest}/usr/bin/idle3"
+        remove "${dest}/usr/bin/idle3.13"
+        remove tree glob "${dest}/usr/lib/python3.13/**/__pycache__"
+        require file "${dest}/usr/bin/python3.13" {
+            exists
+            nonempty
+        }
+    }
+}
