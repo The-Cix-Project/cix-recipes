@@ -1,0 +1,150 @@
+#
+# shim -- the Microsoft-signed UEFI first-stage loader and MokManager,
+# as Debian ships them: usr/lib/shim/shimx64.efi.signed and
+# usr/lib/shim/mmx64.efi.signed.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+# Same three sources at the same digests, same two installed files.
+#
+# THESE ARE THE ONE CLASS OF BINARY THIS PROJECT CAN NEVER BUILD, and
+# that is deliberate rather than a gap. shim's whole purpose is to be
+# signed by Microsoft's UEFI CA, which is what lets it load on a
+# machine with Secure Boot enabled and no enrollment at all; it then
+# chain-loads our own Cix-signed systemd-boot, and MokManager enrolls
+# our signing certificate on the one occasion that is needed
+# (ADR-0015). A shim we compiled ourselves would carry no signature
+# anyone's firmware trusts, so building it would produce a file that
+# cannot do the only job it has.
+#
+# Until this package existed they were not packaged at all --
+# image/src/mkinstalleriso.c read them straight off whatever machine
+# happened to run it, at /usr/lib/shim/. That worked because every ISO
+# this project has produced was built on the development machine,
+# which has Debian's shim-signed installed. It is also exactly why
+# `POST /v1/system/iso` could not run on a real Cix host: the
+# control-plane root stages neither file, so the tool failed on a path
+# nobody had looked at.
+#
+# This does not weaken the Build Provenance Mandate; it is the honest
+# form of the exception the mandate already implies. The rule forbids
+# passing off a foreign binary as Cix-built and forbids copying
+# another system's files in by accident. Here the binary is named,
+# pinned and checksum-verified, fetched from its real distributor,
+# with a comment saying why it can never be ours -- the same posture
+# the kernel recipe takes toward an upstream tarball it does not
+# write.
+#
+# THE FIRST SOURCE IS NOT BUILT. shim's own upstream release is the
+# provenance anchor: it states which shim these signed binaries
+# actually are (16.1, matching Debian's shim-unsigned 16.1-2~deb12u1),
+# so the version in this recipe means something checkable rather than
+# being Debian's packaging revision.
+#
+# A .deb IS AN ar ARCHIVE, which is why `materialize` rather than
+# `extract`. CBS extracts an archive it understands; a .deb is `ar`
+# with a tarball inside, so each is materialized as a file and opened
+# in two steps by tools this recipe declares. binutils is here for
+# `ar` alone -- nothing else on this platform opens one.
+#
+package "shim" {
+    version "16.1"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "shim" {
+            url "https://github.com/rhboot/shim/releases/download/16.1/shim-16.1.tar.bz2"
+            sha256 "46319cd228d8f2c06c744241c0f342412329a7c630436fce7f82cf6936b1d603"
+        }
+        extra "shimsigned" {
+            url "http://deb.debian.org/debian/pool/main/s/shim-signed/shim-signed_1.51~1+deb12u1+16.1-2~deb12u1_amd64.deb"
+            sha256 "c2acf5e559664bbadb7ce5789f9a321f39754a34854d3097b8cc0369df513b3b"
+        }
+        extra "shimhelpers" {
+            url "http://deb.debian.org/debian/pool/main/s/shim-helpers-amd64-signed/shim-helpers-amd64-signed_1+16.1+2~deb12u1_amd64.deb"
+            sha256 "26acac35133946c1642a09f3fda353ee3b849e5fc643fadb97a8dfec9e2b55fb"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "tar"
+            tool "xz"
+        }
+    }
+
+    metadata {
+        "changelog" "16.1-2: converts to CPDL (cix#487). Same three sources at the same digests, same two installed files. The .deb pair is materialized and opened with ar and tar rather than read out of /build/extra by path, and the two test -f guards become require file, asserted on the installed artifacts as well as the unpacked ones."
+    }
+
+    build {
+        mkdir "${build}/shim-signed"
+        materialize $source.shimsigned to "${build}/shim-signed/shim-signed.deb"
+        cd "${build}/shim-signed" {
+            run "ar" {
+                "x"
+                "shim-signed.deb"
+            }
+            run "tar" {
+                "xJf"
+                "data.tar.xz"
+            }
+        }
+
+        mkdir "${build}/shim-helpers"
+        materialize $source.shimhelpers to "${build}/shim-helpers/shim-helpers.deb"
+        cd "${build}/shim-helpers" {
+            run "ar" {
+                "x"
+                "shim-helpers.deb"
+            }
+            run "tar" {
+                "xJf"
+                "data.tar.xz"
+            }
+        }
+
+        # Fail here, loudly, rather than installing an incomplete
+        # pair. A missing MokManager does not surface until an
+        # operator is standing at a firmware prompt that never
+        # appears.
+        require file "${build}/shim-signed/usr/lib/shim/shimx64.efi.signed" {
+            exists
+            nonempty
+        }
+        require file "${build}/shim-helpers/usr/lib/shim/mmx64.efi.signed" {
+            exists
+            nonempty
+        }
+    }
+
+    install {
+        # Exactly the paths image/src/mkinstalleriso.c already reads
+        # (SHIM_EFI_SRC / MOKMANAGER_EFI_SRC), so nothing in that tool
+        # changes -- it stops depending on the build machine's apt
+        # history and starts depending on a package.
+        #
+        # fbx64.efi.signed, the fallback loader also in shim-helpers,
+        # is deliberately not installed: it exists to re-create a
+        # removed EFI boot entry from a BOOTX64 fallback path, and
+        # this project's installer writes its own boot entries
+        # directly (populate_esp()). Shipping a signed loader nothing
+        # invokes would be one more thing to reason about for no
+        # behaviour.
+        mkdir "${dest}/usr/lib/shim"
+        copy "${build}/shim-signed/usr/lib/shim/shimx64.efi.signed" to "${dest}/usr/lib/shim/shimx64.efi.signed"
+        copy "${build}/shim-helpers/usr/lib/shim/mmx64.efi.signed" to "${dest}/usr/lib/shim/mmx64.efi.signed"
+
+        require file "${dest}/usr/lib/shim/shimx64.efi.signed" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/shim/mmx64.efi.signed" {
+            exists
+            nonempty
+        }
+    }
+}
