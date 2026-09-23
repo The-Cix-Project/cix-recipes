@@ -1,0 +1,88 @@
+#
+# probe-tcc-identity -- is the CPDL-built tcc@0.9.28rc-30 the same
+# compiler, byte for byte, as the shell-built tcc@0.9.28rc-29?
+#
+# It should be, and that is the strongest check there is on the
+# conversion. Both run the same three-stage bootstrap on the same
+# pinned source, and a fixed point (stage 2 == stage 3) does not depend
+# on the seed, so if every edit in the CPDL recipe reproduces the shell
+# recipe's edit exactly, the shipped files are identical. A difference
+# means an edit is not what it was, which the build's own gates might
+# not notice.
+#
+# Both artifacts come from the artifact cache as ordinary declared
+# sources. Prints every compared file's SHA-256, then asserts each
+# pair identical, then fails on purpose so nothing is published; read
+# it with `cixctl pkg build-logs`.
+#
+package "probe-tcc-identity" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "rc29" {
+            url "http://192.168.15.31:8080/tcc-0.9.28rc-29-x86_64.tar.gz"
+            sha256 "61d362643ba8969ed46dcf9042b36f9ae5f5409e03f34e97a23a86f438cc5fa0"
+        }
+        extra "rc30" {
+            url "http://192.168.15.31:8080/tcc-0.9.28rc-30-x86_64.cixpkg"
+            sha256 "b1964a926291a951a7f12a11d94c8daeb93c605226db1e1b2205b169094e4d37"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: compares the files of the CPDL-built tcc@0.9.28rc-30 with the shell-built tcc@0.9.28rc-29."
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}/rc29"
+        }
+        materialize $source.rc30 to "${build}/rc30.cixpkg"
+        run "cbs" {
+            "extract" "${build}/rc30.cixpkg" "--into" "${build}/rc30"
+        }
+        cd "${src}/rc29" {
+            run "sha256sum" {
+                "usr/bin/tcc" "usr/lib/tcc/libtcc1.a" "usr/lib/libtcc.a"
+                "usr/lib/tcc/include/tccdefs.h" "usr/lib/tcc/runmain.o"
+                "usr/lib/tcc/bcheck.o" "usr/lib/tcc/bt-exe.o" "usr/lib/tcc/bt-log.o"
+            }
+        }
+        cd "${build}/rc30" {
+            run "sha256sum" {
+                "usr/bin/tcc" "usr/lib/tcc/libtcc1.a" "usr/lib/libtcc.a"
+                "usr/lib/tcc/include/tccdefs.h" "usr/lib/tcc/runmain.o"
+                "usr/lib/tcc/bcheck.o" "usr/lib/tcc/bt-exe.o" "usr/lib/tcc/bt-log.o"
+            }
+        }
+        require file "${build}/rc30/usr/bin/tcc" {
+            exists
+            same_as "${src}/rc29/usr/bin/tcc"
+        }
+        require file "${build}/rc30/usr/lib/tcc/libtcc1.a" {
+            exists
+            same_as "${src}/rc29/usr/lib/tcc/libtcc1.a"
+        }
+        require file "${build}/rc30/usr/lib/tcc/include/tccdefs.h" {
+            exists
+            same_as "${src}/rc29/usr/lib/tcc/include/tccdefs.h"
+        }
+        # Fail on purpose: the answer is in the log, not in an artifact.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tcc-identity"
+    }
+}

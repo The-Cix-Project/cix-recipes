@@ -1,0 +1,1261 @@
+#
+# tcc -- the Tiny C Compiler, this platform's own compiler for
+# everything it builds.
+#
+# 0.9.28rc-31 is 0.9.28rc-29 converted to CPDL: the same source, the
+# same edits, the same gates and the same three-stage bootstrap.
+# Nothing about the compiler changes. The reasoning behind every edit
+# and gate -- the upgrade from the 2017 0.9.27 release to pinned
+# upstream mob 2ba12e83 (#216), and each of #208, #212, #219, #220,
+# #227, #228 and #235 -- is written out in tcc@0.9.28rc-29.sh, which
+# stays in this repository (ADR-0309). The comments here say what each
+# step is and which issue it belongs to; that file says why.
+#
+# HOW THE SHELL FORM MAPS
+#
+#   sed -i 's|^X$|Y|'            replace { from "X\n" at line_start
+#                                 to "Y\n" exactly 1 }. The count is
+#                                 the check the old grep did after the
+#                                 edit, and it now runs before the file
+#                                 is touched. Every count here was
+#                                 measured in the pinned source by
+#                                 probe-tcc-source@1-1 (192.168.15.95,
+#                                 2026-09-23).
+#   cat > file <<EOF             write (block string)
+#   cat >> file <<EOF            insert after the file's last line
+#   grep -q X || exit            require file { contains X }
+#   grep -q X && exit            run "grep" { ... expect exit 1 }
+#   ./gate || { diag; exit 1 }   the gate, then on_fail running the
+#                                 diagnostics the shell form printed
+#   cmp by sha256sum             require file { same_as }
+#
+# TWO SHAPES CHANGED FORM, AND NEITHER CHECKS LESS
+#
+# The /lib/<triplet> gate compiled a probe library INTO /lib/<triplet>,
+# which a CPDL recipe cannot write. It links -lpcprofile instead: glibc
+# installs libpcprofile.so only as lib/x86_64-linux-gnu/libpcprofile.so
+# (its file list on 192.168.15.95, 2026-09-23), so the link succeeds
+# only if the compiler really searches /lib/<triplet>.
+#
+# The bootstrap stage wrapper was a two-line shell script running tcc
+# with -B at its own snapshot. A recipe may not carry logic in a shell
+# wrapper, and this one had none to carry: the stage compiler and its
+# -B go to configure through CC, which configure reads unvalidated
+# (line 57) and invokes unquoted (line 455), so the words split exactly
+# as the wrapper's exec did. --cc is not used for this because its
+# option parser refuses values that IFS-split (line 73).
+#
+package "tcc" {
+    version "0.9.28rc"
+    release 31
+    format "cixpkg"
+
+    sources {
+        # Pinned to a commit, not a branch: mob moves. Verified against
+        # two independent fetches of this exact commit.
+        main "tinycc" {
+            url "https://codeload.github.com/TinyCC/tinycc/tar.gz/2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+            sha256 "4eb5f0266d4d9deabe9650abedc3f0261dc06295f89ad798bb495abf680dc074"
+        }
+    }
+
+    requires {
+        build {
+            # The seed. This package builds itself: the installed tcc
+            # compiles stage 1, and the seed then drops out entirely.
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            # readelf and nm, for the #227, #228 and #208 gates.
+            tool "binutils"
+        }
+        bootstrap {
+            compiler "tcc"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "661b10f4c5800ead2083ef9e74ae6b2e55c6da344c42fe9faec2112d3626ce8c"
+        "changelog" "0.9.28rc-31: builds in tree again (configure --source-path=.), so the shipped compiler embeds relative __FILE__ strings as rc-29 did; rc-30 built out of tree and embedded /build/cbsws/src paths, its stripped libtcc1.a identical to rc-29s (probe-tcc-identity@2-1). 0.9.28rc-30: converted to CPDL (ADR-0309), same source, edits, gates and three-stage bootstrap. Full history: tcc@0.9.28rc-29.sh."
+    }
+
+    prepare {
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            # #208/#220: declare __builtin_bswap* beside upstream's own
+            # builtin declarations, before its #undef __BUILTIN_EXTERN,
+            # the one region that does not leak into -E output.
+            replace "include/tccdefs.h" {
+                from "    #undef __BUILTIN_EXTERN\n"
+                at line_start
+                to """
+                    unsigned short __builtin_bswap16(unsigned short);
+                    unsigned int __builtin_bswap32(unsigned int);
+                    unsigned long long __builtin_bswap64(unsigned long long);
+                    #undef __BUILTIN_EXTERN
+                """
+                exactly 1
+            }
+
+            # The __ATOMIC_* predefines with GCC's values, appended
+            # after the file's final #endif so they are unconditional.
+            # Upstream mob does not predefine them (probe 10). Only
+            # lines indented four spaces or more are compiled into the
+            # executable, so the indent is part of the edit.
+            insert "include/tccdefs.h" {
+                after "    #endif /* ndef __TCC_PP__ */\n"
+                write """
+
+                    #define __ATOMIC_RELAXED 0
+                    #define __ATOMIC_CONSUME 1
+                    #define __ATOMIC_ACQUIRE 2
+                    #define __ATOMIC_RELEASE 3
+                    #define __ATOMIC_ACQ_REL 4
+                    #define __ATOMIC_SEQ_CST 5
+                """
+                exactly 1
+            }
+
+            # #235: report C11, and stop denying the atomics it ships.
+            # Both edits together: upstream defines __STDC_NO_ATOMICS__
+            # whenever the version says C11. The line is deleted, as the
+            # shell form's sed '/.../d' did; the grep below proves no
+            # other mention is left.
+            replace "libtcc.c" {
+                from "    s->cversion = 199901; /* default unless -std=c11 is supplied */\n"
+                at line_start
+                to "    s->cversion = 201112; /* C11: measured to be what this compiler provides (#235) */\n"
+                exactly 1
+            }
+            replace "include/tccdefs.h" {
+                from "    # define __STDC_NO_ATOMICS__ 1\n"
+                at line_start
+                to ""
+                exactly 1
+            }
+            run "grep" {
+                "-q" "__STDC_NO_ATOMICS__" "include/tccdefs.h"
+                expect exit 1
+            }
+
+            # The generic __atomic_test_and_set/__atomic_clear, which
+            # upstream still does not provide (mob has only the
+            # size-suffixed forms), and #208's __builtin_bswap*
+            # runtime. Both land in libtcc1.a through COMMON_O.
+            write "lib/atomic_compat.c" """
+                /*
+                 * Generic atomic builtins upstream TCC does not implement, supplied as
+                 * real functions in the compiler's own runtime library. Upstream
+                 * provides only the size-suffixed __atomic_test_and_set_N forms.
+                 * See tcc@0.9.28rc-29.sh for the full reasoning.
+                 */
+
+                int __atomic_test_and_set(volatile void *ptr, int memorder)
+                {
+                	unsigned char prev = 1;
+
+                	(void)memorder;
+                	__asm__ __volatile__("xchgb %0, %1"
+                	                     : "+q"(prev), "+m"(*(volatile unsigned char *)ptr)
+                	                     :
+                	                     : "memory");
+                	return prev != 0;
+                }
+
+                void __atomic_clear(volatile void *ptr, int memorder)
+                {
+                	unsigned char zero = 0;
+
+                	(void)memorder;
+                	__asm__ __volatile__("xchgb %0, %1"
+                	                     : "+q"(zero), "+m"(*(volatile unsigned char *)ptr)
+                	                     :
+                	                     : "memory");
+                }
+                """
+            write "lib/builtin_compat.c" """
+                /*
+                 * __builtin_bswap{16,32,64} -- see tcc@0.9.28rc-29.sh (issue #208).
+                 *
+                 * TCC emits a call to these and defines nothing, so a shared library
+                 * carrying one links cleanly with an undefined symbol and fails only
+                 * when called. Defined here so libtcc1.a resolves them.
+                 */
+                unsigned short __builtin_bswap16(unsigned short v)
+                {
+                	return (unsigned short)(((v & 0xff00u) >> 8) | ((v & 0x00ffu) << 8));
+                }
+
+                unsigned int __builtin_bswap32(unsigned int v)
+                {
+                	return ((v & 0xff000000u) >> 24) | ((v & 0x00ff0000u) >> 8) |
+                	       ((v & 0x0000ff00u) << 8) | ((v & 0x000000ffu) << 24);
+                }
+
+                unsigned long long __builtin_bswap64(unsigned long long v)
+                {
+                	return ((v & 0xff00000000000000ULL) >> 56) | ((v & 0x00ff000000000000ULL) >> 40) |
+                	       ((v & 0x0000ff0000000000ULL) >> 24) | ((v & 0x000000ff00000000ULL) >> 8) |
+                	       ((v & 0x00000000ff000000ULL) << 8) | ((v & 0x0000000000ff0000ULL) << 24) |
+                	       ((v & 0x000000000000ff00ULL) << 40) | ((v & 0x00000000000000ffULL) << 56);
+                }
+                """
+            replace "lib/Makefile" {
+                from "COMMON_O = stdatomic.o atomic.o builtin.o alloca.o alloca-bt.o\n"
+                at line_start
+                to "COMMON_O = stdatomic.o atomic.o atomic_compat.o builtin_compat.o builtin.o alloca.o alloca-bt.o\n"
+                exactly 1
+            }
+
+            # #228: emit PT_GNU_STACK, the way tccelf.c already emits
+            # PT_DYNAMIC, PT_NOTE and the rest: a field for the index,
+            # a reserved slot, and a fill with PF_R|PF_W as GNU ld does.
+            replace "tccelf.c" {
+                from "    int dyna;\n"
+                at line_start
+                to "    int dyna;\n    int stack;\n"
+                exactly 1
+            }
+            replace "tccelf.c" {
+                from "    d->phnum = phnum;\n"
+                at line_start
+                to "    d->stack = phnum++;\n    d->phnum = phnum;\n"
+                exactly 1
+            }
+            replace "tccelf.c" {
+                from "        fill_phdr(&d->phdr[d->ehfr], PT_GNU_EH_FRAME, eh_frame_hdr_section);\n"
+                at line_start
+                to """
+                        fill_phdr(&d->phdr[d->ehfr], PT_GNU_EH_FRAME, eh_frame_hdr_section);
+                    ph2 = fill_phdr(&d->phdr[d->stack], PT_GNU_STACK, NULL);
+                    ph2->p_flags = PF_R | PF_W;
+                """
+                exactly 1
+            }
+
+            # #227: put the function offset where a RELA target reads it
+            # -- the addend -- so each .eh_frame FDE describes its own
+            # function instead of .text+0. x86-64 only, deliberately.
+            replace "tccdbg.c" {
+                from "    dwarf_reloc(eh_frame_section, eh_section_sym, R_X86_64_PC32);\n"
+                at line_start
+                to """
+                    put_elf_reloca(symtab_section, eh_frame_section, eh_frame_section->data_offset,
+                                   R_X86_64_PC32, eh_section_sym, func_ind);
+                """
+                exactly 1
+            }
+
+            # #219: constructor/destructor PRIORITY, parsed, carried
+            # through attribute merging, emitted into .init_array.NNNNN,
+            # and merged into .init_array in order by the linker, which
+            # upstream tcc has no code for at all.
+            write "cix_initarray.inc" """
+                /*
+                 * cix_merge_prio_arrays() -- what upstream tcc does not have (#219).
+                 *
+                 * GCC expresses a constructor priority by emitting the entry into
+                 * .init_array.NNNNN, and GNU ld's linker script then does two things
+                 * with those: SORT_BY_NAME() them, and merge them into .init_array
+                 * ahead of the unsuffixed entries. tcc has neither half. Its linker
+                 * gives every distinct section name its own section in creation order,
+                 * and both ways of finding the array at runtime --
+                 * __init_array_start/_end (add_init_array_defines) and DT_INIT_ARRAY --
+                 * describe only the section literally named .init_array. So a
+                 * prioritised constructor emitted into a suffixed section is not merely
+                 * ordered wrongly: it is outside the range anything iterates.
+                 *
+                 * This does both halves before the array's bounds are computed. Every
+                 * slot is an identical PTR_SIZE of zeroes and all the identity lives in
+                 * the relocation, so merging is a matter of rebuilding one relocation
+                 * list in the right order: prioritised entries first, ascending, then
+                 * the unprioritised ones. The %05u zero-padding the emitter uses is
+                 * what makes strcmp() the numeric order.
+                 *
+                 * .fini_array needs no reversal: glibc walks it backwards, so the same
+                 * ascending layout yields GCC's destructor semantics for free.
+                 */
+                static void cix_merge_prio_arrays(TCCState *s1, const char *base_name)
+                {
+                	Section *base = NULL;
+                	int idx[64];
+                	int n = 0, i, j;
+                	size_t prefix_len = strlen(base_name);
+                	ElfW_Rel *saved = NULL;
+                	int saved_n = 0;
+
+                	for (i = 1; i < s1->nb_sections; i++) {
+                		Section *s = s1->sections[i];
+
+                		if (strncmp(s->name, base_name, prefix_len) != 0)
+                			continue;
+                		if (s->name[prefix_len] == '\0') {
+                			base = s;
+                			continue;
+                		}
+                		if (s->name[prefix_len] != '.')
+                			continue;
+                		if (n < (int)(sizeof(idx) / sizeof(idx[0])))
+                			idx[n++] = i;
+                	}
+                	if (n == 0)
+                		return; /* nothing prioritised -- the ordinary case, untouched */
+
+                	/* insertion sort by name; the zero-padded suffix makes this numeric */
+                	for (i = 1; i < n; i++) {
+                		int cur = idx[i];
+
+                		for (j = i - 1;
+                		     j >= 0 && strcmp(s1->sections[idx[j]]->name, s1->sections[cur]->name) > 0; j--)
+                			idx[j + 1] = idx[j];
+                		idx[j + 1] = cur;
+                	}
+
+                	if (base == NULL) {
+                		base = find_section(s1, base_name);
+                		base->sh_flags = shf_RELRO;
+                		base->sh_type = base_name[1] == 'i' ? SHT_INIT_ARRAY : SHT_FINI_ARRAY;
+                	}
+
+                	/* the unprioritised entries already in base go last, so keep them aside */
+                	if (base->reloc != NULL && base->reloc->data_offset > 0) {
+                		saved_n = (int)(base->reloc->data_offset / sizeof(ElfW_Rel));
+                		saved = tcc_malloc(base->reloc->data_offset);
+                		memcpy(saved, base->reloc->data, base->reloc->data_offset);
+                	}
+                	base->data_offset = 0;
+                	if (base->reloc != NULL)
+                		base->reloc->data_offset = 0;
+
+                	for (i = 0; i < n; i++) {
+                		Section *s = s1->sections[idx[i]];
+                		Section *sr = s->reloc;
+                		int k, count;
+
+                		if (sr == NULL)
+                			continue;
+                		count = (int)(sr->data_offset / sizeof(ElfW_Rel));
+                		for (k = 0; k < count; k++) {
+                			ElfW_Rel *rel = &((ElfW_Rel *)sr->data)[k];
+                			addr_t addend = 0;
+                #if SHT_RELX == SHT_RELA
+                			addend = rel->r_addend;
+                #endif
+                			put_elf_reloca(symtab_section, base, base->data_offset,
+                			                ELFW(R_TYPE)(rel->r_info), ELFW(R_SYM)(rel->r_info), addend);
+                			section_ptr_add(base, PTR_SIZE);
+                		}
+                		/* emptied and unallocated: its entries live in base now, and a
+                		 * leftover SHF_ALLOC section would be laid out for nothing */
+                		s->data_offset = 0;
+                		s->sh_flags &= ~SHF_ALLOC;
+                		if (sr != NULL)
+                			sr->data_offset = 0;
+                	}
+
+                	for (i = 0; i < saved_n; i++) {
+                		ElfW_Rel *rel = &saved[i];
+                		addr_t addend = 0;
+                #if SHT_RELX == SHT_RELA
+                		addend = rel->r_addend;
+                #endif
+                		put_elf_reloca(symtab_section, base, base->data_offset, ELFW(R_TYPE)(rel->r_info),
+                		                ELFW(R_SYM)(rel->r_info), addend);
+                		section_ptr_add(base, PTR_SIZE);
+                	}
+                	tcc_free(saved);
+                }
+                """
+            replace "tccelf.c" {
+                from "static void add_init_array_defines(TCCState *s1, const char *section_name)\n"
+                at line_start
+                to "#include \"cix_initarray.inc\"\n\nstatic void add_init_array_defines(TCCState *s1, const char *section_name)\n"
+                exactly 1
+            }
+            replace "tccelf.c" {
+                from "    add_init_array_defines(s1, \".preinit_array\");\n"
+                at line_start
+                to """
+                    cix_merge_prio_arrays(s1, ".init_array");
+                    cix_merge_prio_arrays(s1, ".fini_array");
+                    add_init_array_defines(s1, ".preinit_array");
+                """
+                exactly 1
+            }
+            # The priority lives in FuncAttr's spare bits, range-checked
+            # rather than truncated: a truncated priority is a wrong
+            # order nothing reports.
+            replace "tcc.h" {
+                from "    xxxx        : 15;\n"
+                at line_start
+                to "    func_ctorprio : 15; /* ctor or dtor priority, 0 = none (#219) */\n"
+                exactly 1
+            }
+            replace "tccgen.c" {
+                from "            ad->f.func_ctor = 1;\n"
+                at line_start
+                to "            ad->f.func_ctor = 1;\n            if (tok == (int)('(')) { next(); n = expr_const(); if (n < 0 || n > 32767) tcc_error(\"constructor priority out of range\"); ad->f.func_ctorprio = n; skip(')'); }\n"
+                exactly 1
+            }
+            replace "tccgen.c" {
+                from "            ad->f.func_dtor = 1;\n"
+                at line_start
+                to "            ad->f.func_dtor = 1;\n            if (tok == (int)('(')) { next(); n = expr_const(); if (n < 0 || n > 32767) tcc_error(\"destructor priority out of range\"); ad->f.func_ctorprio = n; skip(')'); }\n"
+                exactly 1
+            }
+            replace "tccgen.c" {
+                from "        add_array (tcc_state, \".init_array\", sym->c);\n"
+                at line_start
+                to "        { char psec[32]; if (sym->type.ref->f.func_ctorprio) snprintf(psec, sizeof(psec), \".init_array.%05u\", sym->type.ref->f.func_ctorprio); else snprintf(psec, sizeof(psec), \".init_array\"); add_array (tcc_state, psec, sym->c); }\n"
+                exactly 1
+            }
+            replace "tccgen.c" {
+                from "        add_array (tcc_state, \".fini_array\", sym->c);\n"
+                at line_start
+                to "        { char psec[32]; if (sym->type.ref->f.func_ctorprio) snprintf(psec, sizeof(psec), \".fini_array.%05u\", sym->type.ref->f.func_ctorprio); else snprintf(psec, sizeof(psec), \".fini_array\"); add_array (tcc_state, psec, sym->c); }\n"
+                exactly 1
+            }
+            # The priority must survive attribute merging:
+            # merge_funcattr() copies FuncAttr field by field and had no
+            # line for it, which is what rc-20 to rc-26 were missing.
+            replace "tccgen.c" {
+                from "      fa->func_dtor = 1;\n"
+                at line_start
+                to "      fa->func_dtor = 1;\n    if (fa1->func_ctorprio)\n      fa->func_ctorprio = fa1->func_ctorprio;\n"
+                exactly 1
+            }
+
+            # #220: _Static_assert takes a 64-bit constant expression.
+            # "    int c;" occurs twice in tccgen.c, so the declaration
+            # is anchored on the function header it belongs to.
+            replace "tccgen.c" {
+                from "static void do_Static_assert(void)\n{\n    int c;\n"
+                at line_start
+                to "static void do_Static_assert(void)\n{\n    int64_t c;\n"
+                exactly 1
+            }
+            replace "tccgen.c" {
+                from "    c = expr_const();\n    msg = \"_Static_assert fail\";\n"
+                at line_start
+                to "    c = expr_const64();\n    msg = \"_Static_assert fail\";\n"
+                exactly 1
+            }
+        }
+
+        # The gate programs, out of tree. Each checks VALUES, not exit
+        # status alone: a miscompiled tar exited 0 on every archive
+        # while listing one member (#122).
+        mkdir "${build}/gates"
+        write "${build}/gates/has_include_check.c" """
+            #if __has_include(<stdio.h>)
+            int present = 1;
+            #else
+            #error "__has_include said an existing system header is absent"
+            #endif
+            #if __has_include(<cix_definitely_not_a_real_header.h>)
+            #error "__has_include said a nonexistent header is present"
+            #endif
+            #if __has_include("cix_definitely_not_here_either.h")
+            #error "__has_include said a nonexistent quoted header is present"
+            #endif
+            int main(void) { return present ? 0 : 1; }
+            """
+        write "${build}/gates/atomic_check.c" """
+            static char mutex;
+            int main(void)
+            {
+            	/* the predefined constants must exist AND have GCC's values */
+            	if (__ATOMIC_RELAXED != 0 || __ATOMIC_CONSUME != 1 || __ATOMIC_ACQUIRE != 2)
+            		return 10;
+            	if (__ATOMIC_RELEASE != 3 || __ATOMIC_ACQ_REL != 4 || __ATOMIC_SEQ_CST != 5)
+            		return 11;
+            	if (__atomic_test_and_set(&mutex, __ATOMIC_SEQ_CST))
+            		return 1;                       /* was free, must report free */
+            	if (!__atomic_test_and_set(&mutex, __ATOMIC_SEQ_CST))
+            		return 2;                       /* now held, must report held */
+            	__atomic_clear(&mutex, __ATOMIC_SEQ_CST);
+            	if (__atomic_test_and_set(&mutex, __ATOMIC_SEQ_CST))
+            		return 3;                       /* released, must report free */
+            	return 0;
+            }
+            """
+        write "${build}/gates/env_check.c" """
+            #include <stdio.h>
+            int main(void)
+            {
+            	printf("__STDC_VERSION__=%ld\n", (long)__STDC_VERSION__);
+            #ifdef __STDC_NO_ATOMICS__
+            	printf("__STDC_NO_ATOMICS__ defined\n");
+            #else
+            	printf("__STDC_NO_ATOMICS__ not defined\n");
+            #endif
+            	printf("SEQ_CST=%d RELAXED=%d\n", __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
+            	return 0;
+            }
+            """
+        write "${build}/gates/stdatomic_check.c" """
+            #include <stdatomic.h>
+            int main(void)
+            {
+            	atomic_int a;
+            	atomic_init(&a, 1);
+            	atomic_fetch_add(&a, 41);
+            	return atomic_load(&a) == 42 ? 0 : 1;
+            }
+            """
+        write "${build}/gates/sa_hdr.c" """
+            #include <stdatomic.h>
+            int main(void){return 0;}
+            """
+        write "${build}/gates/c11_check.c" """
+            #include <stdatomic.h>
+            #if __STDC_VERSION__ < 201112L
+            #error "not reporting C11"
+            #endif
+            #ifdef __STDC_NO_ATOMICS__
+            #error "announces C11 and denies the atomics it ships"
+            #endif
+            static atomic_int v;
+            int main(void)
+            {
+            	atomic_store(&v, 41);
+            	return (atomic_load(&v) == 41 && atomic_fetch_add(&v, 1) == 41 &&
+            	        atomic_load(&v) == 42) ? 0 : 1;
+            }
+            """
+        write "${build}/gates/sa64_check.c" """
+            _Static_assert(4447999631970, "a 64-bit true constant must be accepted");
+            _Static_assert(1LL << 32, "nonzero with low 32 bits clear must be accepted");
+            int main(void) { return 0; }
+            """
+        write "${build}/gates/sa64_false.c" """
+            _Static_assert(1LL << 32 >> 32 >> 1, "this one is false and must be rejected");
+            int main(void) { return 0; }
+            """
+        write "${build}/gates/ctorprio_check.c" """
+            static int seq;
+            static int a_at, b_at, c_at;
+            void a(void) __attribute__((constructor(900)));
+            void b(void) __attribute__((constructor(100)));
+            void c(void) __attribute__((constructor));
+            void a(void) { a_at = ++seq; }
+            void b(void) { b_at = ++seq; }
+            void c(void) { c_at = ++seq; }
+            int main(void)
+            {
+            	/* 100 before 900, both before the unprioritised one, which the
+            	 * merge places after every .init_array.NNNNN entry. A zero means
+            	 * that constructor never ran at all, which is the failure the
+            	 * suffixed sections caused before they were merged. The exit
+            	 * code is 100 + b*10 + a: 121 is declaration order, 100 is
+            	 * neither prioritised constructor running. */
+            	if (b_at == 1 && a_at == 2 && c_at == 3)
+            		return 0;
+            	return 100 + b_at * 10 + a_at;
+            }
+            """
+        write "${build}/gates/fde_check.c" """
+            int fde_a(int x) { return x + 1; }
+            int fde_b(int x) { return x * 2 + 3; }
+            int fde_c(int x) { int i, s = 0; for (i = 0; i < x; i++) s += i; return s; }
+            """
+        write "${build}/gates/dso_check.c" """
+            extern void *__dso_handle;
+            int main(void){return &__dso_handle == (void *)0;}
+            """
+        write "${build}/gates/dowhile_check.c" """
+            static int calls;
+            static int cond(void) { calls++; return calls >= 3; }
+            static int next_status(void) { static int n; return (n++ < 10) ? 1 : 2; }
+            int main(void)
+            {
+            	int status, iterations = 0;
+            	do {
+            		iterations++;
+            		status = next_status();
+            		switch (status) {
+            		case 0: break;
+            		case 1: continue;
+            		case 2: break;
+            		}
+            		break;
+            	} while (!cond());
+            	return (iterations == 3 && calls == 3) ? 0 : 1;
+            }
+            """
+        write "${build}/gates/bswap_check.c" """
+            int main(void)
+            {
+            	if (__builtin_bswap16(0x1234u) != 0x3412u) return 1;
+            	if (__builtin_bswap32(0x12345678u) != 0x78563412u) return 2;
+            	if (__builtin_bswap64(0x0123456789abcdefULL) != 0xefcdab8967452301ULL) return 3;
+            	return 0;
+            }
+            """
+        write "${build}/gates/bswap_so.c" """
+            unsigned int swap(unsigned int v) { return __builtin_bswap32(v); }
+            """
+        write "${build}/gates/initlit_check.c" """
+            struct o { int a; int b; };
+            enum { I0, I1, I2 };
+            static struct o A[] = { (struct o){.a=1,.b=2}, (struct o){.a=3,.b=4}, (struct o){.a=5,.b=6} };
+            static struct o B[] = { [I2]=(struct o){.a=30,.b=31}, [I0]=(struct o){.a=10,.b=11}, [I1]=(struct o){.a=20,.b=21} };
+            static struct o C[] = { 1,2, 3,4, 5,6 };
+            static struct o D[] = { (1),2, (3),4 };
+            static int G[][2] = { 1,2, 3,4, 5,6 };
+            static char H[] = "hello";
+            int main(void)
+            {
+            	if (sizeof A / sizeof A[0] != 3) return 1;
+            	if (A[0].a != 1 || A[1].a != 3 || A[2].b != 6) return 2;
+            	if (sizeof B / sizeof B[0] != 3) return 3;
+            	if (B[0].a != 10 || B[1].a != 20 || B[2].a != 30) return 4;
+            	if (sizeof C / sizeof C[0] != 3) return 5;
+            	if (C[0].a != 1 || C[1].a != 3 || C[2].b != 6) return 6;
+            	if (sizeof D / sizeof D[0] != 2) return 7;
+            	if (D[0].a != 1 || D[0].b != 2 || D[1].a != 3 || D[1].b != 4) return 8;
+            	if (sizeof G / sizeof G[0] != 3) return 9;
+            	if (G[0][0] != 1 || G[1][1] != 4 || G[2][0] != 5) return 10;
+            	if (sizeof H != 6 || H[0] != 'h' || H[4] != 'o') return 11;
+            	{
+            		struct o v[] = { (struct o){.a=42,.b=43}, (struct o){.a=44,.b=45} };
+            		if (v[1].a != 44) return 12;
+            	}
+            	return 0;
+            }
+            """
+        write "${build}/gates/stackprobe.c" """
+            int cix_stack_probe(void){return 7;}
+            """
+        write "${build}/gates/libpath_check.c" """
+            int main(void){return 0;}
+            """
+        write "${build}/gates/slotalias_check.c" """
+            void *opaque(int);
+            int   pick(void);
+
+            static int value_survives(int which)
+            {
+            	switch (which) {
+            	case 0:
+            		return -1;
+            	{
+            		void *p;
+            		void *q;
+            	case 1:
+            		if (pick())
+            			p = opaque(1);
+            		else
+            			p = opaque(2);
+            		q = (void *)0;
+            		if (p == (void *)0)
+            			return 1;               /* p was clobbered by q */
+            		if (q != (void *)0)
+            			return 2;
+            		return 0;
+            	}
+            	}
+            	return 3;
+            }
+
+            static int addresses_differ(int which)
+            {
+            	switch (which) {
+            	case 0:
+            		return -1;
+            	{
+            		void *p;
+            		void *q;
+            	case 1:
+            		if (pick()) p = (void *)1; else p = (void *)2;
+            		q = (void *)0;
+            		if ((void *)&p == (void *)&q)
+            			return 1;               /* one slot for two live locals */
+            		return (p != (void *)0 && q == (void *)0) ? 0 : 2;
+            	}
+            	}
+            	return 3;
+            }
+
+            void *opaque(int n) { static char buf[8]; return buf + (n & 1); }
+            int   pick(void)    { return 1; }
+
+            int main(void)
+            {
+            	if (value_survives(1) != 0)
+            		return 1;
+            	if (addresses_differ(1) != 0)
+            		return 2;
+            	return 0;
+            }
+            """
+        write "${build}/gates/selftest.c" """
+            int main(void){return 0;}
+            """
+    }
+    configure {
+        # ONE library search path for all three stages (rc-9: stage 3
+        # once shipped upstream's default because only the first
+        # configure carried it). /lib/<triplet> is where this platform
+        # installs shared libraries, and upstream's default omits it.
+        #
+        # IN TREE, as the shell form built, with --source-path=. saying
+        # so. CBS executes a run by its resolved absolute path, and
+        # configure derives its source path from $0 (line 64): invoked
+        # as /.../configure it takes the build to be out of tree, tries
+        # to link its Makefiles onto themselves in the source directory,
+        # and fails (tcc@0.9.28rc-30 builds 1790189260, 1790189310).
+        # --source-path=. is its own option for this (line 122), and
+        # "." is exactly what makes line 253 choose an in-tree build.
+        #
+        # It matters beyond getting configure to run. Out of tree, every
+        # source is compiled by absolute path and tcc embeds __FILE__
+        # strings, so the shipped compiler carried
+        # /build/cbsws/src/.../x86_64-gen.c where rc-29 carries
+        # x86_64-gen.c, and the two binaries differed for that reason
+        # alone -- their stripped libtcc1.a, compiled by each one's own
+        # stage 3, was byte-identical (probe-tcc-identity@2-1,
+        # 192.168.15.95, 2026-09-23). In tree, the shipped bytes can
+        # match the shell build's.
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/configure" {
+                "--source-path=."
+                "--prefix=/usr"
+                "--cc=tcc"
+                "--libpaths={B}:/usr/lib:/usr/lib/${triplet}:/lib:/lib/${triplet}"
+            }
+            # Anchored on the separator: ":/lib/<triplet>" cannot match
+            # the default /usr/lib/<triplet> entry, which is how rc-8's
+            # check passed while proving nothing.
+            require file "config.h" {
+                exists
+                contains ":/lib/${triplet}"
+            }
+            require file "config.mak" {
+                exists
+                contains "TOPSRC=$(TOP)"
+            }
+        }
+    }
+
+    build {
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "make" {
+                "-j${jobs}"
+                jobs $jobs
+            }
+            # The edits reached the files the compiler was built from.
+            require file "include/tccdefs.h" {
+                exists
+                contains "\n    unsigned long long __builtin_bswap64(unsigned long long);\n"
+                contains "\n    #define __ATOMIC_SEQ_CST 5\n"
+            }
+            require file "lib/Makefile" {
+                exists
+                contains "atomic_compat.o builtin_compat.o"
+            }
+            require file "tccelf.c" {
+                exists
+                contains "int stack;"
+                contains "d->stack = phnum++;"
+                contains "PT_GNU_STACK, NULL"
+                contains "cix_merge_prio_arrays(s1, \".init_array\");"
+                contains "#include \"cix_initarray.inc\""
+            }
+            require file "tccgen.c" {
+                exists
+                contains "constructor priority out of range"
+                contains "\".init_array.%05u\""
+                contains "fa->func_ctorprio = fa1->func_ctorprio;"
+                contains "c = expr_const64();"
+            }
+            require file "tcc.h" {
+                exists
+                contains "func_ctorprio : 15;"
+            }
+            require file "tccdbg.c" {
+                exists
+                contains "R_X86_64_PC32, eh_section_sym, func_ind);"
+            }
+        }
+
+        # ---- gates, against the compiler just built ----
+        cd "${build}/gates" {
+            # __has_include: all three answers right, not merely compiling.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "has_include_check.c" "-o" "has_include_check"
+            }
+            run "${build}/gates/has_include_check" {
+            }
+        }
+
+        cd "${build}/gates" {
+            # __atomic_* builtins, used with no header and no library
+            # flag. 1/2/3 = wrong runtime, 10/11 = wrong __ATOMIC_* values.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "atomic_check.c" "-o" "atomic_check"
+            }
+            run "${build}/gates/atomic_check" {
+            }
+            on_fail {
+                run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                    "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                    "env_check.c" "-o" "env_check"
+                    allow_failure
+                }
+                run "${build}/gates/env_check" {
+                    allow_failure
+                }
+                run "nm" {
+                    "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/libtcc1.a"
+                    allow_failure
+                }
+            }
+        }
+
+        cd "${build}/gates" {
+            # #212: C11 <stdatomic.h> through to a real answer.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "stdatomic_check.c" "-o" "stdatomic_check"
+            }
+            run "${build}/gates/stdatomic_check" {
+            }
+            on_fail {
+                # Does the header resolve at all, and what version
+                # does the compiler report?
+                run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                    "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                    "-E" "sa_hdr.c"
+                    stdout file "${build}/gates/sa_hdr.i"
+                    allow_failure
+                }
+                run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                    "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                    "env_check.c" "-o" "env_check"
+                    allow_failure
+                }
+                run "${build}/gates/env_check" {
+                    allow_failure
+                }
+            }
+        }
+
+        cd "${build}/gates" {
+            # #235: the version macro says C11 AND the atomics it
+            # implies work -- the macro alone would pass a compiler that
+            # announces C11 and denies atomics.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "c11_check.c" "-o" "c11_check"
+            }
+            run "${build}/gates/c11_check" {
+            }
+        }
+
+        cd "${build}/gates" {
+            # #220: a 64-bit assertion is accepted AND a false one is
+            # still rejected; acceptance alone would pass a compiler
+            # that accepts everything.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "sa64_check.c" "-o" "sa64_check"
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "sa64_false.c" "-o" "sa64_false"
+                expect exit 1
+                stderr file "${build}/gates/sa64_false.err"
+            }
+            require file "${build}/gates/sa64_false.err" {
+                exists
+                contains "this one is false and must be rejected"
+            }
+        }
+
+        cd "${build}/gates" {
+            # #219: priority parses AND orders. The exit code carries
+            # the observed order (see the program).
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "ctorprio_check.c" "-o" "ctorprio_check"
+            }
+            run "${build}/gates/ctorprio_check" {
+            }
+            on_fail {
+                run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                    "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                    "-c" "ctorprio_check.c" "-o" "ctorprio_check.o"
+                    allow_failure
+                }
+                run "readelf" {
+                    "-SW" "ctorprio_check.o"
+                    allow_failure
+                }
+                run "readelf" {
+                    "-SW" "ctorprio_check"
+                    allow_failure
+                }
+                run "readelf" {
+                    "-rW" "ctorprio_check"
+                    allow_failure
+                }
+                run "readelf" {
+                    "-x" ".init_array" "ctorprio_check"
+                    allow_failure
+                }
+                run "readelf" {
+                    "-sW" "ctorprio_check"
+                    allow_failure
+                }
+                run "readelf" {
+                    "-dW" "ctorprio_check"
+                    allow_failure
+                }
+            }
+        }
+
+        cd "${build}/gates" {
+            # #227: each FDE describes its OWN function -- three
+            # functions, three distinct start addends in .rela.eh_frame.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "-c" "fde_check.c" "-o" "fde_check.o"
+            }
+            run "readelf" {
+                "-rW" "fde_check.o"
+                stdout file "${build}/gates/fde_check.rel"
+            }
+            run "awk" {
+                """
+                /Relocation section .[.]rela[.]eh_frame/ { f = 1; next }
+                /^Relocation section/ { f = 0 }
+                f && $1 ~ /^[0-9a-f]+$/ { n++; if (!($NF in seen)) { seen[$NF] = 1; d++ } }
+                END {
+                    printf "tcc: #227 .eh_frame FDE relocations: %d entries, %d distinct start addends\n", n, d
+                    exit !(n >= 3 && n == d)
+                }
+                """
+                "fde_check.rel"
+            }
+            on_fail {
+                run "cat" {
+                    "fde_check.rel"
+                    allow_failure
+                }
+            }
+        }
+
+        cd "${build}/gates" {
+            # __dso_handle resolves from the runtime archive: a missing
+            # symbol fails the link outright.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "dso_check.c" "-o" "dso_check"
+            }
+            run "${build}/gates/dso_check" {
+            }
+
+            # #122: the do-while condition runs through a
+            # continue-inside-switch whose body end is unreachable.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "dowhile_check.c" "-o" "dowhile_check"
+            }
+            run "${build}/gates/dowhile_check" {
+            }
+
+            # #208: the bswaps give the right BYTES, and are not left
+            # undefined in a shared object -- the shape that shipped
+            # broken twice, because that is legal and silent.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "bswap_check.c" "-o" "bswap_check"
+            }
+            run "${build}/gates/bswap_check" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "-shared" "bswap_so.c" "-o" "libbswap_so.so"
+            }
+            run "nm" {
+                "-D" "--undefined-only" "libbswap_so.so"
+                stdout file "${build}/gates/bswap_so.undef"
+            }
+            run "grep" {
+                "-q" "bswap32" "bswap_so.undef"
+                expect exit 1
+            }
+
+            # #211: designated compound-literal initializers, values
+            # checked; case D is the one a naive fix breaks.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "initlit_check.c" "-o" "initlit_check"
+            }
+            run "${build}/gates/initlit_check" {
+            }
+        }
+
+        cd "${build}/gates" {
+            # #228: PT_GNU_STACK present AND non-executable, on a real
+            # shared object from the compiler about to ship.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "-shared" "stackprobe.c" "-o" "stackprobe.so"
+            }
+            run "readelf" {
+                "-lW" "stackprobe.so"
+                stdout file "${build}/gates/stackprobe.phdr"
+            }
+            run "awk" {
+                """
+                /GNU_STACK/ { n++; line = $0; if (index($0, "E")) bad = 1 }
+                END {
+                    printf "tcc: PT_GNU_STACK:%s\n", line
+                    exit !(n >= 1 && !bad)
+                }
+                """
+                "stackprobe.phdr"
+            }
+            on_fail {
+                run "cat" {
+                    "stackprobe.phdr"
+                    allow_failure
+                }
+            }
+        }
+
+        cd "${build}/gates" {
+            # /lib/<triplet> is searched: libpcprofile.so exists only
+            # there, so this link fails unless the path is compiled in.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "libpath_check.c" "-lpcprofile" "-o" "libpath_check"
+            }
+            # And the compiler itself reports the path it will search.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "-print-search-dirs"
+                stdout file "${build}/gates/searchdirs.txt"
+            }
+            run "grep" {
+                "-qE" "(^| )/lib/${triplet}( |$)"
+                "searchdirs.txt"
+            }
+            on_fail {
+                run "cat" {
+                    "searchdirs.txt"
+                    allow_failure
+                }
+            }
+        }
+
+        cd "${build}/gates" {
+            # #216, the reason this compiler was upgraded: two live
+            # locals must not share a stack slot. The value must
+            # survive AND the addresses must differ.
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "slotalias_check.c" "-o" "slotalias_check"
+            }
+            run "${build}/gates/slotalias_check" {
+            }
+        }
+
+
+        # ---- three-stage bootstrap ----
+        #
+        # Stage 1 is this source built by the installed tcc (above).
+        # Stage 2 is this source built by stage 1, and stage 3 by stage
+        # 2. Both are compiled by compilers built from this source, so
+        # they must be byte-identical, and the seed drops out of the
+        # result. Each snapshot is self-contained -- its own tcc,
+        # libtcc1.a, include/ and lib/ -- because the next thing that
+        # happens to the tree is make clean, and each proves it can
+        # compile and run a program before the tree is cleaned.
+        mkdir "${build}/stage1"
+        copy "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" to "${build}/stage1/tcc"
+        copy "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/libtcc1.a" to "${build}/stage1/libtcc1.a"
+        copy tree "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/include" to "${build}/stage1/include"
+        copy tree "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/lib" to "${build}/stage1/lib"
+        run "${build}/stage1/tcc" {
+            "-B${build}/stage1"
+            "${build}/gates/selftest.c" "-o" "${build}/stage1/selftest"
+        }
+        run "${build}/stage1/selftest" {
+        }
+
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "make" {
+                "clean"
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/configure" {
+                "--source-path=."
+                "--prefix=/usr"
+                "--libpaths={B}:/usr/lib:/usr/lib/${triplet}:/lib:/lib/${triplet}"
+                env "CC" = "${build}/stage1/tcc -B${build}/stage1"
+            }
+            require file "config.mak" {
+                exists
+                contains "${build}/stage1/tcc -B${build}/stage1"
+            }
+            run "make" {
+                "-j${jobs}"
+                jobs $jobs
+            }
+        }
+
+        mkdir "${build}/stage2"
+        copy "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" to "${build}/stage2/tcc"
+        copy "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/libtcc1.a" to "${build}/stage2/libtcc1.a"
+        copy tree "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/include" to "${build}/stage2/include"
+        copy tree "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/lib" to "${build}/stage2/lib"
+        run "${build}/stage2/tcc" {
+            "-B${build}/stage2"
+            "${build}/gates/selftest.c" "-o" "${build}/stage2/selftest"
+        }
+        run "${build}/stage2/selftest" {
+        }
+
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "make" {
+                "clean"
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/configure" {
+                "--source-path=."
+                "--prefix=/usr"
+                "--libpaths={B}:/usr/lib:/usr/lib/${triplet}:/lib:/lib/${triplet}"
+                env "CC" = "${build}/stage2/tcc -B${build}/stage2"
+            }
+            require file "config.mak" {
+                exists
+                contains "${build}/stage2/tcc -B${build}/stage2"
+            }
+            run "make" {
+                "-j${jobs}"
+                jobs $jobs
+            }
+            # The property: the compiler reproduces itself.
+            require file "tcc" {
+                exists
+                same_as "${build}/stage2/tcc"
+            }
+            on_fail {
+                run "ls" {
+                    "-l" "tcc" "${build}/stage2/tcc"
+                    allow_failure
+                }
+                run "sha256sum" {
+                    "tcc" "${build}/stage2/tcc"
+                    allow_failure
+                }
+            }
+        }
+
+        # ---- the codegen gates again, on stage 3: the binary that
+        # ships answers for itself rather than inheriting stage 1's
+        # answers ----
+        cd "${build}/gates" {
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "dowhile_check.c" "-o" "dowhile_check3"
+            }
+            run "${build}/gates/dowhile_check3" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "initlit_check.c" "-o" "initlit_check3"
+            }
+            run "${build}/gates/initlit_check3" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "slotalias_check.c" "-o" "slotalias_check3"
+            }
+            run "${build}/gates/slotalias_check3" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "stdatomic_check.c" "-o" "stdatomic_check3"
+            }
+            run "${build}/gates/stdatomic_check3" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "c11_check.c" "-o" "c11_check3"
+            }
+            run "${build}/gates/c11_check3" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "sa64_check.c" "-o" "sa64_check3"
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "sa64_false.c" "-o" "sa64_false3"
+                expect exit 1
+                stderr file "${build}/gates/sa64_false3.err"
+            }
+            require file "${build}/gates/sa64_false3.err" {
+                exists
+                contains "this one is false and must be rejected"
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "ctorprio_check.c" "-o" "ctorprio_check3"
+            }
+            run "${build}/gates/ctorprio_check3" {
+            }
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcc" {
+                "-B${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+                "-c" "fde_check.c" "-o" "fde_check3.o"
+            }
+            run "readelf" {
+                "-rW" "fde_check3.o"
+                stdout file "${build}/gates/fde_check3.rel"
+            }
+            run "awk" {
+                """
+                /Relocation section .[.]rela[.]eh_frame/ { f = 1; next }
+                /^Relocation section/ { f = 0 }
+                f && $1 ~ /^[0-9a-f]+$/ { n++; if (!($NF in seen)) { seen[$NF] = 1; d++ } }
+                END {
+                    printf "tcc: stage 3 #227 FDE relocations: %d entries, %d distinct\n", n, d
+                    exit !(n >= 3 && n == d)
+                }
+                """
+                "fde_check3.rel"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/tcc" {
+            exists
+            executable
+        }
+        # The shell form removed usr/share/man and usr/share/doc with
+        # rm -rf. Nothing installs either here (no makeinfo or pod2man
+        # in the build environment), and CPDL's remove fails on a
+        # missing path, so this asserts they are absent instead.
+        run "test" {
+            "!" "-e" "${dest}/usr/share/man"
+        }
+        run "test" {
+            "!" "-e" "${dest}/usr/share/doc"
+        }
+    }
+}
