@@ -1,0 +1,331 @@
+#
+# gcc -- the GNU Compiler Collection (gcc, g++, cpp, gcc-ar/nm/ranlib,
+# gcov*, lto-dump), built from source with --enable-bootstrap, in CPDL.
+#
+# 16.2.0-17 is 16.2.0-16 converted to CPDL (ADR-0309): the same four
+# sources, the same configure, the same `make bootstrap` with stage 2
+# and stage 3 compared by GCC itself, the same self-tests and the same
+# install layout. gcc@16.2.0-16.sh carries the whole history, including
+# why each configure option and each stage-1 flag is what it is; the
+# comments here say what each step is.
+#
+# FOUR THINGS CHANGED FORM, EACH FROM A MEASUREMENT
+#
+# - gmp, mpfr and mpc are declared sources extracted into the tree by
+#   CBS, where the shell form ran its own tar reader (miniextract). That
+#   reader existed because this platform's tar once listed a single
+#   member of any archive and exited 0 (#122), a TCC do-while
+#   miscompile fixed upstream in the 0.9.28rc tcc (ADR-0223); CBS does
+#   its own extraction and verifies it.
+#
+# - The background watcher that rewrote gcc's generated as/collect-ld/
+#   nm shebang scripts into symlinks during `make bootstrap` is gone.
+#   It answered an ENOEXEC from execve() on a valid "#!" script, which
+#   is what a kernel without CONFIG_BINFMT_SCRIPT returns; that option
+#   is set since #114. CBS executes configure scripts through the
+#   kernel's own shebang handling, and every CPDL build on
+#   192.168.15.95 has done so (tcc@0.9.28rc-31, 2026-09-23), so the
+#   mechanism the watcher worked around is not present.
+#
+# - -j1, where the shell form used -j$(nproc) against a 4 GB build
+#   cgroup. The build cgroup here is now 2 GiB with one CPU of quota
+#   (GET /v1/system/pkg-build-config: memory_max 2147483648, cpu_max
+#   "100000 100000", 2026-09-23). A second job adds no CPU, and adds the
+#   risk of a C++ compile of GCC's largest units being OOM-killed hours
+#   into the build -- which is how the test runs died the same day.
+#
+# - No explicit strip in install: cixd's finalize policy runs strip
+#   --strip-unneeded on every ELF executable and --strip-debug on the
+#   rest (daemon/policy/pkg-finalize.sh), which is what the shell form's
+#   find | file | strip loop did.
+#
+# The postmortem battery the shell form ran on a failed `make
+# bootstrap` becomes an on_fail block: the toolchain identity, the
+# stage-1 compiler's own compile-and-run check, and the broken stage-2
+# cc1 check. Its config.log search needed a sort by mtime, which CPDL
+# does not express, and is left to the build log.
+#
+package "gcc" {
+    version "16.2.0"
+    release 17
+    format "cixpkg"
+
+    sources {
+        # From mirrors.kernel.org, not ftp.gnu.org, and verified
+        # byte-identical across both.
+        main "gcc" {
+            url "https://mirrors.kernel.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz"
+            sha256 "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e"
+        }
+        # gcc's own math prerequisites, at the exact versions its
+        # contrib/download_prerequisites pins, extracted in-tree where
+        # that script would leave them: the build has no network.
+        extra "gmp" {
+            url "https://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.3.0.tar.bz2"
+            sha256 "ac28211a7cfb609bae2e2c8d6058d66c8fe96434f740cf6fe2e47b000d1c20cb"
+        }
+        extra "mpfr" {
+            url "https://gcc.gnu.org/pub/gcc/infrastructure/mpfr-4.2.2.tar.bz2"
+            sha256 "9ad62c7dc910303cd384ff8f1f4767a655124980bb6d8650fe62c815a231bb7b"
+        }
+        extra "mpc" {
+            url "https://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.3.1.tar.gz"
+            sha256 "ab642492f5cf882b74aa0cb730cd410a81edcdbec895183ce930e706c1c759b8"
+        }
+    }
+
+    requires {
+        build {
+            # The stage-1 seed. --enable-bootstrap rebuilds gcc with
+            # itself twice and compares stage 2 with stage 3, so the
+            # seed is discarded rather than shipped.
+            compiler "gcc"
+            tool "binutils"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            # cmp, which GCC's stage 2/3 comparison uses.
+            tool "diffutils"
+            tool "m4"
+            tool "findutils"
+            tool "zlib"
+            tool "linux-headers"
+        }
+        runtime {
+            package "binutils"
+            package "m4"
+            package "zlib"
+            package "linux-headers"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "structural: this package IS the toolchain: its --enable-bootstrap stage 1 is seeded by the previous Cix-built gcc"
+    }
+
+    metadata {
+        "changelog" "16.2.0-17: converted to CPDL (ADR-0309). Same sources, configure, make bootstrap with GCC's own stage 2/3 comparison, self-tests and install layout. gmp/mpfr/mpc are extracted by CBS rather than the #122-era tar workaround; the shebang watcher is gone (CONFIG_BINFMT_SCRIPT, #114); -j1 against the 2 GiB, one-CPU build cgroup. Full history: gcc@16.2.0-16.sh."
+    }
+
+    prepare {
+        extract $source.gmp into "${src}/gcc/gcc-16.2.0" as "gmp"
+        extract $source.mpfr into "${src}/gcc/gcc-16.2.0" as "mpfr"
+        extract $source.mpc into "${src}/gcc/gcc-16.2.0" as "mpc"
+        require file "${src}/gcc/gcc-16.2.0/gmp/configure" {
+            exists
+        }
+        require file "${src}/gcc/gcc-16.2.0/mpfr/configure" {
+            exists
+        }
+        require file "${src}/gcc/gcc-16.2.0/mpc/configure" {
+            exists
+        }
+
+        cd "${src}/gcc/gcc-16.2.0" {
+            # A GCC -O2 miscompile of libgcc's own lock-free B-tree
+            # EH-frame teardown (btree_destroy and the functions it
+            # tail-calls) loops at process exit; the whole file is
+            # pinned to -O0. Exit-time teardown only, so it costs
+            # nothing measurable (#32; gcc@16.2.0-16.sh).
+            insert "libgcc/unwind-dw2-btree.h" {
+                after "#include <stdbool.h>\n"
+                write "\n#pragma GCC optimize (\"O0\")\n"
+                exactly 1
+            }
+            # Headers copied between stages by cp rather than through
+            # tar pipelines that ignore the left side's status (#122).
+            replace "gcc/config.build" {
+                from "build_install_headers_dir=install-headers-tar"
+                to "build_install_headers_dir=install-headers-cp"
+                exactly 1
+            }
+        }
+
+        mkdir "${build}/obj"
+        mkdir "${build}/selftest"
+        write "${build}/selftest/selftest.c" """
+            #include <stdarg.h>
+            typedef unsigned long long u64;
+            static u64 rol64(u64 w, unsigned int s){ return (w << (s & 63)) | (w >> ((-s) & 63)); }
+            static int isum(int n, ...)
+            {
+            	va_list v; int s = 0, i;
+            	va_start(v, n);
+            	for (i = 0; i < n; i++) s += va_arg(v, int);
+            	va_end(v);
+            	return s;
+            }
+            int main(void)
+            {
+            	if (rol64(1ULL, 1) != 2ULL) return 1;
+            	if (rol64(0x8000000000000000ULL, 1) != 1ULL) return 2;
+            	if (isum(9,1,2,3,4,5,6,7,8,9) != 45) return 3;
+            	return 0;
+            }
+            """
+        write "${build}/selftest/guardtest.cc" """
+            static int compute(void) { return 41; }
+            static int &get(void) { static int x = compute() + 1; return x; }
+            int main(void) { int a = get(); int b = get(); return !(a == 42 && b == 42); }
+            """
+        write "${build}/selftest/pm.c" """
+            int main(void){return 42;}
+            """
+        write "${build}/selftest/min.c" """
+            int x;
+            """
+    }
+
+    configure {
+        cd "${build}/obj" {
+            # lt_cv_dlopen_self_static=no: libtool's static self-dlopen
+            # probe deadlocks in __futex_wait on this glibc instead of
+            # answering, in every libtool sub-configure (16.2.0-6, 94
+            # minutes silent). Set here and for make, which runs the
+            # target sub-configures.
+            run "${src}/gcc/gcc-16.2.0/configure" {
+                "--prefix=/usr"
+                "--enable-bootstrap"
+                "--disable-multilib"
+                "--enable-languages=c,c++"
+                "--disable-libsanitizer"
+                "--disable-lto"
+                "--with-isl=no"
+                "--with-system-zlib"
+                "--disable-nls"
+                env "CC" = "/usr/bin/gcc"
+                env "CXX" = "/usr/bin/g++"
+                env "lt_cv_dlopen_self_static" = "no"
+            }
+        }
+    }
+
+    build {
+        cd "${build}/obj" {
+            # `make bootstrap`: the full three-stage build, ending in
+            # GCC's own comparison of stage 2 and stage 3. Stage 1 is
+            # unoptimized so the seed compiler's optimizer is out of the
+            # trust chain (16.2.0-6), and carries
+            # -fno-threadsafe-statics against the seed runtime's static
+            # guards (#116).
+            run "make" {
+                "bootstrap"
+                "LIMITS_H_TEST=true"
+                "STAGE1_CFLAGS=-g"
+                "STAGE1_CXXFLAGS=-g -fno-threadsafe-statics"
+                "-j1"
+                jobs 1
+                env "lt_cv_dlopen_self_static" = "no"
+            }
+            on_fail {
+                run "as" {
+                    "--version"
+                    allow_failure
+                }
+                run "ld" {
+                    "--version"
+                    allow_failure
+                }
+                run "${build}/obj/prev-gcc/xgcc" {
+                    "-B${build}/obj/prev-gcc/" "-O2"
+                    "${build}/selftest/pm.c" "-o" "${build}/selftest/pm"
+                    allow_failure
+                }
+                run "${build}/selftest/pm" {
+                    expect exit 42
+                    allow_failure
+                }
+                run "${build}/obj/gcc/cc1" {
+                    "-quiet" "${build}/selftest/min.c" "-o" "/dev/null"
+                    allow_failure
+                }
+            }
+        }
+
+        # The compiler proves itself by running real code before
+        # anything depends on it: every failure #116 produced shipped
+        # from a build whose exit status was clean. The guard test is
+        # the regression gate for that saga -- a twice-entered
+        # function-local static, statically linked as cc1 links it,
+        # must not deadlock. Bounded, because two of the three
+        # historical failures were hangs.
+        each "opt" in { "-O0" "-O2" } {
+            run "${build}/obj/gcc/xgcc" {
+                "-B${build}/obj/gcc/" "${each.opt}"
+                "${build}/selftest/selftest.c" "-o" "${build}/selftest/selftest"
+                timeout 2m
+            }
+            run "${build}/selftest/selftest" {
+                timeout 1m
+            }
+            run "${build}/obj/gcc/xg++" {
+                "-B${build}/obj/gcc/" "-static-libstdc++" "-static-libgcc"
+                "-L${build}/obj/x86_64-pc-linux-gnu/libstdc++-v3/src/.libs" "${each.opt}"
+                "${build}/selftest/guardtest.cc" "-o" "${build}/selftest/guardtest"
+                timeout 2m
+            }
+            run "${build}/selftest/guardtest" {
+                timeout 1m
+            }
+        }
+    }
+
+    install {
+        cd "${build}/obj" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+
+        # What a runtime never needs: the triplet-prefixed duplicates
+        # (hardlinks of the plain names; nothing here cross-compiles),
+        # docs, gdb pretty-printers, the install-only fixincludes tools
+        # and the gdb JIT plugin. rm -rf, as the shell form did, because
+        # which of these a given configuration installs is not the point.
+        run "find" {
+            "${dest}/usr/bin" "-name" "x86_64-pc-linux-gnu-*" "-delete"
+        }
+        run "rm" {
+            "-rf"
+            "${dest}/usr/share/man"
+            "${dest}/usr/share/info"
+            "${dest}/usr/share/locale"
+            "${dest}/usr/share/gcc-16.2.0"
+            "${dest}/usr/libexec/gcc/x86_64-pc-linux-gnu/16.2.0/install-tools"
+            "${dest}/usr/lib/gcc/x86_64-pc-linux-gnu/16.2.0/plugin"
+            "${dest}/usr/lib/gcc/x86_64-pc-linux-gnu/16.2.0/install-tools"
+        }
+
+        # The runtime libraries on the loader's search path, in /usr/lib
+        # rather than the multiarch directory (#184). The versioned
+        # libstdc++ is matched, never named: its suffix belongs to the
+        # release, and a hardcoded one once failed a green bootstrap.
+        # The gdb pretty-printer beside it goes first, so the match is
+        # exactly the shared object.
+        run "find" {
+            "${dest}/usr/lib64" "-name" "libstdc++.so.6.0.*-gdb.py" "-delete"
+        }
+        glob "libstdcxx" = "${dest}/usr/lib64/libstdc++.so.6.0.*" exactly 1
+        mkdir "${dest}/usr/lib"
+        copy "${dest}/usr/lib64/libgcc_s.so.1" to "${dest}/usr/lib/libgcc_s.so.1"
+        copy "${dest}/usr/lib64/libstdc++.so.6" to "${dest}/usr/lib/libstdc++.so.6"
+        copy "${glob.libstdcxx}" to "${dest}/usr/lib"
+        require file "${dest}/usr/lib/libgcc_s.so.1" {
+            exists
+        }
+        require symlink "${dest}/usr/lib/libstdc++.so.6" {
+            exists
+        }
+        require glob "${dest}/lib/x86_64-linux-gnu/*" {
+            exactly 0
+        }
+
+        # collect2 finds ld through gcc's private COMPILER_PATH, not
+        # PATH, so it gets a link there to the real one.
+        symlink "/usr/bin/ld" to "${dest}/usr/libexec/gcc/x86_64-pc-linux-gnu/16.2.0/ld"
+    }
+}
