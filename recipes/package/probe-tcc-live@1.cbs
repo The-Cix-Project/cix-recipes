@@ -1,0 +1,60 @@
+#
+# probe-tcc-live -- the first build after cix-builder moved to the
+# CPDL-built tcc@0.9.28rc-31 (2026-09-23): a composed build environment
+# compiles and runs C with it, including a C11 atomic and a bswap, two
+# of the things the rc-series patched in. Fails on purpose so nothing is
+# published.
+#
+package "probe-tcc-live" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.256.tar.gz"
+            sha256 "3d7923c4668069afbe188e134bb02e24e1485c23b479bc4dae6967079885ef1a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: compiles and runs C with the CPDL tcc now in cix-builder."
+    }
+
+    build {
+        write "${build}/live.c" """
+            #include <stdatomic.h>
+            #include <stdio.h>
+            int main(void)
+            {
+            	atomic_int a;
+            	atomic_init(&a, 41);
+            	atomic_fetch_add(&a, 1);
+            	printf("tcc %d, bswap32 %08x\n", atomic_load(&a), __builtin_bswap32(0x12345678u));
+            	return (atomic_load(&a) == 42 && __builtin_bswap32(0x12345678u) == 0x78563412u) ? 0 : 1;
+            }
+            """
+        run "tcc" {
+            "-v"
+        }
+        run "tcc" {
+            "${build}/live.c" "-o" "${build}/live"
+        }
+        run "${build}/live" {
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tcc-live"
+    }
+}
