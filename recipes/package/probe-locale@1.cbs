@@ -1,0 +1,78 @@
+#
+# probe-locale -- which locales exist in a build container, and could
+# glibc's own localedef produce C.UTF-8 from what the package installs?
+#
+# cix v2.57.260 set LC_CTYPE to C.UTF-8 in cixd so libarchive could
+# extract a pax archive with a non-ASCII path, and the test still
+# failed exactly as before (probe-cix-testreport@12-1). glibc 2.44-16's
+# file list has no usr/lib/locale at all, so the likely reading is that
+# setlocale() failed for want of the locale. This measures it: what
+# `locale -a` reports, whether /usr/lib/locale exists, whether
+# setlocale(LC_CTYPE, "C.UTF-8") succeeds from a real program, and
+# whether the charmap and locale sources localedef needs are installed.
+#
+# Fails on purpose so nothing is published.
+#
+package "probe-locale" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.256.tar.gz"
+            sha256 "3d7923c4668069afbe188e134bb02e24e1485c23b479bc4dae6967079885ef1a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+            tool "glibc"
+        }
+    }
+
+    metadata {
+        "changelog" "1: measures locale availability in a build container, and whether localedef could produce C.UTF-8."
+    }
+
+    build {
+        write "${build}/loc.c" """
+            #include <locale.h>
+            #include <langinfo.h>
+            #include <stdio.h>
+            int main(void)
+            {
+            	const char *r = setlocale(LC_CTYPE, "C.UTF-8");
+            	printf("setlocale(LC_CTYPE, \"C.UTF-8\") = %s\n", r ? r : "(null)");
+            	printf("CODESET = %s\n", nl_langinfo(CODESET));
+            	r = setlocale(LC_CTYPE, "C.utf8");
+            	printf("setlocale(LC_CTYPE, \"C.utf8\") = %s\n", r ? r : "(null)");
+            	return 0;
+            }
+            """
+        run "tcc" {
+            "${build}/loc.c" "-o" "${build}/loc"
+        }
+        run "${build}/loc" {
+        }
+        run "locale" {
+            "-a"
+        }
+        run "ls" {
+            "-la" "/usr/lib"
+        }
+        run "find" {
+            "/usr/lib/locale" "/usr/share/i18n" "/usr/share/locale" "-maxdepth" "2"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-locale"
+    }
+}
