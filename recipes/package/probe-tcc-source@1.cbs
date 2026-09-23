@@ -1,0 +1,111 @@
+#
+# probe-tcc-source -- the exact bytes tcc@0.9.28rc-29's edits anchor
+# on, counted in the pinned source, so the CPDL conversion
+# (tcc@0.9.28rc-30) states each `exactly N` from a measurement rather
+# than a guess. A CPDL replace fails on a wrong count before touching
+# the file, so every guess would cost one failed tcc build.
+#
+# Also prints the end of include/tccdefs.h (the shell form APPENDS
+# the __ATOMIC_* predefines after its final #endif, and CPDL has no
+# append, so the conversion needs the last line to anchor on), the
+# whole of do_Static_assert (the shell form edits two lines inside a
+# sed range), and every line of configure that handles --cc (the
+# conversion passes the stage compiler and its -B as one --cc value).
+#
+# Nothing is compiled. Fails on purpose so nothing is published; read
+# it with `cixctl pkg build-logs`.
+#
+package "probe-tcc-source" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "tinycc" {
+            url "https://codeload.github.com/TinyCC/tinycc/tar.gz/2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+            sha256 "4eb5f0266d4d9deabe9650abedc3f0261dc06295f89ad798bb495abf680dc074"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "gawk"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: counts the pinned tinycc source lines tcc@0.9.28rc-29's edits anchor on, for the CPDL conversion."
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}/tinycc"
+        }
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            # One line per anchor: its exact count in its file.
+            run "awk" {
+                """
+                BEGIN {
+                    want["include/tccdefs.h"] = "    #undef __BUILTIN_EXTERN|    # define __STDC_NO_ATOMICS__ 1"
+                    want["lib/Makefile"] = "COMMON_O = stdatomic.o atomic.o builtin.o alloca.o alloca-bt.o"
+                    want["tccelf.c"] = "    int dyna;|    d->phnum = phnum;|        fill_phdr(&d->phdr[d->ehfr], PT_GNU_EH_FRAME, eh_frame_hdr_section);|static void add_init_array_defines(TCCState *s1, const char *section_name)|    add_init_array_defines(s1, \".preinit_array\");"
+                    want["libtcc.c"] = "    s->cversion = 199901; /* default unless -std=c11 is supplied */"
+                    want["tccdbg.c"] = "    dwarf_reloc(eh_frame_section, eh_section_sym, R_X86_64_PC32);"
+                    want["tcc.h"] = "    xxxx        : 15;"
+                    want["tccgen.c"] = "            ad->f.func_ctor = 1;|            ad->f.func_dtor = 1;|        add_array (tcc_state, \".init_array\", sym->c);|      fa->func_dtor = 1;|        add_array (tcc_state, \".fini_array\", sym->c);|static void do_Static_assert(void)|    int c;|    c = expr_const();"
+                    for (f in want) {
+                        n = split(want[f], pats, "|")
+                        for (i = 1; i <= n; i++) key[f SUBSEP pats[i]] = 0
+                    }
+                }
+                {
+                    k = FILENAME SUBSEP $0
+                    if (k in key) key[k]++
+                    if (index($0, "__STDC_NO_ATOMICS__")) atom[FILENAME]++
+                }
+                END {
+                    for (k in key) {
+                        split(k, parts, SUBSEP)
+                        printf "count %d  %s  [%s]\n", key[k], parts[1], parts[2]
+                    }
+                    for (f in atom) printf "substring __STDC_NO_ATOMICS__ %d in %s\n", atom[f], f
+                }
+                """
+                "include/tccdefs.h"
+                "lib/Makefile"
+                "tccelf.c"
+                "libtcc.c"
+                "tccdbg.c"
+                "tcc.h"
+                "tccgen.c"
+            }
+            run "tail" {
+                "-n" "12"
+                "include/tccdefs.h"
+            }
+            run "tail" {
+                "-c" "80"
+                "include/tccdefs.h"
+            }
+            run "awk" {
+                "/^static void do_Static_assert\\(void\\)$/ { p = 1 } p { print NR \": \" $0 } p && /^}$/ { exit }"
+                "tccgen.c"
+            }
+            run "grep" {
+                "-n"
+                "cc"
+                "configure"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tcc-source"
+    }
+}
