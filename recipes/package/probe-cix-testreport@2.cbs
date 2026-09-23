@@ -3,14 +3,14 @@
 # diagnosing one failure without a full 25-minute suite run.
 #
 package "probe-cix-testreport" {
-    version "1"
+    version "2"
     release 1
     format "cixpkg"
 
     sources {
         main "cix" {
-            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.248.tar.gz"
-            sha256 "7d89aaa24504fa1e77a9631950212c0d95ff1f6b326e1af7bc6f8768e9f52237"
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.249.tar.gz"
+            sha256 "3f91cbf3db55acfe843cf577e7503aae164095f0a08b2013a222aa90adcd6c51"
         }
         # The six boot tests need build-inputs/bzImage, an INPUT that
         # make does not produce (#191). Taken from a kernel artifact a
@@ -44,6 +44,18 @@ package "probe-cix-testreport" {
         extra "linuxheaders" {
             url "http://192.168.15.31:8080/linux-headers-6.18.40-4-x86_64.tar.gz"
             sha256 "5cd03e3376c4640bd7a05b578855935ca6ae880a6c6cfe6e516e914ea880e315"
+        }
+        extra "zlib" {
+            url "http://192.168.15.31:8080/zlib-1.3.2-11-x86_64.tar.gz"
+            sha256 "c79f66f9ce3aa84236b46c9001eb617ac9d57fbd9c263ebb023e9581af38e284"
+        }
+        extra "flex" {
+            url "http://192.168.15.31:8080/flex-2.6.4-2-x86_64.tar.gz"
+            sha256 "956c62c65e3befad1c725c98032cd63aa7e167598a7be3e12ffaaace155fe6bd"
+        }
+        extra "binutils" {
+            url "http://192.168.15.31:8080/binutils-2.42-10-x86_64.tar.gz"
+            sha256 "23f6cc2b007bb58dcb105f1ef390caaee81cf6c36b0c50150e415d0f66d4d73e"
         }
         # The recipe corpus, pinned to a commit. The fixture verifies
         # each floor artifact against the checksum in its own recipe,
@@ -104,8 +116,7 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "2db2b6a84b640ec79a8e1cf3c49dfd199a2e6e0d938c3e8d7adbd6dd4455038b"
-        "changelog" "1: cix-tests reduced to test_pkg_concurrent_stress and test_pkg on cix v2.57.248, with 150-line tails, to read why every nested package build exits status 1 after 0s."
+        "changelog" "2: cix v2.57.249, whose fixture floor carries binutils, zlib and flex so fixture builds can strip; the three artifacts are supplied here. 1: named the finalize-without-strip failure."
     }
 
     capability "CAP_SYS_ADMIN"
@@ -126,6 +137,9 @@ package "probe-cix-testreport" {
         materialize $source.tcc to "${src}/cix/cix/build-inputs/floor-artifacts/tcc-0.9.27-7.tar.gz"
         materialize $source.glibc to "${src}/cix/cix/build-inputs/floor-artifacts/glibc-2.44-12.tar.gz"
         materialize $source.linuxheaders to "${src}/cix/cix/build-inputs/floor-artifacts/linux-headers-6.18.40-4.tar.gz"
+        materialize $source.zlib to "${src}/cix/cix/build-inputs/floor-artifacts/zlib-1.3.2-11.tar.gz"
+        materialize $source.flex to "${src}/cix/cix/build-inputs/floor-artifacts/flex-2.6.4-2.tar.gz"
+        materialize $source.binutils to "${src}/cix/cix/build-inputs/floor-artifacts/binutils-2.42-10.tar.gz"
 
         extract $source.recipes into "${src}" as "cix-recipes"
         require directory "${src}/cix-recipes/recipes/package" {
@@ -138,7 +152,7 @@ package "probe-cix-testreport" {
             # Serial, like the shell recipe: the suite forks daemons on
             # fixed ports, and a conversion's job is to be equivalent.
             run "make" {
-                "CIX_VERSION=v2.57.248"
+                "CIX_VERSION=v2.57.249"
                 "TESTREPORT_TAIL=150"
                 "TESTREPORT_ONLY=test_pkg_concurrent_stress test_pkg"
                 "testreport"
