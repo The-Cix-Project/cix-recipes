@@ -1,0 +1,164 @@
+#
+# go -- the FINAL stage of the Go bootstrap (#261), in CPDL.
+#
+# 1.24.9-2 is 1.24.9-1 converted to CPDL (ADR-0309): the same source,
+# the same bootstrap assertion, the same two gates. The chain, and why
+# each link is the newest release its predecessor may build, is in
+# go@1.24.9-1.sh:
+#
+#   go-bootstrap 1.4 (C, gcc) -> 1.19.13 -> 1.20.14 -> 1.22.12 -> 1.24.x
+#
+# This stage declares `go` as its own build tool and is compiled by
+# whatever Go is installed, which the platform supports on purpose
+# (#166); the recipe asserts that bootstrap is new enough rather than
+# trusting the composer to have picked one.
+#
+# The only changes of form: the scratch directories move from /run to
+# ${build}, because a CPDL recipe writes only inside its own roots, and
+# the version check's case pattern becomes a grep -E over the captured
+# `go version`.
+#
+package "go" {
+    version "1.24.9"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "go" {
+            url "https://dl.google.com/go/go1.24.9.src.tar.gz"
+            sha256 "c72f81ba54fe00efe7f3e7499d400979246881b13b775e9a9bb85541c11be695"
+        }
+    }
+
+    requires {
+        build {
+            # make.bash links real executables with the system C
+            # toolchain even with cgo off, and this stage enables cgo.
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            # The previous Go, the one that compiles this one.
+            tool "go"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "Go's own build links with the system C toolchain, and its cgo support is defined in terms of a GCC-compatible driver; TCC is not a substitute for a language toolchain's own linker expectations"
+    }
+
+    metadata {
+        "changelog" "1.24.9-2: converted to CPDL (ADR-0309). Same source, same bootstrap assertion (go1.22 or later), same gates: the built go reports go1.24.9, compiles and runs a pure Go program, and compiles and runs a cgo program -- gitea and glauth are Go with cgo. Scratch directories move from /run to the build directory. Full history: go@1.24.9-1.sh."
+    }
+
+    build {
+        # The bootstrap: go1.22.6 or later is what 1.24 requires, and it
+        # is asserted rather than trusted.
+        run "/usr/lib/go/bin/go" {
+            "version"
+            stdout file "${build}/bootstrap.version"
+        }
+        run "cat" {
+            "${build}/bootstrap.version"
+        }
+        run "grep" {
+            "-qE" "go1[.]2[2-9]"
+            "${build}/bootstrap.version"
+        }
+
+        # This platform's images have neither /tmp nor /var/tmp, and
+        # Go's tooling reaches for one.
+        mkdir "${build}/gotmp"
+        mkdir "${build}/gochk"
+
+        cd "${src}/go/go/src" {
+            run "${src}/go/go/src/make.bash" {
+                env "TMPDIR" = "${build}/gotmp"
+                env "GOROOT_BOOTSTRAP" = "/usr/lib/go"
+                env "GOROOT_FINAL" = "/usr/lib/go"
+                env "CGO_ENABLED" = "1"
+                env "GOOS" = "linux"
+                env "GOARCH" = "amd64"
+            }
+        }
+
+        # Gate: identify itself, then compile and run something. GOROOT
+        # is the build tree, not GOROOT_FINAL: the binaries were told
+        # where they WILL live, and install has not put them there yet.
+        run "${src}/go/go/bin/go" {
+            "version"
+            env "GOROOT" = "${src}/go/go"
+            expect {
+                stdout contains "go1.24.9"
+            }
+        }
+        write "${build}/gochk/hello.go" """
+            package main
+
+            import "os"
+
+            func main() { os.Exit(7) }
+            """
+        run "${src}/go/go/bin/go" {
+            "build" "-o" "${build}/gochk/hello" "${build}/gochk/hello.go"
+            env "GOROOT" = "${src}/go/go"
+            env "TMPDIR" = "${build}/gotmp"
+            env "HOME" = "${build}"
+        }
+        run "${build}/gochk/hello" {
+            expect exit 7
+        }
+
+        # And a cgo program, the reason this chain exists: gitea and
+        # glauth link a C sqlite amalgamation, so a Go that cannot do
+        # cgo would pass everything above and fail both at the far end
+        # of a long build.
+        write "${build}/gochk/cgohello.go" """
+            package main
+
+            /*
+            #include <stdlib.h>
+            static int seven(void) { return 7; }
+            */
+            import "C"
+
+            import "os"
+
+            func main() { os.Exit(int(C.seven())) }
+            """
+        run "${src}/go/go/bin/go" {
+            "build" "-o" "${build}/gochk/cgohello" "${build}/gochk/cgohello.go"
+            env "GOROOT" = "${src}/go/go"
+            env "CGO_ENABLED" = "1"
+            env "CC" = "/usr/bin/gcc"
+            env "TMPDIR" = "${build}/gotmp"
+            env "HOME" = "${build}"
+        }
+        run "${build}/gochk/cgohello" {
+            expect exit 7
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib/go"
+        mkdir "${dest}/usr/bin"
+        copy tree "${src}/go/go/bin" to "${dest}/usr/lib/go/bin"
+        copy tree "${src}/go/go/pkg" to "${dest}/usr/lib/go/pkg"
+        copy tree "${src}/go/go/src" to "${dest}/usr/lib/go/src"
+        copy tree "${src}/go/go/lib" to "${dest}/usr/lib/go/lib"
+        copy tree "${src}/go/go/api" to "${dest}/usr/lib/go/api"
+        copy "${src}/go/go/VERSION" to "${dest}/usr/lib/go/VERSION"
+
+        # On PATH, unlike stage 1: this is a real Go, and later stages,
+        # gitea and glauth invoke it as `go`.
+        symlink "../lib/go/bin/go" to "${dest}/usr/bin/go"
+        symlink "../lib/go/bin/gofmt" to "${dest}/usr/bin/gofmt"
+
+        # The build cache is a large fraction of the tree and nothing
+        # here ever reads it.
+        remove tree "${dest}/usr/lib/go/pkg/obj"
+    }
+}
