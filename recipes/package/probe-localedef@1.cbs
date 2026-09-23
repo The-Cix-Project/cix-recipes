@@ -1,0 +1,75 @@
+#
+# probe-localedef -- can glibc's own localedef produce a loadable
+# C.UTF-8 from the locale sources in glibc-2.44's tree, and with what
+# exit status? For cix#518: the glibc CPDL conversion is to ship that
+# locale, and glibc's own localedata Makefile runs localedef with
+# `|| :`, so its exit status on warnings is not something to assume in
+# a recipe whose install phase comes after an hour of build.
+#
+# Uses the localedef the installed glibc ships; compiles nothing but a
+# three-line setlocale check. Fails on purpose so nothing is published.
+#
+package "probe-localedef" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "glibc" {
+            url "https://mirrors.kernel.org/gnu/libc/glibc-2.44.tar.xz"
+            sha256 "37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+            tool "glibc"
+        }
+    }
+
+    metadata {
+        "changelog" "1: runs localedef for C.UTF-8 from glibc-2.44's localedata and checks the result loads (cix#518)."
+    }
+
+    build {
+        mkdir "${build}/loc"
+        run "localedef" {
+            "--no-archive"
+            "-i" "${src}/glibc/glibc-2.44/localedata/locales/C"
+            "-f" "${src}/glibc/glibc-2.44/localedata/charmaps/UTF-8"
+            "${build}/loc/C.UTF-8"
+            env "I18NPATH" = "${src}/glibc/glibc-2.44/localedata"
+            expect exit 0
+        }
+        run "find" {
+            "${build}/loc"
+        }
+        write "${build}/loc.c" """
+            #include <locale.h>
+            #include <langinfo.h>
+            #include <stdio.h>
+            int main(void)
+            {
+            	const char *r = setlocale(LC_CTYPE, "C.UTF-8");
+            	printf("setlocale = %s, CODESET = %s\n", r ? r : "(null)", nl_langinfo(CODESET));
+            	return r ? 0 : 1;
+            }
+            """
+        run "tcc" {
+            "${build}/loc.c" "-o" "${build}/locprog"
+        }
+        run "${build}/locprog" {
+            env "LOCPATH" = "${build}/loc"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-localedef"
+    }
+}
