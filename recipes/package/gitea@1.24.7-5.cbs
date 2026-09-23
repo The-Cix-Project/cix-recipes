@@ -1,0 +1,97 @@
+#
+# gitea -- a painless, self-hosted Git service (code.gitea.io), in CPDL.
+#
+# 1.24.7-5 is 1.24.7-4 converted to CPDL (ADR-0309): the same source,
+# the same offline cgo build, the same single binary installed.
+# gitea@1.24.7-4.sh carries the full reasoning; the short form:
+#
+# - The source is gitea's own "-src" release tarball, which ships the
+#   whole vendor/ tree and pre-built frontend assets, so it builds with
+#   no network and no Node.js: `make backend` skips the webpack
+#   frontend. GOFLAGS=-mod=vendor and GOPROXY=off make any accidental
+#   module fetch fail loudly rather than depend on auto-detection.
+# - TAGS=sqlite with CGO_ENABLED=1 links sqlite's C amalgamation
+#   (mattn/go-sqlite3), so a C compiler is part of this Go build. It is
+#   gcc, by absolute path: TCC aborts a compilation unit at its first
+#   error, which breaks cmd/cgo's batched type probing (#31, ADR-0170).
+# - Pinned to 1.24.7 because 1.27.x requires Go 1.26, newer than the
+#   go package here (1.24.9).
+# - gitea shells out to git at runtime; this installs gitea alone.
+#
+# The only change of form: the scratch directories move from /run and
+# /build to ${build}, because a CPDL recipe writes only inside its own
+# roots, and the source directory is named rather than globbed (the
+# shell form globbed for it; this form fails at the cd with the path
+# if the tarball's shape changes).
+#
+package "gitea" {
+    version "1.24.7"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "gitea" {
+            url "https://dl.gitea.com/gitea/1.24.7/gitea-src-1.24.7.tar.gz"
+            sha256 "76a91742902fc353369e948b93666018ffe7eb0c565241a944c14f3d9232d808"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "go"
+            tool "binutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "build system requires GCC internals: cgo: TCC aborts on the first compile error, which breaks cmd/cgo's batched type probing (#31)"
+    }
+
+    metadata {
+        "artifact_sha256" "00258928de12c82c172c4fdba4bfbbbedf060d3706f01fbaa01493d71745a25d"
+        "changelog" "1.24.7-5: converted to CPDL (ADR-0309). Same source, same offline make backend TAGS=sqlite with cgo through /usr/bin/gcc, same single binary. Scratch directories move into the build directory. Full history: gitea@1.24.7-4.sh."
+    }
+
+    build {
+        run "go" {
+            "version"
+        }
+        mkdir "${build}/gotmp"
+        mkdir "${build}/gocache"
+        cd "${src}/gitea/gitea-src-1.24.7" {
+            require file "Makefile" {
+                exists
+            }
+            run "make" {
+                "backend"
+                "TAGS=sqlite"
+                env "GOFLAGS" = "-mod=vendor"
+                env "GOPROXY" = "off"
+                env "GOCACHE" = "${build}/gocache"
+                env "TMPDIR" = "${build}/gotmp"
+                env "HOME" = "${build}"
+                env "CGO_ENABLED" = "1"
+                env "CC" = "/usr/bin/gcc"
+            }
+        }
+        run "${src}/gitea/gitea-src-1.24.7/gitea" {
+            "--version"
+            expect {
+                stdout contains "1.24.7"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin"
+        copy "${src}/gitea/gitea-src-1.24.7/gitea" to "${dest}/usr/bin/gitea"
+    }
+}
