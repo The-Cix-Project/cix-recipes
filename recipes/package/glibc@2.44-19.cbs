@@ -1,0 +1,308 @@
+#
+# glibc -- the C library, built from source on a Cix host, in CPDL.
+#
+# 2.44-19 is 2.44-16 converted to CPDL (ADR-0309), plus one addition:
+# it ships the C.UTF-8 locale (cix#518). glibc@2.44-16.sh carries the
+# history of every choice below -- why 2.44, why --with-headers, why
+# libc_cv_slibdir and libdir are what they are, why the CRT objects
+# live in three places, why the SONAMEs are symlinked from /usr/lib,
+# why the loader is copied to /lib64 -- and each is kept exactly.
+#
+# THE ADDITION: C.UTF-8 (cix#518). glibc builds no locale in, and this
+# package shipped none, so every process on the platform ran in the C
+# locale with an ASCII codeset. libarchive then cannot represent a pax
+# archive's UTF-8 path, and cixd has refused every source tarball with a
+# non-ASCII name since #411 moved extraction in-process -- go1.24.9's
+# among them. This revision compiles C.UTF-8 from glibc's own localedata
+# with glibc's own localedef, into /usr/lib/locale/C.utf8, and gates on
+# setlocale(LC_CTYPE, "C.UTF-8") succeeding against it with a UTF-8
+# codeset. probe-localedef@1-1 measured that exact localedef invocation
+# exiting 0 and the result loading (192.168.15.95, 2026-09-23).
+#
+# HOW THE DYNAMIC PARTS OF THE SHELL FORM MAP
+#
+# The shell form looped over what `make install` produced; CPDL states
+# it. The CRT objects move by glob. The SONAME symlinks are a stated
+# list -- the 21 runtime objects in lib/x86_64-linux-gnu that glibc does
+# not itself install in /usr/lib, read from glibc 2.44-16's installed
+# file list -- and `require glob ... exactly 23` on that directory makes
+# a new SONAME in a future glibc fail the build rather than go unlinked.
+# The multiarch header copy goes through ${build}, because a tree cannot
+# be copied into its own subdirectory.
+#
+package "glibc" {
+    version "2.44"
+    release 19
+    format "cixpkg"
+
+    sources {
+        main "glibc" {
+            url "https://mirrors.kernel.org/gnu/libc/glibc-2.44.tar.xz"
+            sha256 "37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "binutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "bison"
+            tool "python"
+            tool "perl"
+            tool "m4"
+            # An install-time requirement: make install compresses the
+            # locale charmaps (2.44-16.sh).
+            tool "gzip"
+            # --with-headers points at the kernel uapi headers.
+            tool "linux-headers"
+            # The CRT gate links with the platform's own compiler.
+            tool "tcc"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "structural: this package IS libc: TCC cannot resolve crt1.o/crti.o/crtn.o while building the CRT that provides them"
+    }
+
+    metadata {
+        "artifact_sha256" "220c11019bf7cc729befca2b0cdf7ddd77399de2b436a50000299d52bd4d954d"
+        "changelog" "2.44-19: CPDL conversion of 2.44-16 (ADR-0309), shipping the C.UTF-8 locale (cix#518), gated on setlocale succeeding with a UTF-8 codeset. getconf's three specification hard links become symlinks, since CIXPKG carries no hard links. 2.44-17 and -18 were this recipe failing its own install checks and were never built."
+    }
+
+    configure {
+        # glibc refuses to configure in its own source tree.
+        mkdir "${build}/obj"
+        cd "${build}/obj" {
+            run "${src}/glibc/glibc-2.44/configure" {
+                "--prefix=/usr"
+                "--with-headers=/usr/include"
+                "--enable-kernel=5.4"
+                "--disable-werror"
+                "--disable-profile"
+                "--without-selinux"
+                "--without-gd"
+                "--libdir=/usr/lib"
+                "libc_cv_slibdir=/lib/x86_64-linux-gnu"
+                "libc_cv_cxx_link_ok=no"
+                env "CC" = "/usr/bin/gcc"
+                env "CXX" = "/usr/bin/g++"
+            }
+        }
+    }
+
+    build {
+        cd "${build}/obj" {
+            # MAKEINFO=: -- a literal colon, which glibc's manual rules
+            # treat as "no makeinfo" and skip entirely (2.44-16.sh).
+            run "make" {
+                "-j${jobs}"
+                "MAKEINFO=:"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${build}/obj" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "MAKEINFO=:"
+            }
+        }
+        run "rm" {
+            "-rf"
+            "${dest}/usr/share/info"
+            "${dest}/usr/share/man"
+            "${dest}/usr/share/doc"
+        }
+
+        # The link-time files where this platform's compilers look: both
+        # multiarch directories, stripped of debug info so TCC can parse
+        # them (#187).
+        mkdir "${dest}/lib/x86_64-linux-gnu"
+        mkdir "${dest}/usr/lib/x86_64-linux-gnu"
+        copy glob "${dest}/usr/lib/*crt*.o" to "${dest}/lib/x86_64-linux-gnu"
+        copy glob "${dest}/usr/lib/*crt*.o" to "${dest}/usr/lib/x86_64-linux-gnu"
+        each "f" in { "libc.so" "libm.so" "libc_nonshared.a" } {
+            copy "${dest}/usr/lib/${each.f}" to "${dest}/lib/x86_64-linux-gnu/${each.f}"
+            copy "${dest}/usr/lib/${each.f}" to "${dest}/usr/lib/x86_64-linux-gnu/${each.f}"
+        }
+        run "strip" {
+            "--strip-debug"
+            args glob "${dest}/usr/lib/*crt*.o"
+        }
+        run "strip" {
+            "--strip-debug"
+            args glob "${dest}/lib/x86_64-linux-gnu/*crt*.o"
+        }
+        run "strip" {
+            "--strip-debug"
+            args glob "${dest}/usr/lib/x86_64-linux-gnu/*crt*.o"
+        }
+
+        # TCC links a real program against exactly the CRT objects and
+        # libc this build staged (-nostdlib, every input named), and the
+        # result runs through this build's own loader: a glibc whose
+        # halves disagree must never publish.
+        write "${build}/crtgate.c" "int main(void) { return 0; }\n"
+        run "tcc" {
+            "-nostdlib"
+            "${dest}/usr/lib/x86_64-linux-gnu/crt1.o"
+            "${dest}/usr/lib/x86_64-linux-gnu/crti.o"
+            "${build}/crtgate.c"
+            "-L${dest}/lib/x86_64-linux-gnu" "-lc"
+            "${dest}/usr/lib/x86_64-linux-gnu/crtn.o"
+            "-o" "${build}/crtgate"
+        }
+        run "${dest}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" {
+            "--library-path" "${dest}/lib/x86_64-linux-gnu"
+            "${build}/crtgate"
+        }
+
+        # Every runtime SONAME reachable from /usr/lib, as a symlink --
+        # one inode, so two copies of glibc's objects can never disagree
+        # (#187, #184). libc.so and libm.so are not here: glibc installs
+        # its own linker scripts in /usr/lib.
+        each "so" in {
+            "ld-linux-x86-64.so.2" "libBrokenLocale.so.1" "libanl.so.1"
+            "libc.so.6" "libc_malloc_debug.so.0" "libdl.so.2" "libm.so.6"
+            "libmemusage.so" "libmvec.so.1" "libnsl.so.1"
+            "libnss_compat.so.2" "libnss_db.so.2" "libnss_dns.so.2"
+            "libnss_files.so.2" "libnss_hesiod.so.2" "libpcprofile.so"
+            "libpthread.so.0" "libresolv.so.2" "librt.so.1"
+            "libthread_db.so.1" "libutil.so.1"
+        } {
+            require file "${dest}/lib/x86_64-linux-gnu/${each.so}" {
+                exists
+            }
+            symlink "../../lib/x86_64-linux-gnu/${each.so}" to "${dest}/usr/lib/${each.so}"
+        }
+        # 21 SONAMEs above plus the two linker scripts copied beside
+        # them: anything more is a new SONAME this list does not link.
+        require glob "${dest}/lib/x86_64-linux-gnu/*.so*" {
+            exactly 23
+        }
+
+        # The headers own the multiarch include directory too, which GCC
+        # searches first (#187: a 2.36 cdefs.h once shadowed ours there).
+        copy tree "${dest}/usr/include" to "${build}/include-copy"
+        copy tree "${build}/include-copy" to "${dest}/usr/include/x86_64-linux-gnu"
+        require file "${dest}/usr/include/x86_64-linux-gnu/sys/cdefs.h" {
+            exists
+            contains "__COLD"
+        }
+
+        # The loader searches /usr/lib (#196). Its --help runs to many
+        # lines, and CPDL's stdout assertion takes one-line output only
+        # (2.44-17 failed there, build 1790194531), so it is captured to
+        # a file and the file is asserted on.
+        run "${dest}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" {
+            "--help"
+            stdout file "${build}/ldso-help.txt"
+        }
+        require file "${build}/ldso-help.txt" {
+            exists
+            contains "\n  /usr/lib (system search path)\n"
+        }
+
+        # The loader at its ABI-fixed path, which every x86-64 ELF names
+        # as PT_INTERP; a real copy, and always shipped with libc.
+        mkdir "${dest}/lib64"
+        copy "${dest}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" to "${dest}/lib64/ld-linux-x86-64.so.2"
+
+        # C.UTF-8 (cix#518), from glibc's own localedata, with glibc's
+        # own localedef, then loaded by a real program with a UTF-8
+        # codeset as the gate.
+        mkdir "${dest}/usr/lib/locale"
+        run "${dest}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" {
+            "--library-path" "${dest}/lib/x86_64-linux-gnu"
+            "${dest}/usr/bin/localedef"
+            "--no-archive"
+            "-i" "${src}/glibc/glibc-2.44/localedata/locales/C"
+            "-f" "${src}/glibc/glibc-2.44/localedata/charmaps/UTF-8"
+            "${dest}/usr/lib/locale/C.utf8"
+            env "I18NPATH" = "${src}/glibc/glibc-2.44/localedata"
+        }
+        require file "${dest}/usr/lib/locale/C.utf8/LC_CTYPE" {
+            exists
+            nonempty
+        }
+        write "${build}/localegate.c" """
+            #include <locale.h>
+            #include <langinfo.h>
+            #include <stdio.h>
+            #include <string.h>
+            int main(void)
+            {
+            	const char *r = setlocale(LC_CTYPE, "C.UTF-8");
+            	const char *cs = nl_langinfo(CODESET);
+            	printf("setlocale(LC_CTYPE, \"C.UTF-8\") = %s, CODESET = %s\n", r ? r : "(null)", cs);
+            	return (r != NULL && strcmp(cs, "UTF-8") == 0) ? 0 : 1;
+            }
+            """
+        run "tcc" {
+            "-nostdlib"
+            "${dest}/usr/lib/x86_64-linux-gnu/crt1.o"
+            "${dest}/usr/lib/x86_64-linux-gnu/crti.o"
+            "${build}/localegate.c"
+            "-L${dest}/lib/x86_64-linux-gnu" "-lc"
+            "${dest}/usr/lib/x86_64-linux-gnu/crtn.o"
+            "-o" "${build}/localegate"
+        }
+        run "${dest}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" {
+            "--library-path" "${dest}/lib/x86_64-linux-gnu"
+            "${build}/localegate"
+            env "LOCPATH" = "${dest}/usr/lib/locale"
+        }
+
+        # What this platform stages into every image, by name.
+        each "f" in {
+            "lib/x86_64-linux-gnu/libc.so.6" "lib/x86_64-linux-gnu/libm.so.6"
+            "lib64/ld-linux-x86-64.so.2" "lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"
+            "lib/x86_64-linux-gnu/crt1.o" "lib/x86_64-linux-gnu/crti.o"
+            "lib/x86_64-linux-gnu/crtn.o" "lib/x86_64-linux-gnu/libc.so"
+            "usr/include/stdio.h" "usr/include/stdlib.h" "usr/include/string.h"
+            "usr/include/unistd.h" "usr/include/sys/cdefs.h" "usr/include/sys/types.h"
+        } {
+            require file "${dest}/${each.f}" {
+                exists
+            }
+        }
+
+        # CIXPKG carries no hard links (2.44-18 was refused at packaging:
+        # "usr/bin/getconf is a hard link (link count 4)", build
+        # 1790195816). glibc installs getconf once and hard-links it as
+        # the three specification names in /usr/libexec/getconf; they
+        # become relative symlinks, as binutils' ld does. An image
+        # copies files in one at a time, so the link never survived
+        # installation anyway. Then nothing hard-linked may remain: a
+        # new one fails here, by name, rather than at packaging.
+        each "spec" in { "POSIX_V6_LP64_OFF64" "POSIX_V7_LP64_OFF64" "XBS5_LP64_OFF64" } {
+            remove "${dest}/usr/libexec/getconf/${each.spec}"
+            symlink "../../bin/getconf" to "${dest}/usr/libexec/getconf/${each.spec}"
+        }
+        run "find" {
+            "${dest}" "-type" "f" "-links" "+1"
+            stdout file "${build}/hardlinks.txt"
+        }
+        run "grep" {
+            "-q" "." "${build}/hardlinks.txt"
+            expect exit 1
+        }
+        on_fail {
+            run "cat" {
+                "${build}/hardlinks.txt"
+                allow_failure
+            }
+        }
+    }
+}
