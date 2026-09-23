@@ -1,0 +1,262 @@
+# cbs v0.1.55-1: v0.1.53 plus embedder-supplied optional recipe inputs
+# (v0.1.54, cix-build-system#231) and UTF-8 archive paths (v0.1.55, #232).
+#
+# SIX RELEASES WERE SKIPPED GETTING HERE, and none of them ever
+# reached a host. v0.1.39 through v0.1.44 each failed `make test` in
+# this recipe's own check phase, which is that phase working exactly
+# as intended: an engine whose suite fails does not get installed,
+# let alone staged into a control-plane root. The trail is worth
+# keeping because every stop was a real defect and each was found by
+# a recipe rather than by review:
+#
+#   v0.1.39  allow_failure stopped tolerating a zero-match glob
+#            (cbs#217) -- openssl, iptables and libcap all rely on
+#            it for the normal case where nothing matched
+#   v0.1.40  same fixture, now failing SILENTLY (cbs#218)
+#   v0.1.42  fixture still failing; the upstream test was also
+#            fetching zstd from github inside a container with no
+#            resolver, because nothing ever seeded the cache it
+#            reads (cbs#220)
+#   v0.1.44  fixture named its line at last -- fs-test.c:350 --
+#            which turned out to be the TEST hardcoding Debian's
+#            multiarch triplet while stage_library() uses
+#            ${triplet}, so the two compared different files: a
+#            2011912-byte regular /lib/x86_64-linux-gnu/libc.so.6
+#            against the 36-byte symlink /usr/lib/libc.so.6 that
+#            CBS correctly staged (cbs#221)
+#   v0.1.45  recorded a passing suite in its changelog, then failed three times on
+#            cix-hosttools (last 1790100778) at fs-test.c:365: the
+#            test compared the staged libc.so.6 to the host's with
+#            lstat(), so a symlink on one side and a regular file on
+#            the other failed. v0.1.46 compares with stat() and
+#            requires regular files on both sides. Open: the -1
+#            recipe carries an artifact_sha256, yet the cache holds
+#            no v0.1.45 artifact.
+#   v0.1.50  failed at fs-test.c:364 on cix-builder: stage library
+#            copied the /usr/lib/libc.so.6 symlink rather than the
+#            library it points to (cix-build-system#229, fixed in
+#            v0.1.51: "Dereference staged library symlinks safely").
+#
+# WHAT THIS ENGINE BRINGS, and why it was worth six rounds:
+#
+#   cbs#216  a block string containing dollar-brace was silently
+#            substituted to EMPTY when written, because fs.c
+#            resolved a write's CONTENT with the token kind of its
+#            PATH. hostapd wrote `exec tcc ""` and died four
+#            operations later inside make.
+#   cbs#219  CBS-owned compiler tool policies -- `tools { compiler
+#            alias / compiler rewrite }` -- which retire the seven
+#            shell shims four recipes here fabricate and put on
+#            PATH. Two verbs, not three: `via` was deleted by
+#            measurement, probe-autotools-exec@3 having shown that
+#            aclocal, automake and libtoolize are ordinary files
+#            that exec directly.
+#   cbs#218  the filesystem fixture reports what it failed on.
+#   cbs#220  the upstream test skips rather than fetching when no
+#            cache is supplied, so `make test` has no network
+#            requirement at all.
+#
+# THE PREPARE PHASE BELOW IS WHAT TURNS THAT SKIP BACK INTO A RUN.
+# Seeding the cache is not optional politeness: without it the
+# suite honestly reports SKIP and the one end-to-end proof of the
+# pipeline -- building real zstd twice and comparing the artifacts
+# byte for byte -- does not happen.
+#
+package "cbs" {
+    version "v0.1.55"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.55.tar.gz"
+            sha256 "961b5d07eefa4f5bc7ad0a32b3eb5750adfa294b29d15c6435e70909a3faca9d"
+        }
+        # zstd 1.5.4, for upstream-test. Declared as a source so the
+        # daemon fetches and checksum-verifies it host-side; never
+        # fetched from inside the build.
+        extra "zstd" {
+            url "https://github.com/facebook/zstd/archive/refs/tags/v1.5.4.tar.gz"
+            sha256 "35ad983197f8f8eb0c963877bf8be50490a0b3df54b4edeb8399ba8a8b2f60a4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "tar"
+            tool "gzip"
+            # curl, for libcurl.so.4. CBS dlopen()s it to fetch, and
+            # tests/cli-build-test.sh serves a source over a local
+            # http-server and has cbs fetch it -- so the suite needs the
+            # library even though nothing here reaches the network.
+            #
+            # Dropped by the first draft of this translation, and the
+            # build caught it: `make test` ran the recipe corpus, 50
+            # parser cases, the metadata test and the upstream smoke
+            # test, then failed in cli-build-test.sh. A declaration
+            # system earning its keep on its own recipe.
+            tool "curl"
+            tool "libarchive"
+            tool "zstd"
+            tool "linux-headers"
+        }
+        runtime {
+            package "libarchive"
+            package "zstd"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "14663c02a2df52113919e416f995f28679c69495ec004d2ceab94761a18d7fbf"
+        "changelog" "v0.1.55-1: --input NAME=FILE, consumed by args input or the input.NAME value (#231, for the kernel's kmod-build symbols); a UTF-8 LC_CTYPE before archive headers are read, so pax paths that are not ASCII extract (#232, for go and gcc). v0.1.53-1: extract members now match entries stored with a leading ./, so member bzImage selects ./bzImage from a Cix kernel artifact (cix-build-system#230, reopened after v0.1.52 could not). v0.1.52-1 fixed stage library copying a symlink (#229)."
+    }
+
+    prepare {
+        # SEED THE UPSTREAM TEST CACHE, so `make test` never reaches
+        # the network. This step did not exist before v0.1.42-2, and
+        # its absence is why the build failed with
+        #
+        #   error[CPDL-E5001]: source `zstd` could not be fetched
+        #   from https://github.com/facebook/zstd/...;
+        #   cause: Could not resolve host: github.com
+        #
+        # which reads as a DNS problem and is not one. CPDL-E5001 is
+        # raised by CBS INSIDE the build container, which has no
+        # resolver -- not by the daemon's host-side fetch, which
+        # reports "fetch failed (curl exit status N)" and names the
+        # package rather than a recipe line. The daemon fetched the
+        # tarball perfectly: probe-github-host-fetch measured 2178759
+        # bytes hashing to 35ad9831..., which is this source's own
+        # declared checksum.
+        #
+        # tests/upstream-smoke-test.sh copies every file from
+        # $CBS_UPSTREAM_CACHE into its own cache before building, so
+        # a pre-seeded tarball means zero fetching. This recipe has
+        # set that variable for a long time and NOTHING EVER WROTE TO
+        # THE DIRECTORY -- no mkdir, no copy, no reference to
+        # $source.zstd anywhere in it. The comment on the extra
+        # source says "never fetched from inside the build", and it
+        # described an intention the recipe never implemented; the
+        # test simply had network access and fetched. cbs#205 did not
+        # break this, it exposed it, by making an extra source
+        # explicit rather than unpacking it as a side effect.
+        #
+        # TWO DETAILS THAT MATTER. The cache entry is named by its
+        # SHA-256 rather than its basename -- src/source.c looks up
+        # "<cache_directory>/<source->sha256>". And the directory is
+        # ${build}/cbscache rather than the /build/cbscache the
+        # variable used to name, because that path is outside CPDL's
+        # confined roots, which is the other half of why no operation
+        # could ever have created it.
+        mkdir "${build}/cbscache"
+        materialize $source.zstd to "${build}/cbscache/35ad983197f8f8eb0c963877bf8be50490a0b3df54b4edeb8399ba8a8b2f60a4"
+        #
+        # THE MAIN source extracts into ${src}/<source-name>/,
+        # preserving the archive's own top-level directory. An EXTRA
+        # source no longer does: v0.1.34 made the specification true
+        # -- an extra source "remains a named verified input until an
+        # explicit extract or materialize operation uses it" -- so
+        # anything reaching for ${src}/<extra-name>/ now finds
+        # nothing. hostapd@2.11-12 found that out with
+        # "glob binding expected 1 matches but found 0".
+        #
+        # Listed before it is required so that the log answers what the
+        # gitea archive's top-level directory is actually called, rather
+        # than only whether one guess was right. This sandbox compiles
+        # and unpacks nothing, so the box is the only place that can
+        # answer it, and one build cycle is the price of that rule.
+        #
+        run "ls" {
+            "-la"
+            "${src}/cbs"
+        }
+        require directory "${src}/cbs/cix-build-system" {
+            exists
+        }
+        #
+        # The zstd deprecation define, appended to the Makefile rather
+        # than passed on the command line.
+        #
+        # This is the shell recipe's hardest-won detail and the reason
+        # this phase exists at all. A make command-line assignment has
+        # the highest precedence of all and cannot be appended to, so
+        # passing CPPFLAGS there silently discards the Makefile's own
+        #
+        #   CPPFLAGS += -DCBS_VERSION=\"$(CBS_VERSION)\"
+        #
+        # and src/main.c falls through to `#define CBS_VERSION
+        # "unknown"`. That is why `cbs --version` said `cbs unknown`
+        # through revisions -3 to -7 of the shell recipe: the version
+        # was being computed and thrown away.
+        #
+        # Anchored on the CBS_VERSION line, and `exactly 1`, so that if
+        # upstream moves or renames it the edit fails loudly here
+        # rather than producing a binary that builds and reports the
+        # wrong version. The shell recipe relies on a sed that matches
+        # nothing failing later at zstd.h; CPDL can simply insist.
+        #
+        replace "${src}/cbs/cix-build-system/Makefile" {
+            from "CPPFLAGS += -DCBS_VERSION=\\\"$(CBS_VERSION)\\\""
+            to "CPPFLAGS += -DCBS_VERSION=\\\"$(CBS_VERSION)\\\"\nCPPFLAGS += -DZSTD_DISABLE_DEPRECATE_WARNINGS"
+            exactly 1
+        }
+    }
+
+    build {
+        # CC=tcc explicitly, never a bare cc: the build sandbox's
+        # default compiler has silently become real GCC before (#109),
+        # and a build system compiled by the wrong compiler is the least
+        # useful place for that to go unnoticed.
+        cd "${src}/cbs/cix-build-system" {
+            run "make" {
+                env "CC" = "tcc"
+                jobs $jobs
+            }
+        }
+    }
+
+    check {
+        # The whole upstream suite, as a real gate -- restored to the
+        # plain form every cbs revision before v0.1.27-1 had.
+        #
+        # v0.1.27-1's check carried five build cycles of scaffolding
+        # after ./tests/archive-test failed under `make test` while
+        # passing standalone, printing nothing either way. That is
+        # cix-build-system#180, and this release carries its fix:
+        # "make archive-test report which check failed". So the
+        # scaffolding is gone -- if the test fails now it says which
+        # assertion, which is what the issue asked for and what makes a
+        # diagnostic revision unnecessary.
+        cd "${src}/cbs/cix-build-system" {
+            run "make" {
+                "test"
+                env "CC" = "tcc"
+                env "CBS_UPSTREAM_CACHE" = "${build}/cbscache"
+                env "TMPDIR" = "/run"
+                jobs $jobs
+            }
+            # It runs, and it knows its own version.
+            run "./cbs" {
+                "--version"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" chmod 0755
+        copy "${src}/cbs/cix-build-system/cbs" to "${dest}/usr/bin/cbs"
+        require file "${dest}/usr/bin/cbs" {
+            exists
+        }
+    }
+}

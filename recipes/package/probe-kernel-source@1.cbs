@@ -1,0 +1,71 @@
+#
+# probe-kernel-source -- the exact bytes kernel@7.2.3-16's edits anchor
+# on, measured in the pinned linux-7.2.3 source, for its CPDL
+# conversion: the count of each awk insertion anchor, the tail of
+# fs/btrfs/qgroup.c (the shell form appends to it with cat >>, and CPDL
+# has no append, so the conversion inserts after its last line), and
+# merge_config.sh's interpreter line (the shell form ran it through
+# bash, which a CPDL run may not name). Also whether the regulatory
+# database the config embeds is present in a composed environment with
+# wireless-regdb. Compiles nothing; fails on purpose.
+#
+package "probe-kernel-source" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.3.tar.xz"
+            sha256 "8ba259e8e7b13ec6ef0941c8a39ad90b24bd4a4d6c0010ba6bafb794550ecd03"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "gawk"
+            tool "grep"
+            tool "wireless-regdb"
+        }
+    }
+
+    metadata {
+        "changelog" "1: anchors, qgroup.c tail and merge_config.sh interpreter in linux-7.2.3, for kernel's CPDL conversion."
+    }
+
+    build {
+        cd "${src}/linux/linux-7.2.3" {
+            run "awk" {
+                """
+                FILENAME == "fs/btrfs/qgroup.h" && $0 == "bool btrfs_qgroup_enabled(const struct btrfs_fs_info *fs_info);" { a++ }
+                FILENAME == "fs/btrfs/super.c" && $0 == "\tmemcpy(&buf->f_fsid, &f_fsid, sizeof(f_fsid));" { b++ }
+                END { printf "qgroup.h anchor: %d\nsuper.c anchor: %d\n", a, b }
+                """
+                "fs/btrfs/qgroup.h" "fs/btrfs/super.c"
+            }
+            run "tail" {
+                "-n" "8" "fs/btrfs/qgroup.c"
+            }
+            run "tail" {
+                "-c" "120" "fs/btrfs/qgroup.c"
+            }
+            run "head" {
+                "-n" "3" "scripts/kconfig/merge_config.sh"
+            }
+            run "grep" {
+                "-c" "find_qgroup_rb" "fs/btrfs/qgroup.c"
+            }
+        }
+        run "ls" {
+            "-la" "/lib/firmware/regulatory.db" "/lib/firmware/regulatory.db.p7s"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-kernel-source"
+    }
+}
