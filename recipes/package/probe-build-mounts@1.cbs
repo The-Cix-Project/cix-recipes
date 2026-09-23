@@ -1,0 +1,69 @@
+#
+# probe-build-mounts -- what each directory inside a build container
+# is backed by, measured from inside one on the box.
+#
+# Asked by probe-cix-testreport@7 and @8 (192.168.15.95, 2026-09-23):
+# the memory cgroup /cix-workload/cix-pkgbuild (limit 2 GiB) filled
+# with 2,081,173,504 bytes of shmem against 35,639,296 of anon, and the
+# kernel's OOM killer took the nested cixd and then cbs. The test data
+# directories live on /run, which is tmpfs and charged to that cgroup,
+# and they cannot move to the overlay root (overlay-on-overlay is
+# refused, #224). The question this answers is whether the build
+# directory is something else: a disk-backed mount a test daemon could
+# stack its containers on.
+#
+# Prints the mount table and each candidate's usage, then fails on
+# purpose so nothing is published; read it with `pkg build-logs`.
+#
+package "probe-build-mounts" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        # Any small archive will do; this one is already cached and its
+        # hash measured (probe-cix-tarball@21).
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.256.tar.gz"
+            sha256 "3d7923c4668069afbe188e134bb02e24e1485c23b479bc4dae6967079885ef1a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the mount table and usage inside a build container, to find a disk-backed, non-overlay place for test data."
+    }
+
+    # As the test runs have it, so the answer is about the same shape
+    # of container.
+    capability "CAP_SYS_ADMIN"
+
+    build {
+        run "cat" {
+            "/proc/self/mountinfo"
+        }
+        run "df" {
+            "-T"
+            "/"
+            "/run"
+            "/tmp"
+            "${src}"
+            "${build}"
+        }
+        run "pwd" {
+        }
+        # Fail on purpose: the answer is in the log, not in an artifact.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-build-mounts"
+    }
+}
