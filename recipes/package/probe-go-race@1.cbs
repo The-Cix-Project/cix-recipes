@@ -1,0 +1,69 @@
+#
+# probe-go-race -- whether the INSTALLED go builds and runs a -race
+# program. go@1.24.9-3's own gate proves it against the tree before the
+# finalize policy strips it; this proves it against the shipped package,
+# after strip --strip-unneeded has run over race_linux.syso. Fails on
+# purpose, so nothing is published.
+#
+package "probe-go-race" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    # Unused; a recipe needs one source, and this one is already
+    # cached on the box.
+    sources {
+        main "go" {
+            url "https://dl.google.com/go/go1.24.9.src.tar.gz"
+            sha256 "c72f81ba54fe00efe7f3e7499d400979246881b13b775e9a9bb85541c11be695"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "go"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "cgo, and so -race, needs a GCC-compatible driver"
+    }
+
+    metadata {
+        "changelog" "1: builds and runs a -race program with the installed go, after the finalize policy's strip."
+    }
+
+    build {
+        mkdir "${build}/gotmp"
+        write "${build}/race.go" """
+            package main
+
+            import "os"
+
+            func main() { os.Exit(7) }
+            """
+        run "/usr/lib/go/bin/go" {
+            "version"
+        }
+        run "/usr/lib/go/bin/go" {
+            "build" "-race" "-o" "${build}/race" "${build}/race.go"
+            env "CGO_ENABLED" = "1"
+            env "CC" = "/usr/bin/gcc"
+            env "TMPDIR" = "${build}/gotmp"
+            env "HOME" = "${build}"
+        }
+        run "${build}/race" {
+            expect exit 7
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-go-race"
+    }
+}

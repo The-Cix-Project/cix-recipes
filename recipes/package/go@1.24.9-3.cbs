@@ -1,0 +1,214 @@
+#
+# go -- the FINAL stage of the Go bootstrap (#261), in CPDL.
+#
+# 1.24.9-3 keeps the linux/amd64 race runtimes that 1.24.9-2 deleted.
+#
+# 1.24.9-2 is 1.24.9-1 converted to CPDL (ADR-0309): the same source,
+# the same bootstrap assertion, the same two gates. The chain, and why
+# each link is the newest release its predecessor may build, is in
+# go@1.24.9-1.sh:
+#
+#   go-bootstrap 1.4 (C, gcc) -> 1.19.13 -> 1.20.14 -> 1.22.12 -> 1.24.x
+#
+# This stage declares `go` as its own build tool and is compiled by
+# whatever Go is installed, which the platform supports on purpose
+# (#166); the recipe asserts that bootstrap is new enough rather than
+# trusting the composer to have picked one.
+#
+# Changes of form: the scratch directories move from /run to ${build},
+# because a CPDL recipe writes only inside its own roots, and the
+# version check's case pattern becomes a grep -E over the captured
+# `go version`. One change of content: every src testdata directory is
+# removed before the package ships (cix#512), and so is every .syso
+# object for another platform except the linux/amd64 race runtimes
+# (see the install block).
+#
+package "go" {
+    version "1.24.9"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "go" {
+            url "https://dl.google.com/go/go1.24.9.src.tar.gz"
+            sha256 "c72f81ba54fe00efe7f3e7499d400979246881b13b775e9a9bb85541c11be695"
+        }
+    }
+
+    requires {
+        build {
+            # make.bash links real executables with the system C
+            # toolchain even with cgo off, and this stage enables cgo.
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            # The previous Go, the one that compiles this one.
+            tool "go"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "Go's own build links with the system C toolchain, and its cgo support is defined in terms of a GCC-compatible driver; TCC is not a substitute for a language toolchain's own linker expectations"
+    }
+
+    metadata {
+        "artifact_sha256" "9179d7d2e7130bc882450140254df2e2b806842eb6b1a794121cd4acf32b82a1"
+        "changelog" "1.24.9-3: keeps the linux/amd64 race runtimes (race/internal/amd64v{1,3}/race_linux.syso), which -2 deleted with the other ports' .syso objects, and a gate builds and runs a -race program. 1.24.9-2: converted to CPDL (ADR-0309), same source and gates; testdata and foreign .syso removed (cix#512). Full history: go@1.24.9-1.sh."
+    }
+
+    build {
+        # The bootstrap: go1.22.6 or later is what 1.24 requires, and it
+        # is asserted rather than trusted.
+        run "/usr/lib/go/bin/go" {
+            "version"
+            stdout file "${build}/bootstrap.version"
+        }
+        run "cat" {
+            "${build}/bootstrap.version"
+        }
+        run "grep" {
+            "-qE" "go1[.]2[2-9]"
+            "${build}/bootstrap.version"
+        }
+
+        # This platform's images have neither /tmp nor /var/tmp, and
+        # Go's tooling reaches for one.
+        mkdir "${build}/gotmp"
+        mkdir "${build}/gochk"
+
+        cd "${src}/go/go/src" {
+            run "${src}/go/go/src/make.bash" {
+                env "TMPDIR" = "${build}/gotmp"
+                # Go requires a build cache and finds it under $HOME.
+                env "HOME" = "${build}"
+                env "GOROOT_BOOTSTRAP" = "/usr/lib/go"
+                env "GOROOT_FINAL" = "/usr/lib/go"
+                env "CGO_ENABLED" = "1"
+                env "GOOS" = "linux"
+                env "GOARCH" = "amd64"
+            }
+        }
+
+        # Gate: identify itself, then compile and run something. GOROOT
+        # is the build tree, not GOROOT_FINAL: the binaries were told
+        # where they WILL live, and install has not put them there yet.
+        run "${src}/go/go/bin/go" {
+            "version"
+            env "GOROOT" = "${src}/go/go"
+            expect {
+                stdout contains "go1.24.9"
+            }
+        }
+        write "${build}/gochk/hello.go" """
+            package main
+
+            import "os"
+
+            func main() { os.Exit(7) }
+            """
+        run "${src}/go/go/bin/go" {
+            "build" "-o" "${build}/gochk/hello" "${build}/gochk/hello.go"
+            env "GOROOT" = "${src}/go/go"
+            env "TMPDIR" = "${build}/gotmp"
+            env "HOME" = "${build}"
+        }
+        run "${build}/gochk/hello" {
+            expect exit 7
+        }
+
+        # And a cgo program, the reason this chain exists: gitea and
+        # glauth link a C sqlite amalgamation, so a Go that cannot do
+        # cgo would pass everything above and fail both at the far end
+        # of a long build.
+        write "${build}/gochk/cgohello.go" """
+            package main
+
+            /*
+            #include <stdlib.h>
+            static int seven(void) { return 7; }
+            */
+            import "C"
+
+            import "os"
+
+            func main() { os.Exit(int(C.seven())) }
+            """
+        run "${src}/go/go/bin/go" {
+            "build" "-o" "${build}/gochk/cgohello" "${build}/gochk/cgohello.go"
+            env "GOROOT" = "${src}/go/go"
+            env "CGO_ENABLED" = "1"
+            env "CC" = "/usr/bin/gcc"
+            env "TMPDIR" = "${build}/gotmp"
+            env "HOME" = "${build}"
+        }
+        run "${build}/gochk/cgohello" {
+            expect exit 7
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib/go"
+        mkdir "${dest}/usr/bin"
+        copy tree "${src}/go/go/bin" to "${dest}/usr/lib/go/bin"
+        copy tree "${src}/go/go/pkg" to "${dest}/usr/lib/go/pkg"
+        copy tree "${src}/go/go/src" to "${dest}/usr/lib/go/src"
+        copy tree "${src}/go/go/lib" to "${dest}/usr/lib/go/lib"
+        copy tree "${src}/go/go/api" to "${dest}/usr/lib/go/api"
+        copy "${src}/go/go/VERSION" to "${dest}/usr/lib/go/VERSION"
+
+        # On PATH, unlike stage 1: this is a real Go, and later stages,
+        # gitea and glauth invoke it as `go`.
+        symlink "../lib/go/bin/go" to "${dest}/usr/bin/go"
+        symlink "../lib/go/bin/gofmt" to "${dest}/usr/bin/gofmt"
+
+        # The shell form's `rm -rf .../pkg/obj` is not carried over:
+        # with HOME set the build cache is ${build}/.cache/go-build, and
+        # 192.168.15.95 measured (2026-09-24) that make.bash leaves no
+        # pkg/obj at all -- the removal failed on the missing path.
+        #
+        # EVERY testdata directory goes, as in go-bootstrap@1.4-8: they
+        # are `go test std` fixtures, including foreign-architecture
+        # objects the finalize policy cannot strip and a
+        # src/debug/elf/testdata/libtiffxx.so_ linking libtiff.so.6,
+        # which the undeclared-link gate rejects (cix#512). Nothing that
+        # builds with this Go runs the standard library's tests.
+        remove tree glob "${dest}/usr/lib/go/src/**/testdata" allow_failure
+
+        # And every prebuilt .syso object for a platform other than this
+        # one. Go ships them for every port (BoringCrypto, the race
+        # runtime), and the finalize policy's strip cannot read a foreign
+        # one: 192.168.15.95 rejected this revision on
+        # src/crypto/internal/boring/syso/goboringcrypto_linux_arm64.syso
+        # (2026-09-24). This Go only ever links for linux/amd64, so the
+        # linux/amd64 objects stay -- and not all of them say so in their
+        # name: the race runtime is race/internal/amd64v1/race_linux.syso
+        # and amd64v3/race_linux.syso. -2 matched on "linux_amd64" alone
+        # and deleted both (its build log lists them), breaking -race.
+        # -print logs each one removed.
+        run "find" {
+            "${dest}/usr/lib/go/src"
+            "-name" "*.syso" "!" "-name" "*linux_amd64*"
+            "!" "-path" "*/race/internal/amd64v*/race_linux.syso"
+            "-print" "-delete"
+        }
+
+        # Gate: the shipped tree, not the build tree, builds and runs a
+        # -race program -- the thing -2 lost without any gate noticing.
+        run "${dest}/usr/lib/go/bin/go" {
+            "build" "-race" "-o" "${build}/gochk/racehello" "${build}/gochk/hello.go"
+            env "GOROOT" = "${dest}/usr/lib/go"
+            env "CGO_ENABLED" = "1"
+            env "CC" = "/usr/bin/gcc"
+            env "TMPDIR" = "${build}/gotmp"
+            env "HOME" = "${build}"
+        }
+        run "${build}/gochk/racehello" {
+            expect exit 7
+        }
+    }
+}
