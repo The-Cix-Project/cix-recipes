@@ -92,6 +92,7 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256" "2930eae0cee59b02f4ba3b258c562d31a418ff059d560006f92127ecd0090324"
         "changelog" "7.2.3-17: converted to CPDL (ADR-0309). Same source, fragment, btrfs statfs patch (ADR-0286), olddefconfig gate and build. A kmod-build's symbols arrive as the CBS input kmod_extra (cix#517, cbs#231); the gcc syslimits.h workaround is gone (gcc 16.2 has none to fix); the patch uses exact-count edits measured in the pinned source. Full history: kernel@7.2.3-16.sh."
     }
 

@@ -1,0 +1,175 @@
+#
+# probe-cix-testreport -- cix-tests reduced to named tests, for
+# diagnosing one failure without a full 25-minute suite run.
+#
+package "probe-cix-testreport" {
+    version "15"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.265.tar.gz"
+            sha256 "cc8e19301f84e31a4ee2b796d34c0404dfb934aa295c165349d5a87f27f35dd8"
+        }
+        # The six boot tests need build-inputs/bzImage, an INPUT that
+        # make does not produce (#191). Taken from a kernel artifact a
+        # Cix host already built. Only bzImage is extracted: every
+        # kernel artifact also carries lib/modules/<ver>/build, a symlink
+        # out of the archive that extract rightly refuses, and naming
+        # the member (cbs v0.1.53, cix-build-system#230) never touches it.
+        extra "kernel" {
+            url "http://192.168.15.31:8080/kernel-6.18.40-20-x86_64.tar.gz"
+            sha256 "1a929babcf2654cc45d9d47197f0a003b6660573cecf9ae0ce930edcf8b6ab4f"
+        }
+        # The five floor artifacts the package tests seed from
+        # (ADR-0209). Versions are pinned by the fixture's own table in
+        # test/test_image_fixture.c, not chosen here.
+        extra "bash" {
+            url "http://192.168.15.31:8080/bash-5.2.37-2-x86_64.tar.gz"
+            sha256 "47f08a7eac65b59ce6e6a211ffcf77545993f4b5c52c094dbd79ec367f08bd14"
+        }
+        extra "coreutils" {
+            url "http://192.168.15.31:8080/coreutils-9.11-3-x86_64.tar.gz"
+            sha256 "f040e943e222849b9b8b405c16d1abeebf238544c9905328173c2f3ad4fb1009"
+        }
+        extra "tcc" {
+            url "http://192.168.15.31:8080/tcc-0.9.27-7-x86_64.tar.gz"
+            sha256 "2e9095069725a251dcecadddc89e179f08627728ff13d376510a854e0e6de26d"
+        }
+        extra "glibc" {
+            url "http://192.168.15.31:8080/glibc-2.44-12.tar.gz"
+            sha256 "6ea13d0c3e998e3e123475cb4ffaadb71a6e028481bc688adea8a20a1365afdd"
+        }
+        extra "linuxheaders" {
+            url "http://192.168.15.31:8080/linux-headers-6.18.40-4-x86_64.tar.gz"
+            sha256 "5cd03e3376c4640bd7a05b578855935ca6ae880a6c6cfe6e516e914ea880e315"
+        }
+        extra "zlib" {
+            url "http://192.168.15.31:8080/zlib-1.3.2-11-x86_64.tar.gz"
+            sha256 "c79f66f9ce3aa84236b46c9001eb617ac9d57fbd9c263ebb023e9581af38e284"
+        }
+        extra "flex" {
+            url "http://192.168.15.31:8080/flex-2.6.4-2-x86_64.tar.gz"
+            sha256 "956c62c65e3befad1c725c98032cd63aa7e167598a7be3e12ffaaace155fe6bd"
+        }
+        extra "binutils" {
+            url "http://192.168.15.31:8080/binutils-2.42-10-x86_64.tar.gz"
+            sha256 "23f6cc2b007bb58dcb105f1ef390caaee81cf6c36b0c50150e415d0f66d4d73e"
+        }
+        # The recipe corpus, pinned to a commit. The fixture verifies
+        # each floor artifact against the checksum in its own recipe,
+        # read from $CIX_RECIPES_DIR (test_recipes_root()); release 3
+        # had no corpus, and five package tests failed with "could not
+        # seed the build floor". Hash measured on the box by
+        # probe-cix-tarball@10.
+        extra "recipes" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/982a387f0e322738fa5a8d6b9a115a76857a4907.tar.gz"
+            sha256 "3abae63080b80c4f497af09a3b415bfd74bbb186f1a81855d42eead91f522766"
+        }
+    }
+
+    requires {
+        # A composed build environment holds at most 32 packages
+        # (PKG_BUILDENV_MAX_TOOLS, daemon/src/pkg.c), counted over the
+        # declared tools, their runtime dependencies, and the implicit
+        # glibc and cbs. Release 1 declared the shell recipe's list and
+        # was refused: "more than 32 packages in the composed build
+        # environment". This set is exactly 32, counted from each
+        # recipe's runtime dependencies on 2026-09-23.
+        build {
+            # What `make all` needs: the cix recipe's own set
+            # (cix@v2.57.244-6), since cixd links libarchive and curl
+            # and the build runs quickjs and gcc.
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "tar"
+            tool "gzip"
+            tool "binutils"
+            tool "openssl"
+            tool "libarchive"
+            tool "curl"
+            tool "quickjs"
+            tool "gcc"
+            # What the tests exec at RUN time, by how often the tests
+            # and the daemon they start name them: sfdisk (util-linux),
+            # mksquashfs, mkfs.ext4 and mkfs.btrfs. Anything else a test
+            # needs and does not find is reported as that test's FAIL.
+            tool "util-linux"
+            tool "squashfs-tools"
+            tool "e2fsprogs"
+            tool "btrfs-progs"
+            # awk and diff: test_diskpart and test_pkg_concurrent_stress
+            # shell out to them, and the daemon refuses a build whose shell
+            # reported a missing command (#302) -- release 4 ran the whole
+            # suite and was refused for exactly that. minisign is dropped
+            # to make room: releasekey.c implements the format itself and
+            # nothing execs the binary.
+            tool "gawk"
+            tool "diffutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
+        "changelog" "15: cix v2.57.265, whose kmod-build passes its extra symbols to CBS as the input kmod_extra (cix#517): test_kmod_build must pass. Its fixture kernel recipe is CPDL and reads that input."
+    }
+
+    capability "CAP_SYS_ADMIN"
+
+    prepare {
+        mkdir "${src}/cix/cix/build-inputs"
+        mkdir "${build}/kernel"
+        extract $source.kernel into "${build}/kernel" {
+            member "bzImage"
+        }
+        copy "${build}/kernel/bzImage" to "${src}/cix/cix/build-inputs/bzImage"
+
+        # Unstamped names on disk, because that is what the fixture's
+        # table looks for.
+        mkdir "${src}/cix/cix/build-inputs/floor-artifacts"
+        materialize $source.bash to "${src}/cix/cix/build-inputs/floor-artifacts/bash-5.2.37-2.tar.gz"
+        materialize $source.coreutils to "${src}/cix/cix/build-inputs/floor-artifacts/coreutils-9.11-3.tar.gz"
+        materialize $source.tcc to "${src}/cix/cix/build-inputs/floor-artifacts/tcc-0.9.27-7.tar.gz"
+        materialize $source.glibc to "${src}/cix/cix/build-inputs/floor-artifacts/glibc-2.44-12.tar.gz"
+        materialize $source.linuxheaders to "${src}/cix/cix/build-inputs/floor-artifacts/linux-headers-6.18.40-4.tar.gz"
+        materialize $source.zlib to "${src}/cix/cix/build-inputs/floor-artifacts/zlib-1.3.2-11.tar.gz"
+        materialize $source.flex to "${src}/cix/cix/build-inputs/floor-artifacts/flex-2.6.4-2.tar.gz"
+        materialize $source.binutils to "${src}/cix/cix/build-inputs/floor-artifacts/binutils-2.42-10.tar.gz"
+
+        extract $source.recipes into "${src}" as "cix-recipes"
+        require directory "${src}/cix-recipes/recipes/package" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/cix/cix" {
+            # Serial, like the shell recipe: the suite forks daemons on
+            # fixed ports, and a conversion's job is to be equivalent.
+            run "make" {
+                "CIX_VERSION=v2.57.265"
+                "TESTREPORT_TAIL=150"
+                "TESTREPORT_TIMEOUT=900"
+                "TESTREPORT_ONLY=test_kmod_build"
+                "testreport"
+                env "CIX_RECIPES_DIR" = "${src}/cix-recipes/recipes"
+            }
+        }
+    }
+
+    install {
+        # The per-test logs, and nothing else. No test binary is
+        # installed: that would add attack surface to every host to
+        # serve a job only a test host has. An empty staged tree is
+        # refused ("cannot write CIXPKG output", release 3), and the
+        # logs are the thing worth keeping from a run anyway.
+        mkdir "${dest}/usr/share/cix-tests"
+        copy tree "${src}/cix/cix/build/testreport" to "${dest}/usr/share/cix-tests/testreport"
+    }
+}
