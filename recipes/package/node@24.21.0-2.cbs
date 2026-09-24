@@ -1,0 +1,146 @@
+#
+# node -- Node.js 24.x LTS (Krypton), built from source with Cix's own
+# gcc, in CPDL. The JavaScript runtime the agent CLIs need. No prebuilt
+# binary enters it: V8 and every bundled dependency compile here (Build
+# Provenance Mandate).
+#
+# 24.21.0-2 is 24.21.0-1 converted to CPDL (ADR-0309). node@24.21.0-1.sh
+# was never built (it has no artifact checksum and 192.168.15.95 kept no
+# log of it), so this is its first build as well as its conversion.
+#
+# Same configure: --with-intl=small-icu (Node's bundled ICU, nothing
+# fetched), --without-corepack, and --partly-static, which links libgcc
+# and libstdc++ into the binary so it needs glibc alone. Same install
+# trimming. Two changes of form and one addition:
+#
+# - -j1 where the shell form said -j2. The build cgroup has one CPU of
+#   quota (GET /v1/system/pkg-build-config), so a second job adds no CPU
+#   and doubles the peak memory of a V8 compile.
+#
+#   V8's largest translation units do NOT fit the 2 GiB memory_max that
+#   cgroup carried by default. Measured on 192.168.15.95, 2026-09-24:
+#   the first attempt sat on
+#   v8_base_without_compiler/.../maglev/maglev-graph-builder.o for 75
+#   minutes, and a 30-second sample of GET /v1/system/stats attributed
+#   1.4 CPU-seconds to user, 13 to system and 18 to iowait -- memcg
+#   reclaim, not compilation, on a box with no swap. It was cancelled.
+#   A raised memory_max applies only from the NEXT build (the endpoint
+#   says so), so a running build cannot be rescued by changing it.
+# - TMPDIR and HOME point into the build directory rather than /run,
+#   because a CPDL recipe writes only inside its own roots.
+# - The built node runs JavaScript before it ships, and npm reports its
+#   version -- the shell form checked neither.
+#
+package "node" {
+    version "24.21.0"
+    release 2
+    format "cixpkg"
+
+    sources {
+        # nodejs.org's own release tarball, checksum cross-checked
+        # against nodejs.org's SHASUMS256.txt for v24.21.0.
+        main "node" {
+            url "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.gz"
+            sha256 "622424efb5dc0c26c93fbb619ff10737ee289c605b837c88778e186925d82777"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "binutils"
+            # configure is a Python program.
+            tool "python"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "Node.js is C++ (V8); its configure and build assume a GCC/Clang-compatible driver and its own bundled deps compile with the system C++ toolchain -- TCC is not a language runtime's toolchain (same basis as go/gcc/kernel)."
+    }
+
+    metadata {
+        "changelog" "24.21.0-2: converted to CPDL (ADR-0309), and its first build: 24.21.0-1.sh was never built. Same configure (small-icu, no corepack, partly-static) and install trimming; -j1 against the one-CPU build cgroup (V8 needs more than its default 2 GiB memory_max -- measured); the built node runs JavaScript and npm reports its version before the package ships."
+    }
+
+    configure {
+        mkdir "${build}/nodetmp"
+        cd "${src}/node/node-v24.21.0" {
+            run "${src}/node/node-v24.21.0/configure" {
+                "--prefix=/usr"
+                "--with-intl=small-icu"
+                "--without-corepack"
+                "--partly-static"
+                env "TMPDIR" = "${build}/nodetmp"
+                env "HOME" = "${build}"
+            }
+        }
+    }
+
+    build {
+        cd "${src}/node/node-v24.21.0" {
+            run "make" {
+                "-j1"
+                jobs 1
+                env "TMPDIR" = "${build}/nodetmp"
+                env "HOME" = "${build}"
+            }
+        }
+        run "${src}/node/node-v24.21.0/out/Release/node" {
+            "--version"
+            expect {
+                stdout contains "v24.21.0"
+            }
+        }
+        run "${src}/node/node-v24.21.0/out/Release/node" {
+            "-e" "console.log(6 * 7)"
+            expect {
+                stdout contains "42"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/node/node-v24.21.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                env "TMPDIR" = "${build}/nodetmp"
+                env "HOME" = "${build}"
+            }
+        }
+        # What a runtime image never needs: node's own headers, the man
+        # pages, and the npm tree's bundled test corpora. node, npm, npx
+        # and the npm library tree stay (claude-code installs through
+        # npm).
+        run "rm" {
+            "-rf"
+            "${dest}/usr/include/node"
+            "${dest}/usr/share/man"
+            "${dest}/usr/share/doc"
+        }
+        run "find" {
+            "${dest}/usr/lib/node_modules"
+            "-type" "d" "-name" "test" "-prune"
+            "-exec" "rm" "-rf" "{}" "+"
+        }
+        require file "${dest}/usr/bin/node" {
+            exists
+            executable
+        }
+        run "${dest}/usr/bin/node" {
+            "${dest}/usr/lib/node_modules/npm/bin/npm-cli.js" "--version"
+            env "HOME" = "${build}"
+            expect {
+                stdout contains "."
+            }
+        }
+    }
+}
