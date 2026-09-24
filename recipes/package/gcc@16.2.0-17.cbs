@@ -91,6 +91,10 @@ package "gcc" {
             tool "diffutils"
             tool "m4"
             tool "findutils"
+            # gmp and mpfr are .tar.bz2, and CBS extracts bzip2 through
+            # the bzip2 program: without it, prepare fails with `unable to
+            # run program "bzip2 -d"` (192.168.15.95, 2026-09-24).
+            tool "bzip2"
             tool "zlib"
             tool "linux-headers"
         }
@@ -107,7 +111,8 @@ package "gcc" {
     }
 
     metadata {
-        "changelog" "16.2.0-17: converted to CPDL (ADR-0309). Same sources, configure, make bootstrap with GCC's own stage 2/3 comparison, self-tests and install layout. gmp/mpfr/mpc are extracted by CBS rather than the #122-era tar workaround; the shebang watcher is gone (CONFIG_BINFMT_SCRIPT, #114); -j1 against the 2 GiB, one-CPU build cgroup. Full history: gcc@16.2.0-16.sh."
+        "artifact_sha256" "cd8be7df35f827eaeef5d21a0b7b5bf57f37980c3052af41e1e80986e7956421"
+        "changelog" "16.2.0-17: converted to CPDL (ADR-0309). Same sources, configure, make bootstrap with GCC's own stage 2/3 comparison, self-tests and install layout. gmp/mpfr/mpc are extracted by CBS (which needs bzip2 declared) rather than the #122-era tar workaround; c++ becomes a relative symlink to g++, since CIXPKG carries no hard links; the shebang watcher is gone (CONFIG_BINFMT_SCRIPT, #114); -j1 against the 2 GiB, one-CPU build cgroup. Full history: gcc@16.2.0-16.sh."
     }
 
     prepare {
@@ -298,6 +303,27 @@ package "gcc" {
             "${dest}/usr/libexec/gcc/x86_64-pc-linux-gnu/16.2.0/install-tools"
             "${dest}/usr/lib/gcc/x86_64-pc-linux-gnu/16.2.0/plugin"
             "${dest}/usr/lib/gcc/x86_64-pc-linux-gnu/16.2.0/install-tools"
+        }
+
+        # CIXPKG carries no hard links, and gcc's install makes one the
+        # deletion above does not reach: `( cd .../usr/bin && ln g++ c++ )`,
+        # no -s, straight out of gcc/Makefile. Everything else it
+        # hard-links is triplet-prefixed and already gone, so this pair
+        # is the whole of it -- measured by grepping every `ln A B` in
+        # the install log of build 1790227523 on 192.168.15.95,
+        # 2026-09-24, the build this refused: "usr/bin/g++ is a hard link
+        # (link count 2); CIXPKG entries must have exactly one link".
+        #
+        # c++ becomes a relative symlink to g++, as binutils' ld and
+        # glibc's getconf already do. Relative because cbs_manifest's
+        # safe_link_target() rejects an absolute target as firmly as it
+        # rejects a hard link, and an image copies files in one at a time
+        # -- the hard link never survived installation anyway, so this
+        # ships one driver rather than two copies of it.
+        remove "${dest}/usr/bin/c++"
+        symlink "g++" to "${dest}/usr/bin/c++"
+        require symlink "${dest}/usr/bin/c++" {
+            exists
         }
 
         # The runtime libraries on the loader's search path, in /usr/lib
