@@ -13,10 +13,12 @@
 # (#166); the recipe asserts that bootstrap is new enough rather than
 # trusting the composer to have picked one.
 #
-# The only changes of form: the scratch directories move from /run to
-# ${build}, because a CPDL recipe writes only inside its own roots, and
-# the version check's case pattern becomes a grep -E over the captured
-# `go version`.
+# Changes of form: the scratch directories move from /run to ${build},
+# because a CPDL recipe writes only inside its own roots, and the
+# version check's case pattern becomes a grep -E over the captured
+# `go version`. One change of content: every src testdata directory is
+# removed before the package ships (cix#512), and so is every .syso
+# object for another platform (see the install block).
 #
 package "go" {
     version "1.24.9"
@@ -41,6 +43,7 @@ package "go" {
             tool "sed"
             tool "grep"
             tool "gawk"
+            tool "findutils"
             # The previous Go, the one that compiles this one.
             tool "go"
         }
@@ -51,7 +54,8 @@ package "go" {
     }
 
     metadata {
-        "changelog" "1.24.9-2: converted to CPDL (ADR-0309). Same source, same bootstrap assertion (go1.22 or later), same gates: the built go reports go1.24.9, compiles and runs a pure Go program, and compiles and runs a cgo program -- gitea and glauth are Go with cgo. Scratch directories move from /run to the build directory. Full history: go@1.24.9-1.sh."
+        "artifact_sha256" "39fda419647297c4845e7ffb963feb193d12872c8ff734947be8245c99e506f8"
+        "changelog" "1.24.9-2: converted to CPDL (ADR-0309). Same source, same bootstrap assertion (go1.22 or later), same gates: the built go reports go1.24.9, compiles and runs a pure Go program, and compiles and runs a cgo program -- gitea and glauth are Go with cgo. Scratch directories move from /run to the build directory; every src testdata directory and every foreign-platform .syso is removed (cix#512). Full history: go@1.24.9-1.sh."
     }
 
     build {
@@ -77,6 +81,8 @@ package "go" {
         cd "${src}/go/go/src" {
             run "${src}/go/go/src/make.bash" {
                 env "TMPDIR" = "${build}/gotmp"
+                # Go requires a build cache and finds it under $HOME.
+                env "HOME" = "${build}"
                 env "GOROOT_BOOTSTRAP" = "/usr/lib/go"
                 env "GOROOT_FINAL" = "/usr/lib/go"
                 env "CGO_ENABLED" = "1"
@@ -157,8 +163,30 @@ package "go" {
         symlink "../lib/go/bin/go" to "${dest}/usr/bin/go"
         symlink "../lib/go/bin/gofmt" to "${dest}/usr/bin/gofmt"
 
-        # The build cache is a large fraction of the tree and nothing
-        # here ever reads it.
-        remove tree "${dest}/usr/lib/go/pkg/obj"
+        # The shell form's `rm -rf .../pkg/obj` is not carried over:
+        # with HOME set the build cache is ${build}/.cache/go-build, and
+        # 192.168.15.95 measured (2026-09-24) that make.bash leaves no
+        # pkg/obj at all -- the removal failed on the missing path.
+        #
+        # EVERY testdata directory goes, as in go-bootstrap@1.4-8: they
+        # are `go test std` fixtures, including foreign-architecture
+        # objects the finalize policy cannot strip and a
+        # src/debug/elf/testdata/libtiffxx.so_ linking libtiff.so.6,
+        # which the undeclared-link gate rejects (cix#512). Nothing that
+        # builds with this Go runs the standard library's tests.
+        remove tree glob "${dest}/usr/lib/go/src/**/testdata" allow_failure
+
+        # And every prebuilt .syso object for a platform other than this
+        # one. Go ships them for every port (BoringCrypto, the race
+        # runtime), and the finalize policy's strip cannot read a foreign
+        # one: 192.168.15.95 rejected this revision on
+        # src/crypto/internal/boring/syso/goboringcrypto_linux_arm64.syso
+        # (2026-09-24). This Go only ever links for linux/amd64, so the
+        # linux_amd64 objects stay. -print logs each one removed.
+        run "find" {
+            "${dest}/usr/lib/go/src"
+            "-name" "*.syso" "!" "-name" "*linux_amd64*"
+            "-print" "-delete"
+        }
     }
 }
