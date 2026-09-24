@@ -1,0 +1,316 @@
+#
+# kernel -- the Linux kernel this platform boots, in CPDL.
+#
+# 7.2.3-17 is 7.2.3-16 converted to CPDL (ADR-0309): the same source,
+# the same kconfig fragment, the same btrfs statfs patch, the same
+# olddefconfig gate and the same bzImage + modules. kernel@7.2.3-16.sh
+# carries the history of every config symbol and gate below -- wireless
+# (#30, #342), FUSE (#336), the boot-critical set (#319), the modular
+# drivers (#346, #347, #353), the regulatory database (#342) -- and
+# ADR-0286 the btrfs patch. The comments here say what each step is.
+#
+# WHAT CHANGED FORM, EACH FROM A MEASUREMENT
+#
+# - A kmod-build's extra symbols arrive as the CBS input "kmod_extra"
+#   (cbs v0.1.54, cix-build-system#231; cixd passes it, cix#517), where
+#   the shell form read /build/extra/kmod-extra.config, which a CPDL
+#   recipe cannot name. `args input` appends it to merge_config.sh only
+#   when cixd supplied one, which is the shell form's `if [ -f ]`.
+#
+# - The syslimits.h correction the shell form wrote into gcc's own
+#   include-fixed/ is gone. gcc 16.2.0 installs no include-fixed/
+#   syslimits.h at all and has PATH_MAX and MB_LEN_MAX right without it
+#   (probe-gcc-limits/3, 2026-09-22), which is why elfutils dropped the
+#   same workaround; on gcc 16.2 the shell form's own `test -d` guard
+#   would have failed. It also wrote outside the build, which CPDL
+#   rightly does not allow.
+#
+# - The btrfs patch is inserted with exact-count edits rather than awk
+#   and `cat >>`. Each anchor was measured once-only in the pinned
+#   source (probe-kernel-source@1-1, 2026-09-23); the function the shell
+#   form appended to qgroup.c goes after that file's last function.
+#
+# - merge_config.sh runs directly: its interpreter line is #!/bin/sh
+#   (same probe), where the shell form named bash.
+#
+# - The =y, =m and absent assertions are CPDL's own `require config`,
+#   which understands "is not set", in place of grep loops.
+#
+package "kernel" {
+    version "7.2.3"
+    release 17
+    format "cixpkg"
+    upstream "kernel.org"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.3.tar.xz"
+            sha256 "8ba259e8e7b13ec6ef0941c8a39ad90b24bd4a4d6c0010ba6bafb794550ecd03"
+        }
+        # The kconfig fragment, pinned to a cix commit by raw URL.
+        extra "config" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/raw/image/kernel/qemu-part1.config?ref=ad52757718a7e6a86434eccc2b473d93fdeb6920"
+            sha256 "a3fda92c6313292c48a4ad98728772aa156ea234bd048ae49811f6f5c171bc46"
+        }
+    }
+
+    requires {
+        build {
+            # Exactly what kernel-builder carries -- the environment
+            # this kernel has built in (#206) -- with wireless-regdb
+            # and perl declared because the build reads them (#482).
+            compiler "gcc"
+            tool "bash"
+            tool "bc"
+            tool "binutils"
+            tool "bison"
+            tool "bzip2"
+            tool "coreutils"
+            tool "diffutils"
+            tool "elfutils"
+            tool "findutils"
+            tool "flex"
+            tool "gawk"
+            tool "glibc"
+            tool "grep"
+            tool "gzip"
+            tool "kmod"
+            tool "m4"
+            tool "make"
+            tool "openssl"
+            tool "perl"
+            tool "sed"
+            tool "tar"
+            tool "wireless-regdb"
+            tool "xz"
+            tool "zlib"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "build system requires GCC internals: the Linux kernel build requires GCC and its extensions throughout"
+    }
+
+    metadata {
+        "changelog" "7.2.3-17: converted to CPDL (ADR-0309). Same source, fragment, btrfs statfs patch (ADR-0286), olddefconfig gate and build. A kmod-build's symbols arrive as the CBS input kmod_extra (cix#517, cbs#231); the gcc syslimits.h workaround is gone (gcc 16.2 has none to fix); the patch uses exact-count edits measured in the pinned source. Full history: kernel@7.2.3-16.sh."
+    }
+
+    prepare {
+        cd "${src}/linux/linux-7.2.3" {
+            # ADR-0286 tier 2 (#452): btrfs statfs() reports a
+            # subvolume's own qgroup limit, so a container sees its own
+            # disk rather than the pool. A no-op wherever no limit is set.
+            insert "fs/btrfs/qgroup.h" {
+                after "bool btrfs_qgroup_enabled(const struct btrfs_fs_info *fs_info);\n"
+                write """
+                    /* Cix ADR-0286: the level-0 qgroup limit of a subvolume, for statfs. */
+                    bool btrfs_qgroup_statfs_limit(struct btrfs_fs_info *fs_info, u64 rootid,
+                    			       u64 *limit, u64 *used);
+                    """
+                exactly 1
+            }
+            insert "fs/btrfs/qgroup.c" {
+                after "\tqgroup_iterator_clean(&qgroup_list);\n\nout:\n\tspin_unlock(&fs_info->qgroup_lock);\n\treturn ret;\n}\n"
+                write """
+
+                    /*
+                     * Cix ADR-0286: report the size limit and current usage of the level-0
+                     * qgroup for @rootid, when one carries a limit.
+                     *
+                     * statfs() on a subvolume describes the whole filesystem, so a
+                     * subvolume with a qgroup limit reports a size and free figure that
+                     * have nothing to do with what it may actually use. This lets statfs
+                     * describe the subvolume the caller asked about, so a container sees
+                     * its own disk rather than the pool. Returns false when quotas are off
+                     * or the qgroup carries no limit, leaving statfs exactly as before.
+                     *
+                     * MAX_EXCL is preferred over MAX_RFER: exclusive bytes are what a
+                     * snapshot-seeded subvolume actually owns; shared extents inherited
+                     * from the image it was cloned from are not its consumption. Cix sets
+                     * exactly MAX_EXCL (cix_btrfs_qgroup_limit_excl), so the common path is
+                     * the first branch.
+                     */
+                    bool btrfs_qgroup_statfs_limit(struct btrfs_fs_info *fs_info, u64 rootid,
+                    			       u64 *limit, u64 *used)
+                    {
+                    	struct btrfs_qgroup *qgroup;
+                    	bool found = false;
+
+                    	if (!btrfs_qgroup_enabled(fs_info))
+                    		return false;
+
+                    	spin_lock(&fs_info->qgroup_lock);
+                    	qgroup = find_qgroup_rb(fs_info, rootid);
+                    	if (qgroup) {
+                    		if (qgroup->lim_flags & BTRFS_QGROUP_LIMIT_MAX_EXCL) {
+                    			*limit = qgroup->max_excl;
+                    			*used = qgroup->excl;
+                    			found = true;
+                    		} else if (qgroup->lim_flags & BTRFS_QGROUP_LIMIT_MAX_RFER) {
+                    			*limit = qgroup->max_rfer;
+                    			*used = qgroup->rfer;
+                    			found = true;
+                    		}
+                    	}
+                    	spin_unlock(&fs_info->qgroup_lock);
+
+                    	return found;
+                    }
+                    """
+                exactly 1
+            }
+            insert "fs/btrfs/super.c" {
+                after "\tmemcpy(&buf->f_fsid, &f_fsid, sizeof(f_fsid));\n"
+                write """
+
+                    	/*
+                    	 * Cix ADR-0286: a subvolume carrying a qgroup limit describes
+                    	 * itself, not the pool it lives in, so a container sees its own
+                    	 * disk. A no-op wherever no limit is set, which is every
+                    	 * filesystem that is not one Cix put a limit on.
+                    	 */
+                    	{
+                    		u64 qlimit, qused;
+
+                    		if (btrfs_qgroup_statfs_limit(fs_info,
+                    				btrfs_root_id(BTRFS_I(d_inode(dentry))->root),
+                    				&qlimit, &qused)) {
+                    			buf->f_blocks = qlimit >> bits;
+                    			buf->f_bfree = (qlimit > qused ? qlimit - qused : 0) >> bits;
+                    			buf->f_bavail = buf->f_bfree;
+                    		}
+                    	}
+                    """
+                exactly 1
+            }
+        }
+        each "f" in { "fs/btrfs/qgroup.h" "fs/btrfs/qgroup.c" "fs/btrfs/super.c" } {
+            require file "${src}/linux/linux-7.2.3/${each.f}" {
+                exists
+                contains "btrfs_qgroup_statfs_limit"
+            }
+        }
+    }
+
+    configure {
+        cd "${src}/linux/linux-7.2.3" {
+            materialize $source.config to "${src}/linux/linux-7.2.3/.config"
+            run "make" {
+                "ARCH=x86_64" "SHELL=/usr/bin/bash" "HOSTCC=/usr/bin/gcc" "CC=/usr/bin/gcc"
+                "allnoconfig"
+            }
+            materialize $source.config to "${build}/qemu-part1.config"
+            # A kmod-build's extra symbols, only when cixd supplied them.
+            run "${src}/linux/linux-7.2.3/scripts/kconfig/merge_config.sh" {
+                "-m" ".config" "${build}/qemu-part1.config"
+                args input "kmod_extra"
+            }
+            run "make" {
+                "ARCH=x86_64" "SHELL=/usr/bin/bash" "HOSTCC=/usr/bin/gcc" "CC=/usr/bin/gcc"
+                "olddefconfig"
+            }
+        }
+
+        # The capabilities this kernel exists for, asserted after
+        # olddefconfig: merge_config warns about a symbol it could not
+        # set and carries on, and olddefconfig drops one whose
+        # dependencies are not met. The boot-critical set (#319) is here
+        # because a kernel without its own NIC or disk driver boots,
+        # is unreachable and never panics, so nothing rolls it back.
+        require config "${src}/linux/linux-7.2.3/.config" {
+            CONFIG_TMPFS_XATTR = y
+            CONFIG_KSM = y
+            CONFIG_ADVISE_SYSCALLS = y
+            CONFIG_HUGETLBFS = y
+            CONFIG_HUGETLB_PAGE = y
+            CONFIG_CGROUP_HUGETLB = y
+            CONFIG_IKCONFIG = y
+            CONFIG_IKCONFIG_PROC = y
+            CONFIG_IP_ADVANCED_ROUTER = y
+            CONFIG_IP_ROUTE_MULTIPATH = y
+            CONFIG_FUSE_FS = y
+            CONFIG_VIRTIO_NET = y
+            CONFIG_VIRTIO_BLK = y
+            CONFIG_VIRTIO_PCI = y
+            CONFIG_SCSI_VIRTIO = y
+            CONFIG_SATA_AHCI = y
+            CONFIG_SCSI_LOWLEVEL = y
+            CONFIG_MEGARAID_SAS = y
+            CONFIG_SCSI_MPT3SAS = y
+            CONFIG_SCSI_SMARTPQI = y
+            CONFIG_SCSI_HPSA = y
+            CONFIG_DEVTMPFS = y
+            CONFIG_DEVTMPFS_MOUNT = y
+            CONFIG_WIRELESS = y
+            CONFIG_CFG80211 = y
+            CONFIG_MAC80211 = y
+            CONFIG_WLAN = y
+            CONFIG_WLAN_VENDOR_REALTEK = y
+            CONFIG_MODULES = y
+            CONFIG_MODULE_UNLOAD = y
+            CONFIG_USB_STORAGE = y
+            CONFIG_USB_UAS = y
+            CONFIG_USB_EHCI_HCD = y
+            CONFIG_USB_XHCI_HCD = y
+            # Deliberately modules (#346, #347): a built-in rtw88 loses
+            # the race to its firmware; a module loads after root.
+            CONFIG_RTW88 = m
+            CONFIG_RTW88_CORE = m
+            CONFIG_RTW88_USB = m
+            CONFIG_RTW88_8822B = m
+            CONFIG_RTW88_8822BU = m
+            CONFIG_DRM_AMDGPU = m
+        }
+        # Forced unload removes a module the kernel says is in use;
+        # refcount-checked unload (CONFIG_MODULE_UNLOAD) is what is wanted.
+        run "grep" {
+            "-q" "^CONFIG_MODULE_FORCE_UNLOAD=y$"
+            "${src}/linux/linux-7.2.3/.config"
+            expect exit 1
+        }
+        # The regulatory database built into the kernel (#342), and the
+        # files it is built from, present where the config says.
+        require file "${src}/linux/linux-7.2.3/.config" {
+            exists
+            contains "\nCONFIG_EXTRA_FIRMWARE=\"regulatory.db regulatory.db.p7s\"\n"
+            contains "\nCONFIG_EXTRA_FIRMWARE_DIR=\"/lib/firmware\"\n"
+        }
+        run "test" {
+            "-f" "/lib/firmware/regulatory.db"
+        }
+        run "test" {
+            "-f" "/lib/firmware/regulatory.db.p7s"
+        }
+    }
+
+    build {
+        # bzImage and modules in ONE make: modpost needs the vmlinux
+        # link's Module.symvers and vmlinux.o still present, which a
+        # separate `make modules` does not reliably see.
+        cd "${src}/linux/linux-7.2.3" {
+            run "make" {
+                "ARCH=x86_64" "SHELL=/usr/bin/bash" "HOSTCC=/usr/bin/gcc" "CC=/usr/bin/gcc"
+                "-j${jobs}" "bzImage" "modules"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        copy "${src}/linux/linux-7.2.3/arch/x86/boot/bzImage" to "${dest}/bzImage"
+        cd "${src}/linux/linux-7.2.3" {
+            run "make" {
+                "ARCH=x86_64" "SHELL=/usr/bin/bash" "HOSTCC=/usr/bin/gcc" "CC=/usr/bin/gcc"
+                "INSTALL_MOD_PATH=${dest}" "modules_install"
+            }
+        }
+        # modules_install runs depmod itself (its log line is
+        # "DEPMOD <dest>/lib/modules/7.2.3", measured on 192.168.15.95,
+        # 2026-09-24), so the shell form's second depmod is not repeated.
+        # 7.2.3 is the release this pinned source and config produce --
+        # the same build logged it -- and the gate fails if that changes.
+        require file "${dest}/lib/modules/7.2.3/modules.dep" {
+            exists
+        }
+    }
+}
