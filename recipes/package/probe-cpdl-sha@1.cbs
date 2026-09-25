@@ -1,0 +1,51 @@
+#
+# probe-cpdl-sha -- can a CPDL recipe answer "what is this tarball's
+# sha256?", the one thing only a shell probe could do (cix#516's fourth
+# checkbox).
+#
+# The shell form declares a deliberately wrong pkg_sha256 and reads
+# computed=<64 hex> out of the daemon's own fetch log, because cixd
+# fetches a shell recipe's source host-side. A PBS recipe's source is
+# fetched by cbs, inside the build container, so the daemon's log is
+# the wrong place to look and the question is whether cbs names the
+# hash it computed anywhere a caller can read.
+#
+# The source is cix v2.57.282, whose real sha256 is
+# 4c5b1dab74a81f936cf8c917c1d18e38416f8e8ee6e32715c72dc6e20a27853f --
+# known independently, from probe-cix-tarball@48. So this probe does
+# not merely ask whether SOME hash is reported: it is checkable against
+# the right answer. Declared as zeroes, which no real artifact has.
+#
+package "probe-cpdl-sha" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.282.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether a CPDL recipe can report a source's real sha256 the way a shell probe does (cix#516)."
+    }
+
+    build {
+        # Never reached: the fetch is the whole probe.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cpdl-sha"
+    }
+}
