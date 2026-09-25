@@ -1,0 +1,52 @@
+#
+# probe-binutils-strip -- does a build environment composed with
+# `tool "binutils"` actually carry strip?
+#
+# The floor pin bump (cix#516) moved binutils 2.42-10 -> 2.42-13 and
+# every fixture build in test_pkg, test_pkg_cache and test_kmod_build
+# then died with the finalize policy's "this package produced ELF
+# output but the build image has no strip", although the floor reports
+# "binutils installed in 1s" and the fixture recipe declares
+# tool "binutils". This asks the build environment directly.
+#
+# Fails on purpose so nothing is published.
+#
+package "probe-binutils-strip" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.284.tar.gz"
+            sha256 "fe25736b24b07619f973c1a9540937bbd65b9b841e4e3762511f0e1dac513fa5"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether a composed build environment declaring binutils carries strip (cix#516)."
+    }
+
+    build {
+        run "ls" {
+            "-l" "/usr/bin/strip" "/usr/bin/ld.bfd" "/usr/bin/ar" "/usr/bin/objcopy"
+        }
+        run "strip" {
+            "--version"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-binutils-strip"
+    }
+}
