@@ -1,0 +1,96 @@
+#
+# probe-cixpkg-extract -- what `cbs extract` actually says when it
+# refuses the glibc artifact.
+#
+# cixd never parses a .cixpkg: it forks `cbs extract <artifact> --into
+# <dir>` (ADR-0305, ADR-0307 clause 3) and keeps one line of what comes
+# back. In test_kmod_build's floor that line is
+#
+#   /run/cix_test_data_.../cache/glibc-2.44-19.cixpkg:
+#       error[CIXPKG-E4001]: artifact extraction failed
+#
+# and nothing says why (cix#485). The discriminating fact is that cbs,
+# libarchive and zstd are .cixpkg artifacts too and all three extracted
+# in that same run, so the format is not broken in general.
+#
+# This runs the same command on the same artifact, by hand, and prints
+# cbs's whole stderr rather than the daemon's one line -- enough to say
+# whether the fault is cbs's before anything is filed against it. Also
+# prints the artifact's size and the free space it extracts into, since
+# glibc is the largest artifact this platform publishes and the daemon
+# was extracting into a tmpfs when it failed.
+#
+# Compiles nothing; fails on purpose, so nothing is published.
+#
+package "probe-cixpkg-extract" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        # The exact bytes the floor seeds, from the cache the daemon
+        # would have read them from.
+        main "glibc" {
+            url "http://192.168.15.31:8080/glibc-2.44-19-x86_64.cixpkg"
+            sha256 "220c11019bf7cc729befca2b0cdf7ddd77399de2b436a50000299d52bd4d954d"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: runs cbs extract on the glibc 2.44-19 artifact and prints cbs's whole stderr, which the daemon reduces to one line (cix#485)."
+    }
+
+    build {
+        # What the daemon had, before the command it ran.
+        run "ls" {
+            "-l" "${src}/glibc/glibc-2.44-19-x86_64.cixpkg"
+        }
+        run "df" {
+            "-h" "${build}"
+        }
+
+        # The daemon's own argv, verbatim: cbs extract <artifact>
+        # --into <dir>, into a directory that does not exist yet
+        # (cbs_cixpkg_extract refuses one that does, which is why
+        # cixpkg_unpack_start rmdir()s first).
+        run "/usr/bin/cbs" {
+            "extract" "${src}/glibc/glibc-2.44-19-x86_64.cixpkg"
+            "--into" "${build}/out"
+            stderr file "${build}/extract.err"
+        }
+
+        # Reached only if the extract SUCCEEDED here, which is itself the
+        # answer -- and fails on purpose so nothing is published. The
+        # on_fail block below runs either way, so an empty extract.err
+        # printed under it means cbs was happy.
+        run "false" {
+        }
+
+        on_fail {
+            run "cat" {
+                "${build}/extract.err"
+                allow_failure
+            }
+            run "df" {
+                "-h" "${build}"
+                allow_failure
+            }
+            # Whatever it managed to write, if anything.
+            run "ls" {
+                "-la" "${build}"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cixpkg-extract"
+    }
+}
