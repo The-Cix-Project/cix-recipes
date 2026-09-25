@@ -1,0 +1,182 @@
+# iproute2 -- ip, tc, ss and the rest. The jump box operator-facing
+# counterpart to this project own rtnetlink data plane, which never
+# shells out to any of them (CLAUDE.md, Networking Plane).
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THIS RECIPE IS ALMOST ENTIRELY GATES, and every one of them is a
+# grep in shell and a require in CPDL. That is the whole conversion,
+# and it is worth listing because each gate exists for a failure that
+# really happened:
+#
+#   the Makefile flag check      configure degrading is silent
+#   three config.mk feature lines  HAVE_MNL/HAVE_ELF/HAVE_CAP not
+#                                getting enabled is silent too --
+#                                configure prints "ELF support: no"
+#                                and builds an ip with no BPF program
+#                                loading, exiting 0 the whole way
+#   no *.so anywhere             SHARED_LIBS=n is a trade, and a
+#                                build that quietly ignored it would
+#                                ship modules nothing loads
+#   three source checks          ip vrf was LOST for several
+#                                revisions to the cix#211 compound-
+#                                literal bug and restored by
+#                                tcc@0.9.27-12; these prove ipvrf.o
+#                                is in IPOBJ, do_ipvrf is registered
+#                                in ip.c, and iplink_vrf.o is there
+#                                for `ip link type vrf`
+#   two DT_NEEDED checks         the binary must really link Cix own
+#                                libmnl and libelf (cix#113)
+#
+# The find-for-*.so becomes `require glob ... exactly 0`, which is
+# CPDL form for "this must not exist" -- the same shape elfutils
+# uses for its two stale .pc files.
+#
+# -Dstrdupa=strdup is load-bearing and goes on BOTH configure and
+# make: strdupa is a GNU alloca-based macro TCC does not provide, and
+# a plain strdup is correct here because nothing in iproute2 relies
+# on the allocation being stack-scoped.
+package "iproute2" {
+    version "6.18.0"
+    release 19
+    format "cixpkg"
+
+    sources {
+        main "iproute2" {
+            url "https://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-6.18.0.tar.xz"
+            sha256 "6ba520e1975e4c50dc931eeae91ea37c198b8a173744885f8895b84325f9d456"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "bison"
+            tool "flex"
+            tool "libmnl"
+            tool "elfutils"
+            tool "libcap"
+            tool "zlib"
+        }
+        runtime {
+            package "libmnl"
+            package "elfutils"
+            package "libcap"
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "c8e1f0f70db65def89d2c5aefa2ac8e7d13e2c71327a79d9d059923a03d05221"
+        "changelog" "6.18.0-19: restores links { needs } now that cix-build-system#201 is fixed and carried by cbs v0.1.56, proven on libnftnl@1.2.9-10. The previous revision asserted DT_NEEDED with a readelf plus contains on captured stdout and recorded the debt in cix#509 -- a workaround with a ticket is still a stop-gap."
+    }
+
+    build {
+        cd "${src}/iproute2/iproute2-6.18.0" {
+            # Each of these fails the build by exiting nonzero, which
+            # names the module that is missing rather than letting
+            # configure degrade to "no" silently.
+            run "pkg-config" { "--exists" "libmnl" env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig" }
+            run "pkg-config" { "--exists" "libelf" env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig" }
+            run "pkg-config" { "--exists" "zlib" env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig" }
+            run "pkg-config" { "--exists" "libcap" env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig" }
+            require file "${src}/iproute2/iproute2-6.18.0/Makefile" {
+                exists
+                contains "-D_FILE_OFFSET_BITS=64"
+            }
+            run "./configure" {
+                env "CC" = "tcc"
+                env "CPPFLAGS" = "-Dstrdupa=strdup"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+            }
+            # configure writes config.mk and degrades SILENTLY when a
+            # library is missing. These three lines are what stops an
+            # ip without BPF program loading shipping as if nothing
+            # were wrong.
+            require file "${src}/iproute2/iproute2-6.18.0/config.mk" {
+                exists
+                contains "HAVE_MNL:=y"
+            }
+            require file "${src}/iproute2/iproute2-6.18.0/config.mk" {
+                exists
+                contains "HAVE_ELF:=y"
+            }
+            require file "${src}/iproute2/iproute2-6.18.0/config.mk" {
+                exists
+                contains "HAVE_CAP:=y"
+            }
+            run "make" {
+                "SHARED_LIBS=n"
+                "HOSTCC=tcc"
+                env "CPPFLAGS" = "-Dstrdupa=strdup"
+                env "PKG_CONFIG_PATH" = "/usr/lib/pkgconfig:/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+                jobs $jobs
+            }
+            # SHARED_LIBS=n is a deliberate trade; a build that
+            # quietly ignored it would ship modules nothing loads.
+            require glob "${src}/iproute2/iproute2-6.18.0/**/*.so" {
+                exactly 0
+            }
+        }
+    }
+
+    install {
+        cd "${src}/iproute2/iproute2-6.18.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/sbin/ip" {
+            exists
+            executable
+        }
+        require file "${dest}/sbin/tc" {
+            exists
+            executable
+        }
+        require file "${dest}/sbin/ss" {
+            exists
+            executable
+        }
+        # ip vrf was LOST for several revisions to cix#211 and
+        # restored by tcc@0.9.27-12. These three prove it is still
+        # there: the object is in IPOBJ, the command is registered,
+        # and `ip link type vrf` has its own object too.
+        require file "${src}/iproute2/iproute2-6.18.0/ip/Makefile" {
+            exists
+            contains "ipvrf.o"
+        }
+        require file "${src}/iproute2/iproute2-6.18.0/ip/Makefile" {
+            exists
+            contains "iplink_vrf.o"
+        }
+        require file "${src}/iproute2/iproute2-6.18.0/ip/ip.c" {
+            exists
+            contains "do_ipvrf"
+        }
+        # It must really link Cix's own netlink and ELF libraries
+        # rather than having resolved the symbols some other way
+        # (cix#113). `links` is the operation for this; 6.18.0-18 used
+        # a readelf plus a `contains` on its captured stdout, because
+        # cbs#201 made `links` report a false negative, and recorded
+        # that in cix#509. cbs#201 closed on 2026-09-22 and cbs
+        # v0.1.56 carries the fix -- proven on libnftnl@1.2.9-10,
+        # which is the recipe the bug was found on.
+        links "${dest}/sbin/ip" {
+            needs "libmnl.so.0"
+            needs "libelf.so.1"
+        }
+    }
+}

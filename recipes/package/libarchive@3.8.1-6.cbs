@@ -1,0 +1,171 @@
+# libarchive -- what cbs itself reads archives with, and what cixd
+# links. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# cix#487).
+#
+# WHAT CHANGES:
+#
+#   usr/share/man  -- no longer deleted (ADR-0306, cix#491).
+#   usr/lib/*.a    -- not translated: --disable-static builds none,
+#                     finalize drops any, and `remove glob` fails on
+#                     a glob matching nothing (cbs#188).
+#   the shared-library guard MOVES. The shell tested
+#                     .libs/libarchive.so before installing -- a
+#                     libtool build-tree path, which is a symlink,
+#                     and `require file` reports a symlink as "does
+#                     not exist" (cbs#175). Asserting the INSTALLED
+#                     libarchive.so.13.8.1 checks what ships.
+#
+# THE BLAKE2 PATCH IS THE REASON THIS PACKAGE NEEDS PATCHING, and
+# getting it wrong is silent. archive_blake2.h dispatches on
+# __GNUC__ and _MSC_VER, neither of which TCC predefines, so TCC
+# takes the third arm:
+#
+#   #define BLAKE2_PACKED(x) _Pragma("pack 1") x _Pragma("pack 0")
+#
+# Two things are wrong with that under TCC. Its pragma is spelled
+# pack(1)/pack(), AND it will not accept a _Pragma between a struct
+# body and its semicolon, which is exactly where the macro puts one
+# -- so fixing only the spelling fails on the same line.
+#
+# The fix makes the macro a no-op and brackets the region with real
+# #pragma pack lines. DO NOT reach for -D__GNUC__ to take the
+# second arm: it compiles, and TCC ignores __attribute__((packed))
+# entirely (ADR-0008), so blake2s_param silently becomes 36 bytes
+# where BLAKE2 specifies 32 -- a wrong RAR5 content hash that
+# verifies as cleanly as a right one.
+#
+# THE _Static_assert GATE is what makes that non-silent, and it is
+# compiled before any object so a wrong layout fails here rather
+# than shipping.
+#
+# INSERT-BEFORE IS WRITTEN AS A `replace`. CPDL's `insert` only
+# places text AFTER a match, and the middle edit needs a line
+# before another line. Rewriting the anchor line into itself with a
+# prefix is the same edit and keeps `exactly 1`'s guarantee. All
+# three counts were read out of the release tarball, not guessed.
+package "libarchive" {
+    version "3.8.1"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "libarchive" {
+            url "https://github.com/libarchive/libarchive/releases/download/v3.8.1/libarchive-3.8.1.tar.gz"
+            sha256 "bde832a5e3344dc723cfe9cc37f8e54bde04565bfe6f136bc1bd31ab352e9fab"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "zlib"
+            tool "xz"
+            tool "zstd"
+        }
+        runtime {
+            package "zlib"
+            package "xz"
+            package "zstd"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "58ef0b077babe541c35b4704d733b988b36217229949a511ac70fa1ec3282183"
+        "changelog" "3.8.1-6: the packed region opens with insert ... before, now that cix-build-system#203 added it (d896cf9, carried by cbs v0.1.56). 3.8.1-5 wrote it as a replace that rewrote its own anchor line into itself with a prefix, because CPDL had no insert-before, and recorded the debt in cix#509 -- a workaround with a ticket is still a stop-gap."
+    }
+
+    prepare {
+        # 1. make the macro a no-op.
+        replace "${src}/libarchive/libarchive-3.8.1/libarchive/archive_blake2.h" {
+            from "#define BLAKE2_PACKED(x) _Pragma(\"pack 1\")"
+            until line
+            to "#define BLAKE2_PACKED(x) x"
+            exactly 1
+        }
+        # 2. open the packed region BEFORE the first struct.
+        insert "${src}/libarchive/libarchive-3.8.1/libarchive/archive_blake2.h" {
+            before "  BLAKE2_PACKED(struct blake2s_param__"
+            write "#pragma pack(1)\n"
+            exactly 1
+        }
+        # 3. close it after the last typedef.
+        insert "${src}/libarchive/libarchive-3.8.1/libarchive/archive_blake2.h" {
+            after "  typedef struct blake2b_param__ blake2b_param;"
+            write "\n#pragma pack()"
+            exactly 1
+        }
+    }
+
+    build {
+        cd "${src}/libarchive/libarchive-3.8.1" {
+            # The gate: if the packing did not take, these structs
+            # are the wrong size and the build stops here rather
+            # than shipping a wrong content hash.
+            write "${src}/libarchive/gate.c" "#include \"libarchive/archive_blake2.h\"\n_Static_assert(sizeof(blake2s_param) == 32, \"blake2s_param is not packed\");\n_Static_assert(sizeof(blake2b_param) == 64, \"blake2b_param is not packed\");\nint main(void) { return 0; }\n"
+            run "tcc" {
+                "-I."
+                "-c"
+                "${src}/libarchive/gate.c"
+                "-o"
+                "${src}/libarchive/gate.o"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                "--disable-bsdtar"
+                "--disable-bsdcpio"
+                "--disable-bsdcat"
+                "--disable-bsdunzip"
+                "--with-zlib"
+                "--with-lzma"
+                "--with-zstd"
+                "--without-bz2lib"
+                "--without-lz4"
+                "--without-xml2"
+                "--without-expat"
+                "--without-iconv"
+                "--without-openssl"
+                "--without-nettle"
+                "--without-libb2"
+                "--without-pcre2posix"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libarchive/libarchive-3.8.1" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/libarchive.so.13.8.1" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/lib/libarchive.so.13" {
+            exists
+            target "libarchive.so.13.8.1"
+        }
+        require file "${dest}/usr/include/archive.h" {
+            exists
+            nonempty
+        }
+    }
+}
