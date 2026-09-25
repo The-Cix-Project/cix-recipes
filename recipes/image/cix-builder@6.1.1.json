@@ -1,0 +1,31 @@
+{
+  "image": "cix-builder",
+  "version": "6.1.1",
+  "notes": "cix-builder -- one job: build Cix itself (cixd, cixctl, web/,\nmkbootroot) via `pkg hostbuild cix`. ADR-0208.\n\n6.1.0 exists because ADR-0252 made this file authoritative, and two\npins in 6.0.0 no longer described the image:\n\n  glibc  6.0.0 pinned 2.44-12; the image holds 2.44-14\n  zlib   6.0.0 pinned 1.3.2-9;  the image holds 1.3.2-10\n\nThe glibc move is deliberate and is the point of ADR-0251: 2.44-14 is\nthe first package rebuilt under the finalize policy -- 2114 files down\nto 1341, libc.so.6 from 11.42 MiB of sections to 2,011,912 bytes,\nlibc.a no longer shipped three times. gcc was verified still able to\ncompile, link and run an ordinary dynamic binary against it before\nthis pin moved (probe-gcc-postglibc).\n\nThe zlib difference is the one ADR-0252 quotes as its own live\nevidence: it was already there, on an image materialized from its own\nrecipe minutes earlier. Under the old arrangement it would have sat\nunnoticed; under this one the recipe is what must move.\n\n6.0.0s own note, still true: what is deliberately NOT here is gitea,\ngo and go-bootstrap. The retired \"toolchain\" image carried all three,\nand they are why it could never be described honestly -- a service and\nits compiler, accumulated because someone needed them on the box once.\nBuilding Cix has never needed any of them.\n\ngcc stays, for exactly one output: build/cix-boot.efi, the UEFI boot\nmanager (ADR-0215). Everything else cix builds is TCC, per ADR-0001.\nbinutils stays for the same reason -- 2.42-10 keeps the\n--enable-targets=x86_64-pep configuration cix-boot.efi needs to link.",
+  "packages": [
+    { "package": "bash", "mode": "pinned", "version": "5.2.37-5" },
+    { "package": "binutils", "mode": "pinned", "version": "2.42-10" },
+    { "package": "coreutils", "mode": "pinned", "version": "9.11-7" },
+    { "package": "diffutils", "mode": "pinned", "version": "3.10-8" },
+    { "package": "findutils", "mode": "pinned", "version": "4.10.0-5" },
+    { "package": "flex", "mode": "pinned", "version": "2.6.4-5" },
+    { "package": "gawk", "mode": "pinned", "version": "5.3.0-9" },
+    { "package": "gcc", "mode": "pinned", "version": "16.2.0-13" },
+    { "package": "gettext", "mode": "pinned", "version": "1.0-17" },
+    { "package": "glibc", "mode": "pinned", "version": "2.44-14" },
+    { "package": "grep", "mode": "pinned", "version": "3.11-6" },
+    { "package": "gzip", "mode": "pinned", "version": "1.13-4" },
+    { "package": "linux-headers", "mode": "pinned", "version": "6.18.40-4" },
+    { "package": "m4", "mode": "pinned", "version": "1.4.20-5" },
+    { "package": "make", "mode": "pinned", "version": "4.4.1-6" },
+    { "package": "ncurses", "mode": "pinned", "version": "6.6-8" },
+    { "package": "openssl", "mode": "pinned", "version": "3.0.20-5" },
+    { "package": "patch", "mode": "pinned", "version": "2.8-5" },
+    { "package": "sed", "mode": "pinned", "version": "4.9-5" },
+    { "package": "tar", "mode": "pinned", "version": "1.35-6" },
+    { "package": "tcc", "mode": "pinned", "version": "0.9.28rc-29" },
+    { "package": "util-linux", "mode": "pinned", "version": "2.42.2-2" },
+    { "package": "xz", "mode": "pinned", "version": "5.8.3-8" },
+    { "package": "zlib", "mode": "pinned", "version": "1.3.2-10" }
+  ]
+}

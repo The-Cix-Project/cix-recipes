@@ -1,0 +1,20 @@
+{
+  "image": "cix-hosttools",
+  "version": "2.3.1",
+  "notes": "2.3.0: openssl 3.0.20-5 -> 3.0.20-6, so this image carries the\nstripped build (#328).\n\nThe pin is the whole point of the bump. ADR-0251's finalize policy\nstrips ELF, but it only runs when a package is BUILT, and the\nartifact tier correctly installs an already-approved cached artifact\ninstead -- so 3.0.20-5, published before the policy landed, kept\nshipping its debug sections into every installer ISO. Rebuilding the\npackage is only half of it: this image PINS its versions, so a\nmaterialize would put the old bytes straight back.\n\nbtrfs-progs moves to 7.1-11 as well. It could not build when this\nrevision was first drafted -- it links -lpthread through gcc and the\ninstalled glibc shipped no libpthread.a -- and glibc 2.44-16 restored\nthose member-less archives (#324), after which 7.1-11 built on the\nfirst attempt. mkfs.btrfs was 80% debug and is the single largest\npiece of the 3.93 MiB this set of rebuilds exists to remove.\n\n\ncix-hosttools -- the binaries the daemon itself execve()s on the host,\noutside any container: mkbootroot's staging set, and the tools the\ndisk and artifact paths shell out to (ADR-0078).\n\n2.2.0 adds glibc, and like 2.1.0's btrfs-progs this is a fix for an\nimage that could not do its job rather than an enhancement. The image\nlisted sixteen packages and not one of them was a C library, so every\nbinary in it depended on resolving libc from somewhere else. On a\nfresh host there is no somewhere else:\n\n  mksquashfs: error while loading shared libraries: libmvec.so.1:\n  cannot open shared object file: No such file or directory\n  mksquashfs failed (status 32512)\n\nmkbootroot points LD_LIBRARY_PATH at THIS image and, when the image\nhas one, invokes the tool through THIS image's own dynamic loader --\ndeliberately, because ld.so and libc.so.6 share a version-locked\nprivate interface and taking one from each tree fails in ways that\nare hard to read (ADR-0154, and the __pointer_chk_guard failure its\ncomment records). An image that supplies the tools but not the libc\nthey load makes that arrangement impossible to satisfy: there is no\nloader to invoke and no libc to point at.\n\nglibc is pinned to 2.44-14, the first revision built under ADR-0251's\nfinalize policy -- 2114 files down to 1341, libc.so.6 from 11.42 MiB\nof sections to 2,011,912 bytes -- so adding a C library here costs\nroughly a sixth of what the same addition would have cost before it.\n\n2.1.0s note, still true: btrfs-progs is here because mkbootroot stages\n/usr/bin/btrfs and 2.0.0 never contained it, so every control-plane\nassembly on a fresh host failed. Pins track the newest revision of\neach package that has a published, checksum-approved artifact, which\nis the cold-boot property: a package whose newest revision has no\napproved artifact must be BUILT, and a host assembling its first\ncontrol plane has nothing to build with.",
+  "packages": [
+    { "package": "glibc", "mode": "pinned", "version": "2.44-14" },
+    { "package": "bash", "mode": "pinned", "version": "5.2.37-5" },
+    { "package": "btrfs-progs", "mode": "pinned", "version": "7.1-11" },
+    { "package": "bzip2", "mode": "pinned", "version": "1.0.8-4" },
+    { "package": "coreutils", "mode": "pinned", "version": "9.11-7" },
+    { "package": "curl", "mode": "pinned", "version": "8.21.0-4" },
+    { "package": "gzip", "mode": "pinned", "version": "1.13-4" },
+    { "package": "openssl", "mode": "pinned", "version": "3.0.20-6" },
+    { "package": "perl", "mode": "pinned", "version": "5.40.1-7" },
+    { "package": "squashfs-tools", "mode": "pinned", "version": "4.7.5-12" },
+    { "package": "tar", "mode": "pinned", "version": "1.35-6" },
+    { "package": "xz", "mode": "pinned", "version": "5.8.3-8" },
+    { "package": "zlib", "mode": "pinned", "version": "1.3.2-10" }
+  ]
+}
