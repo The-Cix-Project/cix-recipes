@@ -1,0 +1,56 @@
+#
+# probe-binutils-artifact -- does the PUBLISHED binutils artifact
+# contain usr/bin/strip?
+#
+# cix#526: binutils@2.42-14 asserts `require file ${dest}/usr/bin/strip`
+# in its install phase and builds clean, so the staged tree has it. The
+# ADR-0209 test floor then installs that artifact and reports 38 files
+# with no usr/bin/strip among them. Something between the staged tree
+# and the installed package loses it, and which end is not established
+# -- cbs writing the CIXPKG, or cixd installing it.
+#
+# This reads the artifact itself. The build container is sealed (no
+# egress), but cixd fetches DECLARED SOURCES host-side and hands them
+# in, so naming the artifact as a source is the in-rule way to get its
+# bytes in front of `ls`.
+#
+# Fails on purpose so nothing is published.
+#
+package "probe-binutils-artifact" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "binutils" {
+            url "http://192.168.15.31:8080/binutils-2.42-14-x86_64.cixpkg"
+            sha256 "bfca7f43c3bb10635b4a46b67ca92ab974c4404e7c78167a885ec8aeea8515e2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: whether the published binutils .cixpkg carries usr/bin/strip (cix#526)."
+    }
+
+    build {
+        # The whole probe. ${src}/binutils is where cixd put the
+        # extracted artifact; if strip is in there, the loss is on the
+        # install side, and if it is not, it is on the packaging side.
+        run "ls" {
+            "-la" "${src}" "${src}/binutils"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-binutils-artifact"
+    }
+}
