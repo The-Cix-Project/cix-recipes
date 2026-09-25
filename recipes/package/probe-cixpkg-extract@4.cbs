@@ -49,7 +49,7 @@ package "probe-cixpkg-extract" {
             tool "bash"
             tool "coreutils"
         }
-        "changelog" "4: CIXPKG-E4001 is what cbs answers for a DESTINATION fault -- both a missing parent and an existing destination produce it, exit 4, naming the artifact. 1-3 ruled out cbs reading the artifact, disk space and TMPDIR (cix#485, cix-build-system#233)."
+        "changelog" "4: CIXPKG-E4001 is what cbs answers for a DESTINATION fault -- both a missing parent and an existing destination produce it, exit 4, naming the artifact. 1-3 ruled out cbs reading the artifact, disk space and TMPDIR (cix#485, cbs#233)."
 
     metadata {
         "changelog" "4: cbs answers exit 4 for a destination whose parent is missing. whether CIXPKG-E4001 is what cbs says about a destination whose parent is missing, or one that already exists. 1-3 ruled out cbs itself, disk space and TMPDIR (cix#485)."
