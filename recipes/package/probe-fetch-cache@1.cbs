@@ -1,0 +1,53 @@
+#
+# probe-fetch-cache -- is a declared source fetched once, or once per
+# build?
+#
+# cix@v2.57.275-1 declares twelve floor artifacts, 75 MB, so that the
+# ADR-0209 tests can gate a release (cix#485). Whether that is a cost
+# per release or a cost once decides whether it matters, and the
+# daemon logs a successful fetch nowhere -- only cancellations and
+# checksum failures -- so it cannot be read out of the log store.
+#
+# The measurement: GET /v1/pkg/<name> reports `run_started_at` and
+# `build_started_at`, and the gap between them is the fetch. This
+# declares binutils, the largest floor artifact at 51.6 MB and one no
+# other probe has ever fetched, and does nothing with it. Run it once
+# for the cold number, then again for the warm one: the recipe fails on
+# purpose, so re-installing genuinely re-runs rather than short-cutting
+# to an installed entry.
+#
+# Nothing else in the build phase, deliberately -- any work here would
+# land in the same gap and blur the thing being measured.
+#
+package "probe-fetch-cache" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "binutils" {
+            url "http://192.168.15.31:8080/binutils-2.42-10-x86_64.tar.gz"
+            sha256 "23f6cc2b007bb58dcb105f1ef390caaee81cf6c36b0c50150e415d0f66d4d73e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether a declared source is fetched once or once per build, timed from run_started_at to build_started_at over a cold run and a warm one (cix#485)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-fetch-cache"
+    }
+}
