@@ -3,14 +3,14 @@
 # diagnosing one failure without a full 25-minute suite run.
 #
 package "probe-cix-testreport" {
-    version "15"
+    version "16"
     release 1
     format "cixpkg"
 
     sources {
         main "cix" {
-            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.265.tar.gz"
-            sha256 "cc8e19301f84e31a4ee2b796d34c0404dfb934aa295c165349d5a87f27f35dd8"
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.266.tar.gz"
+            sha256 "e39d3ecb49c42e02f74e3be764fa6f8450f79ee0ad1b063a4261a36a9fe3f262"
         }
         # The six boot tests need build-inputs/bzImage, an INPUT that
         # make does not produce (#191). Taken from a kernel artifact a
@@ -117,7 +117,7 @@ package "probe-cix-testreport" {
 
     metadata {
         "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
-        "changelog" "15: cix v2.57.265, whose kmod-build passes its extra symbols to CBS as the input kmod_extra (cix#517): test_kmod_build must pass. Its fixture kernel recipe is CPDL and reads that input."
+        "changelog" "16: cix v2.57.266, whose kmod-build passes its extra symbols to CBS as the input kmod_extra (cix#517): test_kmod_build must pass."
     }
 
     capability "CAP_SYS_ADMIN"
@@ -153,7 +153,7 @@ package "probe-cix-testreport" {
             # Serial, like the shell recipe: the suite forks daemons on
             # fixed ports, and a conversion's job is to be equivalent.
             run "make" {
-                "CIX_VERSION=v2.57.265"
+                "CIX_VERSION=v2.57.266"
                 "TESTREPORT_TAIL=150"
                 "TESTREPORT_TIMEOUT=900"
                 "TESTREPORT_ONLY=test_kmod_build"
