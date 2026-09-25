@@ -1,0 +1,96 @@
+#
+# probe-host-cache-visible -- can a build container see the host's own
+# package cache and recipe store?
+#
+# probe-cache-egress@1 established that a build container cannot reach
+# the artifact server at all (curl exit 7, five milliseconds), so the
+# ADR-0209 floor cannot fetch its own artifacts and the cix recipe has
+# to declare all twelve as sources, plus a pinned recipe corpus for the
+# checksums (cix#485).
+#
+# But those bytes are already ON the box: the daemon keeps every
+# artifact it has fetched in /mnt/cix/sda/rebuildable/pkg/cache, and
+# every recipe in .../pkg/recipes -- both paths taken from the daemon's
+# own log lines. If a build container can read them, the floor needs no
+# fetch, no declared sources and no pin at all.
+#
+# A CASCADE, deliberately: each step is more specific than the last, a
+# failing run stops the phase, and where it stops IS the answer. If
+# `ls /mnt` fails, nothing of the host is visible and the current design
+# is forced. If the cache listing works, it is not.
+#
+# on_fail prints /proc/mounts, which says what the container actually
+# has regardless of which step stopped it -- the one diagnostic worth
+# having either way.
+#
+# Compiles nothing; fails on purpose.
+#
+package "probe-host-cache-visible" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        # Unused; a recipe needs one source and this is the smallest
+        # thing already cached on the box.
+        main "cbs" {
+            url "http://192.168.15.31:8080/cbs-v0.1.55-1-x86_64.cixpkg"
+            sha256 "14663c02a2df52113919e416f995f28679c69495ec004d2ceab94761a18d7fbf"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether a build container can read the host's own package cache and recipe store, which would let the floor drop its declared sources and its corpus pin (cix#485)."
+    }
+
+    build {
+        run "ls" {
+            "-la" "/"
+        }
+        run "ls" {
+            "-la" "/mnt"
+        }
+        run "ls" {
+            "-la" "/mnt/cix"
+        }
+        run "ls" {
+            "-la" "/mnt/cix/sda/rebuildable/pkg"
+        }
+        # The artifacts themselves, and one the floor actually names.
+        run "ls" {
+            "-la" "/mnt/cix/sda/rebuildable/pkg/cache/zlib-1.3.2-11.tar.gz"
+        }
+        # The corpus half: the recipe the floor reads a checksum from.
+        run "ls" {
+            "-la" "/mnt/cix/sda/rebuildable/pkg/recipes"
+        }
+
+        run "false" {
+        }
+
+        on_fail {
+            # What this container really has. If /mnt is absent this is
+            # the whole answer, and it is worth having even when a later
+            # step is what stopped.
+            run "cat" {
+                "/proc/mounts"
+                allow_failure
+            }
+            run "ls" {
+                "-la" "/mnt"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-host-cache-visible"
+    }
+}
