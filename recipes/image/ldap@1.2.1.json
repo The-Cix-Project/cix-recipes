@@ -1,0 +1,9 @@
+{
+  "image": "ldap",
+  "version": "1.2.1",
+  "notes": "ldap -- the image ldap-1/ldap-2 (ADR-0144) run from: glauth, this\nplatform's own standard integrable LDAP provider.\n\n1.2.0: declares glibc. glauth is a cgo binary (its embedded SQLite is\ncompiled C) and links against libc dynamically, and an image whose\nmanifest names no libc cannot start a container at all -- cixd refuses\nit outright: image \"ldap\" has no C library. 1.1.0 worked only while\nan earlier baseline seeded libc implicitly; the manifest is now the one\nstatement of what the image contains, so it has to say so. Same form\nas recipes/image/chrony. Both rolling, per the charter.\n\nSee recipes/README.md for what \"version\" means for an image recipe\n(ADR-0149) versus an image's content-addressed build version (ADR-0108).",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "glauth", "mode": "rolling", "version": "2.4.0" }
+  ]
+}

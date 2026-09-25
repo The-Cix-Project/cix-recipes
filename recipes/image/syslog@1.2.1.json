@@ -1,0 +1,9 @@
+{
+  "image": "syslog",
+  "version": "1.2.1",
+  "notes": "1.2.0: declare glibc. This image had no C library at all, so\n`container apply-recipe dns-1` was refused outright -- \"image \\\"dns\\\"\nhas no C library -- install a libc package (glibc) into it before\nrunning a container from it\". dnsmasq declares pkg_depends=\"\", so\nnothing pulled glibc in transitively, and pkg_seed_image_baseline()\nstages a loader and libnss_files, not a libc. Found restoring the\nfleet after the btrfs migration, when these images were built from\ntheir recipes for the first time rather than surviving as directories\nthat had been populated by hand before the recipe existed.\n\nldap/1.2.0 and chrony/1.1.0 already declare it; these two were the\noutliers, not a different design.\n\nsyslog -- the image syslog-1/syslog-2 (ADR-0127) run from: sysklogd,\nthis platform's own reference syslog-forwarding receiver.\n\n1.1.0: switches sysklogd from pinned to rolling, matching Cix's\nown rolling-release charter (CLAUDE.md's opening line) -- see\nrecipes/image/dns/1.1.0/build.sh's own header comment for the full\nreasoning, identical here. See recipes/README.md for what \"version\"\nmeans for an image recipe (ADR-0149) versus an image's\ncontent-addressed build version (ADR-0108).",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "sysklogd", "mode": "rolling", "version": "2.7.0" }
+  ]
+}
