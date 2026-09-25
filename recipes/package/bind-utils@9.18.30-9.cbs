@@ -1,0 +1,199 @@
+# BUILDS WITH GCC, and the road here is worth one paragraph because
+# two separate TCC problems had to be separated.
+#
+# 9.18.30-4 died in configure: "no acceptable C compiler found in
+# $PATH", after having already accepted tcc forty lines earlier.
+# BIND probes twice and the second pass does not honour $CC.
+# 9.18.30-5 answered that with a `cc` shim on PATH, which worked --
+# configure completed -- and then the build died at
+# rwlock.c:150: include file 'immintrin.h' not found.
+#
+# The second one is not a probe quirk, it is a missing header: BIND
+# uses _mm_pause() and TCC ships no Intel intrinsics. ADR-0226 says
+# gcc is an ordinary choice for a third-party package when TCC is
+# difficult, so this revision takes it -- and the shim goes with it,
+# since the probe that wanted a `cc` finds gcc by name.
+#
+# A `cc` SHIM IS ON PATH, because BIND's configure probes for a C
+# compiler TWICE and the second pass does not honour $CC. Measured
+# from 9.18.30-4's own build log, which got as far as
+#
+#   checking for gcc... tcc
+#   checking whether the C compiler works... yes
+#   ... 40 lines later ...
+#   checking for x86_64-pc-linux-gnu-gcc... no
+#   checking for gcc... no
+#   checking for cc... no
+#   checking for clang... no
+#   configure: error: no acceptable C compiler found in $PATH
+#
+# The second probe searches AC_PROG_CC's default list, which is what
+# autoconf does when CC is empty -- so something between the two
+# clears it. WHICH macro that is has NOT been established, and this
+# recipe does not claim to know: what it does is make the name the
+# probe actually looks for resolve to the compiler this package is
+# meant to be built with.
+#
+# A composed build environment (ADR-0199) contains exactly the
+# declared tools, and `compiler "tcc"` puts tcc there and nothing
+# called cc or gcc. That is why this surfaces now and not when the
+# shell recipe was written: bind-utils is installed in no image, so
+# it has not been rebuilt since composition landed.
+#
+# Declaring gcc instead would also satisfy the probe, and would mean
+# half this package silently built with a different compiler than the
+# half that honoured CC=tcc. The shim keeps one compiler.
+#
+# bind-utils -- dig, host and nslookup, built out of the BIND 9
+# source and nothing else from it. Converted from build.sh to
+# build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything. It builds two subdirectories of a much larger tree and
+# copies three binaries out.
+#
+# libuv is a hard requirement of bin/dig even though bin/dig never
+# links it: BIND's own configure.ac does AC_MSG_ERROR when it is
+# missing, with no way to build without it. That is the entire reason
+# libuv is packaged here at all.
+#
+# python is a BUILD tool and not a runtime one, despite
+# --without-python: BIND's build still runs python scripts to
+# generate sources.
+package "bind-utils" {
+    version "9.18.30"
+    release 9
+    format "cixpkg"
+
+    sources {
+        main "bind" {
+            url "https://downloads.isc.org/isc/bind9/9.18.30/bind-9.18.30.tar.xz"
+            sha256 "9f6817640970267317e5aa143ecf70531040f2155636b1a63ea45379aa09034a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "python"
+            tool "libuv"
+            tool "openssl"
+        }
+        runtime {
+            package "libuv"
+            package "openssl"
+        }
+    }
+
+    # ADR-0226: TCC is tried first and gcc is the natural next step
+    # when it is difficult. This one is not a preference.
+    toolchain "gcc" {
+        reason "missing header: lib/isc/rwlock.c includes immintrin.h for _mm_pause() and TCC ships no Intel intrinsics headers -- measured on 192.168.15.95 2026-09-21, rwlock.c:150: include file immintrin.h not found, after configure had otherwise completed"
+    }
+
+    metadata {
+        "changelog" "9.18.30-9: ships bind's own shared libraries alongside dig, host and nslookup, and copies the real binaries from .libs/ rather than libtool's uninstalled wrapper scripts. -6 shipped the wrappers, which cd'd into the build tree when run and which no gate could see through, a script having no DT_NEEDED. -7 fixed the copy and the install gate then refused it for linking libisc-9.18.30.so that nothing shipped; -8 tried --disable-shared and bind refuses it outright (cix#523)."
+    }
+
+    build {
+        cd "${src}/bind/bind-9.18.30" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--without-python"
+                "--disable-linux-caps"
+                "--without-lmdb"
+                "--without-libxml2"
+                "--without-json-c"
+                "--without-maxminddb"
+                "--without-gssapi"
+                "--without-readline"
+                "--disable-geoip"
+                "--disable-doh"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+                "-C"
+                "lib"
+            }
+            run "make" {
+                jobs $jobs
+                "-C"
+                "bin/dig"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" chmod 0755
+        copy "${src}/bind/bind-9.18.30/bin/dig/.libs/dig" to "${dest}/usr/bin/dig"
+        copy "${src}/bind/bind-9.18.30/bin/dig/.libs/host" to "${dest}/usr/bin/host"
+        copy "${src}/bind/bind-9.18.30/bin/dig/.libs/nslookup" to "${dest}/usr/bin/nslookup"
+        chmod 0755 "${dest}/usr/bin/dig"
+        chmod 0755 "${dest}/usr/bin/host"
+        chmod 0755 "${dest}/usr/bin/nslookup"
+        # bind's own shared libraries, which the three tools link and
+        # which no revision before this shipped (cix#523). Copied from
+        # each lib/*/.libs/ by find, since the set and their version
+        # suffixes belong to the release rather than to this recipe --
+        # libisc-9.18.30.so is the name dig's own DT_NEEDED carries.
+        #
+        # -8 tried to avoid them with --disable-shared and bind refuses
+        # outright: "Static linking is not supported as it disables
+        # dlopen() and certain security features (e.g. RELRO, ASLR)".
+        # So shipping them is not a preference, it is the only shape
+        # upstream allows.
+        mkdir "${dest}/usr/lib" chmod 0755
+        run "find" {
+            "${src}/bind/bind-9.18.30/lib"
+            "-name" "lib*.so*" "-type" "f"
+            "-exec" "cp" "{}" "${dest}/usr/lib/" ";"
+        }
+        glob "bindlibs" = "${dest}/usr/lib/libisc-*.so" exactly 1
+        #
+        # Each one is really an ELF that links libc, which is the whole
+        # of cix#523. -6 and every revision before it copied
+        # bin/dig/dig while the build produced SHARED bind libraries, so
+        # that file was libtool's UNINSTALLED WRAPPER
+        # SCRIPT -- a shell script carrying the build path, which tried
+        # to cd into /build/cbsws/src/... and relink dig.o when run.
+        # The real binaries are in .libs/; bin/dig/dig is the wrapper.
+        # -7 copied from .libs/ correctly and was still refused, by the
+        # install gate, for linking
+        # libisc-9.18.30.so that nothing shipped -- which is why the
+        # libraries are installed above.
+        #
+        # -6's own require block passed on the wrapper because exists,
+        # nonempty and executable are all true of a shell script.
+        # `links` reads DT_NEEDED out of the ELF header, so a script
+        # has nothing for it to read and it fails -- which is the
+        # property worth asserting, not the soname itself. It is
+        # installed in jumpbox, where an operator reaches for dig, so
+        # the broken one was in the one image that exists to provide it.
+        #
+        each "b" in { "dig" "host" "nslookup" } {
+            links "${dest}/usr/bin/${each.b}" {
+                needs "libc.so.6"
+            }
+        }
+        require file "${dest}/usr/bin/dig" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/nslookup" {
+            exists
+            nonempty
+        }
+    }
+}
