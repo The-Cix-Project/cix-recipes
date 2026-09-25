@@ -1,0 +1,64 @@
+#
+# probe-binutils-artifact -- does the PUBLISHED binutils artifact
+# contain usr/bin/strip? (cix#526)
+#
+# binutils@2.42-14 asserts `require file ${dest}/usr/bin/strip` and
+# builds clean, so the staged tree has it. The ADR-0209 test floor then
+# installs that artifact and reports 38 files with no usr/bin/strip.
+# Which end loses it -- cbs writing the CIXPKG, or cixd installing it --
+# is not established, and this reads the artifact itself to find out.
+#
+# The build container is sealed, but cixd fetches declared sources
+# host-side, so naming the artifact as a source is the in-rule way to
+# get its bytes in front of `ls`. @2 measured that it arrives as a FILE
+# rather than an extracted tree, hence the explicit extract.
+#
+# Fails on purpose so nothing is published.
+#
+package "probe-binutils-artifact" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "binutils" {
+            url "http://192.168.15.31:8080/binutils-2.42-14-x86_64.cixpkg"
+            sha256 "bfca7f43c3bb10635b4a46b67ca92ab974c4404e7c78167a885ec8aeea8515e2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "4: extracts with the cbs CLI, since CPDL extract refuses a .cixpkg (cix#526)."
+    }
+
+    prepare {
+        # CPDL's own `extract` refuses a .cixpkg with CPDL-E6001
+        # "cannot open archive: Unrecognized archive format" (@3), so
+        # this uses the cbs CLI verb cixd itself forks (ADR-0305).
+        mkdir "${build}/a"
+        run "cbs" {
+            "extract" "${src}/binutils/binutils-2.42-14-x86_64.cixpkg"
+            "--into" "${build}/a/tree"
+        }
+    }
+
+    build {
+        run "ls" {
+            "-la" "${build}/a/tree/usr/bin"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-binutils-artifact"
+    }
+}
