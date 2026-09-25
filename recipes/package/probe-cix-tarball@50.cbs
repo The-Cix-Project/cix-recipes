@@ -1,0 +1,66 @@
+#
+# probe-cix-tarball -- the sha256 of a cix release tarball, measured by
+# the box rather than by whatever is running in the dev sandbox (which
+# may not fetch anything at all: THE SANDBOX RULE).
+#
+# HOW IT WORKS. The declared sha256 is deliberately all zeroes, which no
+# real artifact has, so the fetch fails its checksum gate and the daemon
+# reports what the bytes actually hashed to. The fetch IS the probe: no
+# build container is composed, nothing is published, and the package
+# ends at state "failed:fetch/failed".
+#
+# HOW TO USE IT. Copy this file to the next revision, change the tag in
+# the url, publish and install it. Two places carry the answer:
+#
+#   cixctl pkg ls                      -- the state line, abbreviated:
+#                                         "N bytes hash to 4c5b1dab74a8..."
+#   cixctl logs --source=cixd          -- the full 64 hex digits:
+#                                         "computed=<64 hex> declared=<64 hex>"
+#
+# WHY CPDL RATHER THAN SHELL (cix#516). The shell form of this probe was
+# the last thing in the corpus that shell could do and CPDL was assumed
+# not to: a PBS recipe's build steps run inside a build container, so
+# the daemon's own log looked like the wrong place to read a fetch from.
+# It is not. cixd fetches and checksum-verifies a PBS recipe's declared
+# sources host-side, exactly as it does a shell recipe's, and logs the
+# same line. Measured on 192.168.15.95, 2026-09-25 by
+# probe-cpdl-sha@1-1, which declared zeroes against cix v2.57.282 and
+# was answered with computed=4c5b1dab74a81f936cf8c917c1d18e38416f8e8ee-
+# 6e32715c72dc6e20a27853f -- the value probe-cix-tarball@48.sh had
+# independently measured for that same tag.
+#
+package "probe-cix-tarball" {
+    version "50"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.283.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "50: sha256 of cix v2.57.283."
+    }
+
+    build {
+        # Never reached. Here so the recipe is complete, and so a
+        # revision that somehow gets past the checksum gate still
+        # publishes nothing.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cix-tarball"
+    }
+}
