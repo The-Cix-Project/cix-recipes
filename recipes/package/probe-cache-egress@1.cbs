@@ -1,0 +1,86 @@
+#
+# probe-cache-egress -- can a build container reach the artifact cache
+# on its own?
+#
+# This decides whether the ADR-0209 floor can fetch its artifacts at
+# test time instead of having the cix recipe declare them as sources
+# (cix#485). A declared source is fetched HOST-side by the daemon and
+# handed to the build container; a test fetching for itself would need
+# egress from inside it, and CLAUDE.md records that CBS's in-container
+# fetch is "a different network entirely" (CPDL-E5001 on a github
+# fetch), so the two are not the same question.
+#
+# Three reads, smallest first, each failing the build if it fails:
+# the cache's own API, a HEAD for one artifact's size, and the first
+# bytes of the smallest artifact there is. If all three work, a test
+# can fetch its own floor; if the first fails, the current design --
+# declared sources -- is the only one available.
+#
+# Compiles nothing; fails on purpose.
+#
+package "probe-cache-egress" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        # Unused; a recipe needs one source and this is the smallest
+        # thing already cached on the box.
+        main "cbs" {
+            url "http://192.168.15.31:8080/cbs-v0.1.55-1-x86_64.cixpkg"
+            sha256 "14663c02a2df52113919e416f995f28679c69495ec004d2ceab94761a18d7fbf"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "curl"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether a build container can reach the artifact cache itself, which decides if the test floor can fetch its own artifacts (cix#485)."
+    }
+
+    build {
+        # The API the floor would ask for what exists.
+        run "/usr/bin/curl" {
+            "-sS" "--max-time" "20"
+            "-o" "${build}/artifacts.json"
+            "-w" "api: http=%{http_code} bytes=%{size_download} time=%{time_total}\n"
+            "--fail"
+            "http://192.168.15.31:8080/api/v1/artifacts"
+        }
+        run "head" {
+            "-c" "160" "${build}/artifacts.json"
+        }
+
+        # One artifact's size, without downloading it.
+        run "/usr/bin/curl" {
+            "-sS" "--max-time" "20" "-I" "--fail"
+            "-w" "head: http=%{http_code} len=%{size_header}\n"
+            "-o" "${build}/head.txt"
+            "http://192.168.15.31:8080/zlib-1.3.2-11-x86_64.tar.gz"
+        }
+
+        # And real bytes.
+        run "/usr/bin/curl" {
+            "-sS" "--max-time" "30" "--fail"
+            "-o" "${build}/zlib.tar.gz"
+            "-w" "get: http=%{http_code} bytes=%{size_download}\n"
+            "http://192.168.15.31:8080/zlib-1.3.2-11-x86_64.tar.gz"
+        }
+        run "ls" {
+            "-l" "${build}/zlib.tar.gz"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cache-egress"
+    }
+}
