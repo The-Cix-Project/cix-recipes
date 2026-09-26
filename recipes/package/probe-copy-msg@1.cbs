@@ -1,0 +1,46 @@
+#
+# probe-copy-msg -- when `copy` has a bad SOURCE and a good
+# destination, which one does the error name?
+#
+# cix#516: a copy whose destination directory had just been created
+# failed with "filesystem operation failed: ${dest}/usr/share/multisrc;
+# errno=2", and the real fault was the source path. That reading joins
+# two measurements and is not established -- the destination might
+# genuinely have been missing. This makes the destination unambiguous
+# and the source unambiguously absent.
+#
+# Fails on purpose so nothing is published.
+#
+package "probe-copy-msg" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.329.tar.gz"
+            sha256 "7fa52818ee22360d637d3f19efdd5795f0d771069a5c43ce8c593d330930f7c9"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: which side a failing copy names (cix#516)."
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+        mkdir "${dest}/usr/share/target" chmod 0755
+        # Proof the destination really is there, before the copy runs.
+        run "ls" {
+            "-la" "${dest}/usr/share/target"
+        }
+        copy "${src}/cix/no-such-file-anywhere.txt" to "${dest}/usr/share/target/x.txt"
+    }
+}
