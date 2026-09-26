@@ -1,0 +1,50 @@
+#
+# probe-plainsrc -- where does a NON-ARCHIVE declared source land?
+#
+# test_pkg's multisrc fixture copies an extra file out of ${src} and
+# CPDL answers "filesystem operation failed: ${dest}/usr/share/multisrc;
+# errno=2" for a directory that was just created -- which is the
+# CIXPKG-E4001 shape, a message naming one side of an operation when
+# the other is at fault. This lists the tree instead of guessing.
+#
+# Fails on purpose so nothing is published.
+#
+package "probe-plainsrc" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.328.tar.gz"
+            sha256 "0fe6644a56f53a11e9f2a2be6806e21a881d37b731db27b5668e51bdf55b0cbd"
+        }
+        extra "plainfile" {
+            url "http://192.168.15.31:8080/binutils-2.42-14-x86_64.cixpkg"
+            sha256 "bfca7f43c3bb10635b4a46b67ca92ab974c4404e7c78167a885ec8aeea8515e2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: where a non-archive declared source lands under ${src} (cix#516)."
+    }
+
+    build {
+        run "ls" {
+            "-la" "${src}" "${src}/plainfile"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-plainsrc"
+    }
+}
