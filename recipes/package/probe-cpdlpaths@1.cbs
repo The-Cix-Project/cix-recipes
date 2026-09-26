@@ -1,0 +1,74 @@
+#
+# probe-cpdlpaths -- what are the LITERAL values of CPDL's ${build},
+# ${src} and ${dest} inside a cixd-driven build container?
+#
+# THE QUESTION AND WHY IT MATTERS (cix#516). test_pkg's resume case
+# (ADR-0177/#46) proves a kept build container is genuinely reused by
+# having the failing build leave a marker file and the resumed build
+# assert it survived. The inner assertion -- `test -f
+# "${build}/.resumed_marker"` -- is the real proof and it passes. But
+# the test ALSO reads that marker from outside, over
+# GET /v1/containers/<name>/files?path=..., and that read needs the
+# literal path. It was guessed as /build twice and 404'd twice. cixd
+# stages the workspace at /build/cbsws (PKG_CBS_WORKSPACE) and passes
+# it as --staged, so ${build} is somewhere under that -- but "somewhere
+# under" is not a path, and a third guess is not a measurement.
+#
+# echo rather than pwd: pwd answers where a run's cwd is, which is a
+# different question. echo prints exactly what CPDL interpolated.
+#
+# HOW TO READ IT. The build deliberately fails, so the log is retained:
+#   cixctl pkg build-logs --file=probe-cpdlpaths-1-1-<stamp>.log
+# Look between PROBE-PATHS markers.
+#
+package "probe-cpdlpaths" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.332.tar.gz"
+            sha256 "9dd7c9f275236c3b85f463831826469718251bcca364e1bef8ca81fadd78796e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: prints the literal ${build}/${src}/${dest} a cixd build container sees, so test_pkg's resume marker read stops being a guess (cix#516)."
+    }
+
+    build {
+        run "echo" {
+            "PROBE-PATHS-BEGIN"
+        }
+        run "echo" {
+            "build=${build}"
+        }
+        run "echo" {
+            "src=${src}"
+        }
+        run "echo" {
+            "dest=${dest}"
+        }
+        run "ls" {
+            "-la" "${build}"
+        }
+        run "echo" {
+            "PROBE-PATHS-END"
+        }
+        # Deliberate failure: the probe's whole output is its log.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
