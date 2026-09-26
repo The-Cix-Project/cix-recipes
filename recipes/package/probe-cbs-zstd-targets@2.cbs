@@ -1,0 +1,93 @@
+#
+# probe-cbs-zstd-targets -- the one-liner cix-build-system#239 offers
+# as its acceptance criterion, run against cbs v0.1.62 so the ticket
+# can state what it prints TODAY rather than asking upstream to take
+# the shape of the fix on trust.
+#
+# Revision 1 listed the ten rules linking src/cixpkg.o by hand with
+# `grep -A3` and read the library lines off them. That is how the
+# five broken ones were found, and it is not something anyone should
+# have to repeat by eye before each tag. This runs the mechanical
+# form instead:
+#
+#   sed ':a;/\\$/N;s/\\\n//;ta' Makefile   # join continuation lines
+#     | grep cixpkg.o                       # every rule linking it
+#     | grep -v lzstd                       # ... that omits the lib
+#
+# CPDL has no pipes and refuses `run "bash"` (CPDL-E3006), so each
+# stage writes a file with `stdout file` and the next reads it. That
+# is a faithful translation, not a different check.
+#
+# EXPECTED TODAY: five lines, one per broken rule. After a fix:
+# nothing, and `grep -c` reports 0. That is the whole criterion.
+#
+# HOW TO READ IT. Deliberate failure, so the log is retained:
+#   cixctl pkg build-logs --file=probe-cbs-zstd-targets-2-1-<stamp>.log
+# Between the PROBE-BROKEN markers is the current answer.
+#
+package "probe-cbs-zstd-targets" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.62.tar.gz"
+            sha256 "62911ce06dee68d835349e70dd0ce9fec7ee88984b9d8db6784c506ddb4ab697"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "2: runs #239's proposed pre-tag check against v0.1.62 so the ticket can quote what it prints now (five broken rules) and what it must print after the fix (nothing). 1 enumerated the same rules by hand."
+    }
+
+    build {
+        cd "${src}/cbs/cix-build-system" {
+            # Join backslash continuations so each make rule is one line.
+            run "sed" {
+                ":a;/\\\\$/N;s/\\\\\\n//;ta"
+                "Makefile"
+                stdout file "${build}/joined.mk"
+            }
+            # Every rule that links cixpkg.o.
+            run "grep" {
+                "cixpkg.o"
+                "${build}/joined.mk"
+                stdout file "${build}/consumers.txt"
+            }
+            run "echo" {
+                "PROBE-BROKEN-BEGIN"
+            }
+            # ... and omits -lzstd. These are the rules that cannot link.
+            run "grep" {
+                "-v" "lzstd"
+                "${build}/consumers.txt"
+                stdout file "${build}/broken.txt"
+            }
+            run "cat" {
+                "${build}/broken.txt"
+            }
+            run "echo" {
+                "PROBE-BROKEN-END"
+            }
+            run "grep" {
+                "-c" "" "${build}/broken.txt"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
