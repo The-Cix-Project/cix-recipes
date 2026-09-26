@@ -71,7 +71,7 @@
 #
 package "cix" {
     version "v2.57.334"
-    release 2
+    release 4
     format "cixpkg"
 
     sources {
@@ -156,8 +156,8 @@ package "cix" {
         # tomorrow; bd2c3d83 is the tree probe-cix-testreport@26 proved
         # these three tests pass against.
         extra "recipes" {
-            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/7c8d3782c21289fa0a70d63a79581223be6f8053.tar.gz"
-            sha256 "5958182cf98d73817edb364ed468b587db82f31fd3b43781b19c678e1a0125ac"
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/c04d9072466805c09d76567d2b3c24ef8ba9da96.tar.gz"
+            sha256 "f27a1fb8cfd21c9fcd0e4bcc2ad8dec07b1ed732f19c40a7f80416223f2d89bc"
         }
     }
 
