@@ -10,7 +10,10 @@ cixd's recipe sync never sees it: the sync walks
 Recipes already published to a host are immutable server-side and are
 unaffected by a file moving here.
 
-1536 files moved; 1545 shell recipe files existed.
+1538 files moved; 1545 shell recipe files existed. The count grew
+after the original move: `openssh@10.4p1-13.cbs` (superseded by -14
+for canonical declaration order, cix-build-system#245) and
+`kernel@6.18.40-24.sh`.
 
 ## What did NOT move, and what holds each one
 
@@ -27,7 +30,6 @@ that runs today, measured 2026-09-25 rather than assumed:
 | `flex@2.6.4-2.sh` | same |
 | `binutils@2.42-10.sh` | same |
 | `xz@5.8.3-8.sh` | same |
-| `kernel@6.18.40-24.sh` | `test/test_kernelrecipe.c` — the real-recipe fixture for `kernelrecipe.c`, which generates shell kernel revisions and retires with the shell path |
 
 The eight floor entries are pinned by `floor_packages[]` in
 `test/test_image_fixture.c` and gate every release since cix#485. They
@@ -49,3 +51,26 @@ cbs has built itself in CPDL for 27 revisions (`v0.1.25-2` through
 The seed is the previous Cix root -- Cix-built, not external, so the
 Build Provenance Mandate holds. Same shape as tcc building tcc.
 Confirmed by the owner 2026-09-25.
+
+## 2026-09-26: eight held, not nine
+
+`kernel@6.18.40-24.sh` moved here. It was held by
+`test/test_kernelrecipe.c`, which tested `daemon/src/kernelrecipe.c`
+— a pure text transform over `pkg_version=` / `pkg_source=` /
+`pkg_sha256=`. Both were deleted with ADR-0309 clause 3: the
+transform could no longer parse the kernel's own recipe, which has
+been CPDL since `7.2.3-17`, nothing in the daemon ever called it, and
+its test was in no gate. (`test_srcresolve.c` still names the string
+`"6.18.40-24"`, but as a hardcoded version in an array — it does not
+read this file. Checked before moving it.)
+
+**The eight that remain are all ADR-0209 test-floor artifact
+approvals**, read by `recipe_artifact_sha()`, and they are the
+subject of cix#529. They will leave when the floor seeds from
+`.cixpkg` artifacts instead of `tar.gz`.
+
+**This directory is still not deleted, deliberately.** Deleting it
+gives an operator nothing, and the No Stop-Gaps maxim's point about
+janitorial work applies to removals as much as to additions. Every
+file here is in git history regardless, and the versions they
+describe are immutable server-side.
