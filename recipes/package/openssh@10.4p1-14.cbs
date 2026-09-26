@@ -1,0 +1,113 @@
+# OpenSSH -- sshd and the client tools the jump box runs. Converted
+# from build.sh to build.cbs (ADR-0305 stage 4, #487).
+#
+# WHAT CHANGES: usr/share/man is no longer deleted (ADR-0306, #491).
+# That is the only removal this recipe made.
+#
+# CC=tcc explicitly, never a bare cc, and this package is the reason
+# the rule exists. openssh's own -2 revision relied on the build
+# sandbox's default compiler and got real GCC: link commands spelled
+# `cc`, carrying GCC-family hardening flags TCC does not emit, and --
+# despite configure reporting "PAM support: yes" and -lpam -lcrypt
+# being present on the link line -- an sshd binary with neither
+# library recorded as a real ELF DT_NEEDED (#109, ADR-0144).
+package "openssh" {
+    version "10.4p1"
+    release 14
+    format "cixpkg"
+
+    sources {
+        main "openssh" {
+            url "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.4p1.tar.gz"
+            sha256 "ef6026dd2aea8d56059638d5d3262902c892ceba9f88395835e0d06d3fb63238"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "openssl"
+            tool "zlib"
+            tool "linux-pam"
+            tool "libxcrypt"
+        }
+        runtime {
+            package "openssl"
+            package "zlib"
+            package "linux-pam"
+            package "libxcrypt"
+        }
+    }
+
+    metadata {
+        "changelog" "10.4p1-14: same recipe as -13 with metadata moved before the privileged declaration. -13 was written with them the other way round and cbs v0.1.67 accepted it silently, while its own spec said package items must be in canonical order; cix-build-system#245 resolved that by tightening the parser, so -13 stops parsing at cbs v0.1.69 with CPDL-E3003. cbs ranks items in equivalence classes, not a total order -- metadata is 7 and privileged is 8, which is the whole of the difference here. No functional change."
+    }
+
+    # ssh-keysign is setuid root by OpenSSH's own Makefile, and it is
+    # the one file in this package that is. It exists so an unprivileged
+    # ssh client can read the HOST key to sign a host-based
+    # authentication request; nothing else in openssh needs the bit, and
+    # password, public-key and PAM authentication are untouched by it.
+    #
+    # Declared rather than dropped, deliberately. CIXPKG refuses every
+    # undeclared setuid or setgid entry -- 10.4p1-12 built, linked and
+    # installed correctly and was then refused at manifest construction
+    # with `usr/libexec/ssh-keysign has mode 4711; CIXPKG refuses setuid
+    # and setgid`, which is the whole reason cix-build-system#240 was
+    # filed and fixed in cbs v0.1.67. The declaration is per-path and
+    # non-glob, and the staged mode must match EXACTLY, so a future
+    # upstream that ships 4755 fails here rather than shipping a wider
+    # bit than anyone approved.
+    #
+    # The alternative was to delete the binary and state that Cix's
+    # openssh does not support host-based authentication. That is a
+    # real option and remains one; it was not taken because removing a
+    # capability to satisfy a packaging limit is the wrong order, and
+    # the limit now has a proper expression.
+    privileged file "${dest}/usr/libexec/ssh-keysign" mode 04711
+
+    build {
+        cd "${src}/openssh/openssh-10.4p1" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--sysconfdir=/etc/ssh"
+                "--with-privsep-path=/run/sshd-empty"
+                "--with-privsep-user=sshd"
+                "--with-pid-dir=/run"
+                "--with-pam"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/openssh/openssh-10.4p1" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/sbin/sshd" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/ssh" {
+            exists
+            nonempty
+        }
+    }
+}
