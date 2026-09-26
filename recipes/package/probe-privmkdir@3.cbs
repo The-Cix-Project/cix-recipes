@@ -1,0 +1,74 @@
+# probe-privmkdir -- do cbs v0.1.67's two new spellings work as the
+# spec describes, on a real Cix host (cix#516)?
+#
+# TWO QUESTIONS, ONE BUILD.
+#
+# 1. cix-build-system#243, `mkdir ... parents`: the install below
+#    creates usr/libexec in ONE statement from a ${dest} that has
+#    neither usr nor usr/libexec. Leaf-only would fail here, which is
+#    what makes this a test rather than a demonstration.
+#
+# 2. cix-build-system#240, `privileged file <path> mode <mode>`: the
+#    file is written 04711 and declared. Undeclared, the manifest step
+#    must refuse it with CPDL-E4007.
+#
+# WHERE THE DECLARATION GOES IS THE REAL UNKNOWN. docs/spec/cpdl-0.1.md
+# at tag v0.1.67 documents the syntax in prose (line 607) with
+# ssh-keysign as its own example, but `privileged` appears nowhere in
+# the `package-item` EBNF at line 226 -- so the grammar does not say
+# whether it is a package-level item, and guessing costs a build
+# cycle. This places it at package level, after `install`.
+#
+# HOW TO READ IT. The build deliberately fails at the end, so the log
+# is retained:
+#   cixctl pkg build-logs --file=probe-privmkdir-1-1-<stamp>.log
+# Reaching PROBE-PRIV-END means both spellings parsed and ran. A
+# CPDL-E3003 "out of order" means the placement is wrong: measured
+# 2026-09-26, it is a package DECLARATION and must precede the phases. A
+# CPDL-E4007 means the declaration did not match the staged mode.
+#
+package "probe-privmkdir" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.339.tar.gz"
+            sha256 "72b261b1d5dd21f1a6d664c862ac0bfcc3451a750cd313e199a06ee10a9edbc8"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "3: regression test for cix-build-system#246 -- a BARE deep mkdir, which fails under v0.1.66-v0.1.69 and must succeed under v0.1.70 where parent creation is the default again. Also still covers privileged file (cbs#240) and canonical declaration order (cbs#245)."
+    }
+
+    privileged file "${dest}/usr/libexec/probe/fakesuid" mode 04711
+
+    build {
+        run "echo" {
+            "PROBE-PRIV-BEGIN"
+        }
+    }
+
+    install {
+        # One statement, three levels: leaf-only would fail here.
+        # BARE, no `parents`: this is the regression test for
+        # cix-build-system#246. Under v0.1.66-v0.1.69 this fails with
+        # CPDL-E4004 because ${dest}/usr does not exist; under v0.1.70
+        # parent creation is the default again and it succeeds.
+        mkdir "${dest}/usr/libexec/probe" chmod 0755
+        write "${dest}/usr/libexec/probe/fakesuid" "placeholder\n" chmod 04711
+        run "echo" {
+            "PROBE-PRIV-END"
+        }
+    }
+
+}
