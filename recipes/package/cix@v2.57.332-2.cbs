@@ -1,4 +1,29 @@
 #
+# THIS RECIPE STATES ITS VERSION IN FIVE PLACES AND THEY MUST MOVE
+# TOGETHER: the `version` field, and four `CIX_VERSION=` env settings
+# on the make invocations. The Makefile takes CIX_VERSION when it is
+# set and falls back to `git describe` otherwise, and a build
+# container has no git, so whatever those four say is what every
+# binary in the artifact reports for the rest of its life.
+#
+# Getting that wrong is silent and it reaches a booted host. Measured
+# on 192.168.15.95, 2026-09-26: cix@v2.57.332-1 was derived from the
+# v2.57.277 recipe by changing the version, the url and the sha256,
+# which left the four CIX_VERSION lines behind. It built clean, its
+# whole suite passed, it assembled, it deployed, it booted -- and
+# `cixctl boot` reported `v2.57.277 (02:01:37Z)` on a slot running
+# binaries compiled at 02:01:37Z from the v2.57.332 tree. Correct
+# bytes wearing the previous release's name, with nothing anywhere
+# reporting a fault. The functional change was verified live and only
+# the label was wrong, which is the dangerous shape: every later
+# "is it deployed?" reads the label.
+#
+# CPDL has no way to say "my own version" -- `${version}` does not
+# exist, and none of the 385 recipes in the corpus uses such a thing
+# -- which is why this is five literals rather than one. Filed
+# upstream as cix-build-system#238. Until it lands, bump all five or
+# bump none.
+#
 # cix -- the platform itself: cix-init, cixd, cixctl, mkbootroot,
 # cix-install, cix-recover, mkinstalleriso, cix-boot.efi, cix-xorriso,
 # and the web dashboard. This is what `pkg hostbuild cix --upgrade
@@ -40,7 +65,7 @@
 #
 package "cix" {
     version "v2.57.332"
-    release 1
+    release 2
     format "cixpkg"
 
     sources {
@@ -183,7 +208,7 @@ package "cix" {
     build {
         cd "${src}/cix/cix" {
             run "make" {
-                "CIX_VERSION=v2.57.277"
+                "CIX_VERSION=v2.57.332"
                 "build/cix-init"
                 "build/cixd"
                 "build/cixctl"
@@ -201,7 +226,7 @@ package "cix" {
             # selftest failures -- -4 had none and failed worse. The
             # cause was the missing capability declared above.
             run "make" {
-                "CIX_VERSION=v2.57.277"
+                "CIX_VERSION=v2.57.332"
                 "selftest"
                 # The floor reads each package's own recipe for the
                 # checksum it verifies the artifact against; the
@@ -221,7 +246,7 @@ package "cix" {
 
         cd "${src}/cix/cix" {
             run "make" {
-                "CIX_VERSION=v2.57.277"
+                "CIX_VERSION=v2.57.332"
                 "build/cixd"
             }
 
@@ -242,7 +267,7 @@ package "cix" {
 
         cd "${src}/cix/cix" {
             run "make" {
-                "CIX_VERSION=v2.57.277"
+                "CIX_VERSION=v2.57.332"
                 "build/cixd"
             }
         }
