@@ -1,0 +1,81 @@
+#
+# probe-cbs-zstd-targets -- EVERY Makefile rule in cbs v0.1.62 that
+# links src/cixpkg.o, and which of them name -lzstd.
+#
+# WHY THIS EXISTS. cix-build-system#237 and #239 are the same defect
+# found twice, and both were found the only way a build can find
+# them: one at a time. `make` stops at its first failing link, so a
+# log proves nothing about any target after it. #237 fixed
+# tests/fs-test, the suite then reached tests/edit-assert-test with
+# the identical omission, and every target BEHIND that one is still
+# unmeasured -- including by me, which is why #239 as filed cannot
+# promise that fixing it makes cbs installable.
+#
+# Reading the Makefile answers the whole question at once instead of
+# one release at a time. It also turns #239 from "fix this target"
+# into "here is the complete set", which is the difference between a
+# fix that might work and one that provably finishes.
+#
+# No build runs: the source is fetched and grepped. Deliberate
+# failure so the log is retained:
+#   cixctl pkg build-logs --file=probe-cbs-zstd-targets-1-1-<stamp>.log
+#
+# HOW TO READ IT. Each ZSTD-CONSUMERS hit is a link rule pulling in
+# cixpkg.o, with the three following lines so its library list is
+# visible. Cross-check against ZSTD-LINKERS, which lists every line
+# naming -lzstd. A consumer with no -lzstd within its rule is a
+# target that cannot link.
+#
+package "probe-cbs-zstd-targets" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.62.tar.gz"
+            sha256 "62911ce06dee68d835349e70dd0ce9fec7ee88984b9d8db6784c506ddb4ab697"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: every Makefile rule in cbs v0.1.62 linking src/cixpkg.o, and which name -lzstd. #237 and #239 are the same defect found one release at a time because make stops at the first failing link; this reads the whole set at once so #239 can name all of them."
+    }
+
+    build {
+        cd "${src}/cbs/cix-build-system" {
+            run "echo" {
+                "PROBE-ZSTD-CONSUMERS-BEGIN"
+            }
+            run "grep" {
+                "-n" "-A3" "cixpkg.o" "Makefile"
+            }
+            run "echo" {
+                "PROBE-ZSTD-CONSUMERS-END"
+            }
+            run "echo" {
+                "PROBE-ZSTD-LINKERS-BEGIN"
+            }
+            run "grep" {
+                "-n" "lzstd" "Makefile"
+            }
+            run "echo" {
+                "PROBE-ZSTD-LINKERS-END"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
