@@ -1,0 +1,73 @@
+#
+# probe-buildenv -- does a CPDL `run` inherit the build container's
+# environment, or does cbs hand each run a constructed one?
+#
+# THE QUESTION AND WHY IT MATTERS (cix#516, cix-build-system#238).
+# cixd builds every package with an envp it constructs itself --
+# PKG_DESTDIR, PATH=/usr/bin:/bin, HOME=/build, and one retired spare
+# slot (daemon/src/pkg.c, build_envp[]). If a `run` inherits that, the
+# daemon can put the package's own version in the spare slot and the
+# cix recipe stops restating it: one literal in the `version` field
+# instead of five, and the class of drift that shipped a v2.57.332
+# binary stamped v2.57.277 to a booted host on 2026-09-26 cannot
+# happen. If a `run` does NOT inherit it, that fix is unavailable
+# until CPDL can say `${version}` (cbs#238) and we take the other
+# route instead -- stamping the version at assembly from the package
+# record.
+#
+# Every recipe in this corpus sets `env` explicitly, which HINTS at no
+# passthrough, but that is an inference from absence and this decides
+# it with output instead.
+#
+# HOW TO READ IT. The build deliberately fails, so the log is retained:
+#   cixctl pkg build-logs --file=probe-buildenv-1-1-<stamp>.log
+# Look for PKG_DESTDIR, HOME=/build and PATH=/usr/bin:/bin. If those
+# three appear, the container env reaches a run and the spare slot
+# works. If the environment is some other small set, it does not.
+#
+package "probe-buildenv" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.332.tar.gz"
+            sha256 "9dd7c9f275236c3b85f463831826469718251bcca364e1bef8ca81fadd78796e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: does a CPDL run inherit the build container's environment? Decides whether cixd can hand a package its own version through build_envp's spare slot (cix#516) or whether that waits on cbs#238."
+    }
+
+    build {
+        # Everything the run can see, named so the log is greppable.
+        run "bash" {
+            "-c"
+            "echo PROBE-ENV-BEGIN; printenv | sort; echo PROBE-ENV-END"
+        }
+        # And the three the daemon sets, asked for individually, so a
+        # missing one is visible as an empty value rather than absent
+        # from a long list.
+        run "bash" {
+            "-c"
+            "echo PROBE-DESTDIR=[$PKG_DESTDIR] PROBE-HOME=[$HOME] PROBE-PATH=[$PATH]"
+        }
+        # Deliberate failure: the probe's whole output is its log, and
+        # a successful build would publish an artifact nobody wants.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
