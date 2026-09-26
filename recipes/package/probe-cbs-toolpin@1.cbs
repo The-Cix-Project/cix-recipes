@@ -1,0 +1,89 @@
+#
+# probe-cbs-toolpin -- how does CPDL spell a version-pinned build
+# tool, now that cix-build-system#235 has shipped (v0.1.58)?
+#
+# test_pkg's write_builddeps_recipe passes its callers' strings
+# straight through -- "greeter", "greeter@1.0-1", "greeter@9.9" --
+# and the whole point of those fixtures is that a declared pin is
+# honoured, including a deliberately unsatisfiable one. Converting
+# them to CPDL needs the real syntax, and guessing it costs a build
+# cycle per guess.
+#
+# So read upstream's own spec and fixtures rather than inventing a
+# spelling. Same discipline as reading a recipe before writing one.
+#
+# No build runs: the source is fetched and grepped. Deliberate
+# failure so the log is retained.
+#
+package "probe-cbs-toolpin" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.63.tar.gz"
+            sha256 "66475d4f23bae3431d999fa5ca26c861d6d3720994a7836a9be9c9b29a6e7492"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the CPDL syntax for a version-pinned build tool (cbs#235, v0.1.58), read from upstream's spec and fixtures rather than guessed, so test_pkg's builddeps fixtures convert in one attempt."
+    }
+
+    build {
+        cd "${src}/cbs/cix-build-system" {
+            run "echo" {
+                "PROBE-DOCS-BEGIN"
+            }
+            run "ls" {
+                "-1" "docs"
+            }
+            run "echo" {
+                "PROBE-DOCS-END"
+            }
+            # Any tool declaration mentioning a version, anywhere.
+            run "echo" {
+                "PROBE-PINS-BEGIN"
+            }
+            run "grep" {
+                "-rn" "--include=*.md" "--include=*.cbs" "-e" "tool .*@" "docs" "tests"
+                stdout file "${build}/pins.txt"
+            }
+            run "cat" {
+                "${build}/pins.txt"
+            }
+            run "echo" {
+                "PROBE-PINS-END"
+            }
+            # And whatever the spec says about pinning, by word.
+            run "echo" {
+                "PROBE-SPECWORD-BEGIN"
+            }
+            run "grep" {
+                "-rn" "-i" "--include=*.md" "-e" "pinned" "docs"
+                stdout file "${build}/spec.txt"
+            }
+            run "cat" {
+                "${build}/spec.txt"
+            }
+            run "echo" {
+                "PROBE-SPECWORD-END"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
