@@ -5,7 +5,7 @@
 #
 # The shell form declares a deliberately wrong pkg_sha256 and reads
 # computed=<64 hex> out of the daemon's own fetch log, because cixd
-# fetches a shell recipe's source host-side. A PBS recipe's source is
+# fetches a shell recipe's source host-side. A CPDL recipe's source is
 # fetched by cbs, inside the build container, so the daemon's log is
 # the wrong place to look and the question is whether cbs names the
 # hash it computed anywhere a caller can read.

@@ -1,4 +1,4 @@
-# zlib, as a PBS recipe (ADR-0305 stage 4).
+# zlib, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/zlib/1.3.2-11/build.sh: same tarball
 # at the same digest, the same three environment variables, the same

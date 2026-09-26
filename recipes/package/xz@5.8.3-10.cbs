@@ -1,4 +1,4 @@
-# xz, as a PBS recipe (ADR-0305 stage 4).
+# xz, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/xz/5.8.3-8/build.sh: same tarball at
 # the same digest, same configure switches, same `make install`.

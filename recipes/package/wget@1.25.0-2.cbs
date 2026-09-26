@@ -1,4 +1,4 @@
-# wget, as a PBS recipe (ADR-0305 stage 4).
+# wget, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/wget/1.25.0/build.sh: same tarball at
 # the same digest, the same eleven configure switches, the same `make
@@ -16,7 +16,7 @@
 #
 # So the two recipe versions are distinct and their artifacts are not.
 # Installing `1.25.0-1` found the shell recipe's artifact already in the
-# cache, downloaded it, installed it, and reported success at the PBS
+# cache, downloaded it, installed it, and reported success at the CPDL
 # version -- the recipe never ran. It was caught only by noticing the
 # cache entry was dated five days earlier than the build (cix#494).
 #

@@ -1,4 +1,4 @@
-# pkgconf, as a PBS recipe (ADR-0305 stage 4).
+# pkgconf, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/pkgconf/3.0.5-5/build.sh: same
 # tarball at the same digest, the same two configure switches, the same

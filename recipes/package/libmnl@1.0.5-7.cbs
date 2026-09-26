@@ -1,4 +1,4 @@
-# libmnl, as a PBS recipe (ADR-0305 stage 4).
+# libmnl, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/libmnl/1.0.5-5/build.sh, and the
 # first recipe here to use two CPDL features that did not exist a day
@@ -62,7 +62,7 @@ package "libmnl" {
             tool "findutils"
             tool "diffutils"
             # bzip2, and NOT because the build uses it. The source is a
-            # .tar.bz2, and a PBS recipe's sources are extracted INSIDE
+            # .tar.bz2, and a CPDL recipe's sources are extracted INSIDE
             # the build container by cbs -- where a shell recipe's are
             # extracted host-side by cixd, using the host's own tools.
             #
@@ -82,7 +82,7 @@ package "libmnl" {
 
     metadata {
         "artifact_sha256" "dc6f661c52e1f7c6ad3f11fd5d292f64dacb1a14bf79c2eb4235394b4b3e893a"
-        "changelog" "1.0.5-7: converted from build.sh to build.cbs (ADR-0305 stage 4). First recipe to use replace ... until whitespace (cix-build-system#177) for the -Wl,--version-script strip TCC needs, since no literal match can reach the flag's argument, and require symlink { target } for the soname link (#175). Declares bzip2: a PBS recipe's sources are extracted inside the build container, so a .tar.bz2 needs the compressor declared where a shell recipe did not."
+        "changelog" "1.0.5-7: converted from build.sh to build.cbs (ADR-0305 stage 4). First recipe to use replace ... until whitespace (cix-build-system#177) for the -Wl,--version-script strip TCC needs, since no literal match can reach the flag's argument, and require symlink { target } for the soname link (#175). Declares bzip2: a CPDL recipe's sources are extracted inside the build container, so a .tar.bz2 needs the compressor declared where a shell recipe did not."
     }
 
     prepare {

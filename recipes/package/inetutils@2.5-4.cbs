@@ -1,4 +1,4 @@
-# inetutils, as a PBS recipe (ADR-0305 stage 4).
+# inetutils, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/inetutils/2.5-3/build.sh: same
 # tarball at the same digest, the same three configure switches, and the

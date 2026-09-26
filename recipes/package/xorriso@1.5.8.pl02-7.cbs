@@ -27,7 +27,7 @@
 #
 # A shell recipe never needs that name -- cixd extracts with the
 # common wrapping directory stripped, so ./configure runs from the
-# extraction root. A PBS recipe is handed ${src}/<source>/<top> and
+# extraction root. A CPDL recipe is handed ${src}/<source>/<top> and
 # has to name <top> exactly, and a `.pl02` patchlevel in the TARBALL
 # name does not have to appear in the directory inside it.
 #

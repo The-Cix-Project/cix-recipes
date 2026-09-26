@@ -1,4 +1,4 @@
-# The first PBS recipe this platform has ever published (ADR-0305).
+# The first CPDL recipe this platform has ever published (ADR-0305).
 #
 # Version 2 because version 1's artifact is POISONED and cannot be
 # rebuilt over. 1-1 was built while cixd harvested a different

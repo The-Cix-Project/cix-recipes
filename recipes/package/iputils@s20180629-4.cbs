@@ -1,4 +1,4 @@
-# iputils, as a PBS recipe (ADR-0305 stage 4, the corpus conversion).
+# iputils, as a CPDL recipe (ADR-0305 stage 4, the corpus conversion).
 #
 # A translation of recipes/package/iputils/s20180629-3/build.sh, not a
 # fresh design. The source tarball, its digest, the build tools and the

@@ -1,4 +1,4 @@
-# libxcrypt, as a PBS recipe (ADR-0305 stage 4).
+# libxcrypt, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/libxcrypt/4.4.36-10/build.sh: same
 # tarball at the same digest, the same four configure switches, the same
