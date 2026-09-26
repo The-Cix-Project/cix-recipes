@@ -156,6 +156,7 @@ package "cbs" {
         # agree; independently equal to what the artifact cache serves
         # for cbs-v0.1.63-2-x86_64.cixpkg, 76462 bytes.
         #
+        "artifact_sha256" "d1efe9266b86c03ea30649a9ef9843017e7c78a59fd74618d855a73b2ab61c7b"
         "changelog" "v0.1.70-3: same as -2 with `mkdir ... parents` made explicit, which is what lets this release be built at all. -2 could not be: the engine in cix-builder was v0.1.67, where mkdir is leaf-only, so the recipe for the release that FIXES that failed on it. `parents` is accepted by both contracts, so the recipe is engine-agnostic. cbs#246 restores parent creation as the default; verified from src/fs.c at the tag."
     }
 
