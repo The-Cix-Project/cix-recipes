@@ -6,7 +6,7 @@
 # and the writer works (#492).
 #
 # What must ALSO be true, and is the half that is easy to miss:
-# parse_pbs_recipe() reads the derived explain.json beside the recipe,
+# parse_cbs_recipe() reads the derived explain.json beside the recipe,
 # never the recipe itself (ADR-0305). So an approval written only into
 # the .cbs would be invisible to every build -- the recipe would say
 # approved and the pipeline would rebuild from source forever. The
@@ -20,7 +20,7 @@
 #
 #
 # The control's own header follows, for the contrast:
-# probe-approve-pbs 1 -- THE CONTROL. A PBS recipe with NO
+# probe-approve-pbs 1 -- THE CONTROL. A CPDL recipe with NO
 # `metadata { }` block, so its published artifact cannot be approved
 # (#492).
 #

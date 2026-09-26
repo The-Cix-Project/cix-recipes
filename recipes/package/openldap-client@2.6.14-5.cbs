@@ -1,4 +1,4 @@
-# openldap-client, as a PBS recipe (ADR-0305 stage 4).
+# openldap-client, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/openldap-client/2.6.14-4/build.sh:
 # same tarball at the same digest, the same eight configure switches,

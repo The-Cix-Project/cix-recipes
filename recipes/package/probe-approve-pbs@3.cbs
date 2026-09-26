@@ -2,7 +2,7 @@
 # writer, and it keeps the thing that broke the last attempt.
 #
 # Release 1-2 should have gained an approval and did not, silently.
-# The cause was in the daemon, not the recipe: approve_pbs_artifact()
+# The cause was in the daemon, not the recipe: approve_cbs_artifact()
 # decided "already approved" with
 #
 #     strstr(stored, "\"artifact_sha256\"")
@@ -33,7 +33,7 @@
 # and the writer works (#492).
 #
 # What must ALSO be true, and is the half that is easy to miss:
-# parse_pbs_recipe() reads the derived explain.json beside the recipe,
+# parse_cbs_recipe() reads the derived explain.json beside the recipe,
 # never the recipe itself (ADR-0305). So an approval written only into
 # the .cbs would be invisible to every build -- the recipe would say
 # approved and the pipeline would rebuild from source forever. The
@@ -47,7 +47,7 @@
 #
 #
 # The control's own header follows, for the contrast:
-# probe-approve-pbs 1 -- THE CONTROL. A PBS recipe with NO
+# probe-approve-pbs 1 -- THE CONTROL. A CPDL recipe with NO
 # `metadata { }` block, so its published artifact cannot be approved
 # (#492).
 #

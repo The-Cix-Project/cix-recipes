@@ -19,9 +19,9 @@
 #
 # WHY CPDL RATHER THAN SHELL (cix#516). The shell form of this probe was
 # the last thing in the corpus that shell could do and CPDL was assumed
-# not to: a PBS recipe's build steps run inside a build container, so
+# not to: a CPDL recipe's build steps run inside a build container, so
 # the daemon's own log looked like the wrong place to read a fetch from.
-# It is not. cixd fetches and checksum-verifies a PBS recipe's declared
+# It is not. cixd fetches and checksum-verifies a CPDL recipe's declared
 # sources host-side, exactly as it does a shell recipe's, and logs the
 # same line. Measured on 192.168.15.95, 2026-09-25 by
 # probe-cpdl-sha@1-1, which declared zeroes against cix v2.57.282 and

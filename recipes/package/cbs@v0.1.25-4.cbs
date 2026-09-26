@@ -75,7 +75,7 @@
 # FETCHES -- in a container with no network. upstream-smoke-test.sh
 # honours CBS_UPSTREAM_CACHE and copies its files into the cache it
 # hands cbs, and cixd already stages every declared source at
-# /build/cbscache/<sha256> for a PBS build, which is precisely the
+# /build/cbscache/<sha256> for a CPDL build, which is precisely the
 # digest-named layout CBS looks for. So the cache is pointed straight
 # at cixd's own handoff directory: nothing is copied, nothing is
 # invented, and the zstd tarball is fetched and verified host-side by

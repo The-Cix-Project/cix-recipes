@@ -1,4 +1,4 @@
-# grep, as a PBS recipe (ADR-0305 stage 4).
+# grep, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/grep/3.11-6/build.sh: same tarball at
 # the same digest, the same stub object, the same configure and

@@ -1,4 +1,4 @@
-# libmnl, as a PBS recipe (ADR-0305 stage 4).
+# libmnl, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/libmnl/1.0.5-5/build.sh, and the
 # first recipe here to use two CPDL features that did not exist a day

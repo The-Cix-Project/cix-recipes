@@ -1,4 +1,4 @@
-# htop, as a PBS recipe (ADR-0305 stage 4).
+# htop, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/htop/3.5.2-7/build.sh: same tarball
 # at the same digest, the same six configure switches, the same

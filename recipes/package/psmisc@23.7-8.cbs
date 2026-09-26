@@ -1,4 +1,4 @@
-# psmisc, as a PBS recipe (ADR-0305 stage 4).
+# psmisc, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/psmisc/23.7-7/build.sh: same tarball
 # at the same digest, same configure switches, same `make install`.

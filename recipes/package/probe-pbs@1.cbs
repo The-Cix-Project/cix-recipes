@@ -1,4 +1,4 @@
-# The first PBS recipe this platform has ever published (ADR-0305).
+# The first CPDL recipe this platform has ever published (ADR-0305).
 #
 # SCRATCH DIAGNOSTIC, but not a throwaway one: this is stage 1's proof.
 # It exists to answer, on a real host, the questions that reading the

@@ -1,4 +1,4 @@
-# mtr, as a PBS recipe (ADR-0305 stage 4).
+# mtr, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/mtr/0.96-8/build.sh, and the worked
 # example of `stage library` (cix-build-system#178).

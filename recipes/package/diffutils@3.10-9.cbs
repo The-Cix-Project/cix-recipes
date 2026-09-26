@@ -1,4 +1,4 @@
-# diffutils, as a PBS recipe (ADR-0305 stage 4).
+# diffutils, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/diffutils/3.10-8/build.sh: same
 # tarball at the same digest, the same two source edits, the same

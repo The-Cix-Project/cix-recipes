@@ -28,7 +28,7 @@
 # cannot do yet" table in docs/guides/writing-recipes.md.
 #
 # Installing this changes the ENGINE, so the daemon re-derives every
-# PBS recipe's explain.json on the next boot (ADR-0307 clause 7).
+# CPDL recipe's explain.json on the next boot (ADR-0307 clause 7).
 # That sweep is keyed on the engine's digest rather than the version
 # string it prints, which exists because of this very repository:
 # #183's fix sat on main reporting 0.1.29, the same number as the

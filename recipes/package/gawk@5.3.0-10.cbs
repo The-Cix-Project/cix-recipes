@@ -1,4 +1,4 @@
-# gawk, as a PBS recipe (ADR-0305 stage 4).
+# gawk, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/gawk/5.3.0-9/build.sh: same tarball
 # at the same digest, the same weak __dso_handle stub, the same

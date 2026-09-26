@@ -1,4 +1,4 @@
-# bzip2, as a PBS recipe (ADR-0305 stage 4).
+# bzip2, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/bzip2/1.0.8-5/build.sh: same tarball
 # at the same digest, the same shared-library Makefile, the same five

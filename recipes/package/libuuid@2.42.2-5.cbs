@@ -1,4 +1,4 @@
-# libuuid, as a PBS recipe (ADR-0305 stage 4).
+# libuuid, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of recipes/package/libuuid/2.42.2-4/build.sh: the same
 # util-linux tarball at the same digest, the same four configure

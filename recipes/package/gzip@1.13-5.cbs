@@ -1,4 +1,4 @@
-# gzip, as a PBS recipe (ADR-0305 stage 4).
+# gzip, as a CPDL recipe (ADR-0305 stage 4).
 #
 # A translation of the previous build.sh: same tarball at the same
 # digest, the same configure invocation, the same `make install`.

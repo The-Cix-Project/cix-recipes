@@ -1,4 +1,4 @@
-# probe-approve-pbs 1 -- THE CONTROL. A PBS recipe with NO
+# probe-approve-pbs 1 -- THE CONTROL. A CPDL recipe with NO
 # `metadata { }` block, so its published artifact cannot be approved
 # (#492).
 #
