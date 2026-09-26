@@ -28,7 +28,7 @@
 # CPDL-E4007 means the declaration did not match the staged mode.
 #
 package "probe-privmkdir" {
-    version "1"
+    version "2"
     release 1
     format "cixpkg"
 
@@ -46,11 +46,11 @@ package "probe-privmkdir" {
         }
     }
 
-    privileged file "${dest}/usr/libexec/probe/fakesuid" mode 04711
-
     metadata {
         "changelog" "1: proves mkdir parents (cbs#243) and privileged file (cbs#240) on a real host, and pins down where the privileged declaration goes since the EBNF omits it."
     }
+
+    privileged file "${dest}/usr/libexec/probe/fakesuid" mode 04711
 
     build {
         run "echo" {
