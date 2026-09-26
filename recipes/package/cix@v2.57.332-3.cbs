@@ -1,28 +1,34 @@
 #
-# THIS RECIPE STATES ITS VERSION IN FIVE PLACES AND THEY MUST MOVE
-# TOGETHER: the `version` field, and four `CIX_VERSION=` env settings
-# on the make invocations. The Makefile takes CIX_VERSION when it is
-# set and falls back to `git describe` otherwise, and a build
-# container has no git, so whatever those four say is what every
-# binary in the artifact reports for the rest of its life.
+# THE VERSION IS STATED ONCE, in the `version` field, and the four
+# `make` invocations take it as `CIX_VERSION=${version}`. Do not
+# reintroduce a literal there. The Makefile uses CIX_VERSION when set
+# and falls back to `git describe` otherwise, and a build container
+# has no git, so whatever reaches those four is what every binary in
+# the artifact reports for the rest of its life.
 #
-# Getting that wrong is silent and it reaches a booted host. Measured
-# on 192.168.15.95, 2026-09-26: cix@v2.57.332-1 was derived from the
-# v2.57.277 recipe by changing the version, the url and the sha256,
-# which left the four CIX_VERSION lines behind. It built clean, its
-# whole suite passed, it assembled, it deployed, it booted -- and
-# `cixctl boot` reported `v2.57.277 (02:01:37Z)` on a slot running
-# binaries compiled at 02:01:37Z from the v2.57.332 tree. Correct
-# bytes wearing the previous release's name, with nothing anywhere
-# reporting a fault. The functional change was verified live and only
-# the label was wrong, which is the dangerous shape: every later
-# "is it deployed?" reads the label.
+# -1 AND -2 OF THIS VERSION ARE WHY THAT MATTERS. -1 was derived from
+# the v2.57.277 recipe by changing the version, the url and the
+# sha256, which left four `CIX_VERSION=v2.57.277` lines behind. It
+# built clean, its whole suite passed, it assembled, it deployed and
+# it booted -- and `cixctl boot` then reported `v2.57.277
+# (02:01:37Z)` on a slot running binaries compiled at 02:01:37Z from
+# the v2.57.332 tree. Correct bytes wearing the previous release's
+# name, with nothing anywhere reporting a fault. Only the label was
+# wrong, which is the dangerous shape: every later "is it deployed?"
+# reads the label. -2 corrected the four literals and warned the next
+# editor to keep them in step, which was a workaround and read as
+# one.
 #
-# CPDL has no way to say "my own version" -- `${version}` does not
-# exist, and none of the 385 recipes in the corpus uses such a thing
-# -- which is why this is five literals rather than one. Filed
-# upstream as cix-build-system#238. Until it lands, bump all five or
-# bump none.
+# ${version} AND ${release} INTERPOLATE, measured here rather than
+# taken from the release note that says so. cix-build-system#238 was
+# closed with "already supported by validation and runtime
+# interpolation", which is a statement about upstream's code; the
+# question was whether it holds for the cbs this host runs, v0.1.56,
+# older than the release that added the regression test.
+# probe-cpdlversion@2-1 asked that binary, on 192.168.15.95,
+# 2026-09-26: a recipe declaring `version "7.7.8"` and `release 3`
+# printed `PROBE-VERSION=[7.7.8]` and `PROBE-RELEASE=[3]`. So no cbs
+# upgrade is needed for this and none was done for it.
 #
 # cix -- the platform itself: cix-init, cixd, cixctl, mkbootroot,
 # cix-install, cix-recover, mkinstalleriso, cix-boot.efi, cix-xorriso,
@@ -65,7 +71,7 @@
 #
 package "cix" {
     version "v2.57.332"
-    release 2
+    release 3
     format "cixpkg"
 
     sources {
@@ -167,7 +173,7 @@ package "cix" {
     }
 
     metadata {
-        "changelog" "v2.57.332-1: cix v2.57.332. Publishing a NEW shell recipe is refused (cix#516, ADR-0309 clause 4), so the parallel stops growing while it retires. NOT the build path: 65 of 181 installed versions here still resolve to a shell revision and parse_recipe() builds every one. The check sits after the immutability block so recipe-sync's skips stay skips, and test_pkg gates both halves -- 400 for a new shell revision, 409 for a stored one."
+        "changelog" "v2.57.332-3: the version is stated once. The four make invocations take CIX_VERSION=${version} instead of a literal, so the drift that made -1 boot v2.57.332 binaries stamped v2.57.277 cannot be expressed. Verified on the installed cbs v0.1.56 by probe-cpdlversion@2-1, not taken from cbs#238's note. Same code as -2: publishing a NEW shell recipe is refused (cix#516, ADR-0309 clause 4), which is not the build path -- 65 of 181 installed versions are still shell and parse_recipe() builds every one."
     }
 
     # The selftest creates real containers, so the build container
@@ -208,7 +214,7 @@ package "cix" {
     build {
         cd "${src}/cix/cix" {
             run "make" {
-                "CIX_VERSION=v2.57.332"
+                "CIX_VERSION=${version}"
                 "build/cix-init"
                 "build/cixd"
                 "build/cixctl"
@@ -226,7 +232,7 @@ package "cix" {
             # selftest failures -- -4 had none and failed worse. The
             # cause was the missing capability declared above.
             run "make" {
-                "CIX_VERSION=v2.57.332"
+                "CIX_VERSION=${version}"
                 "selftest"
                 # The floor reads each package's own recipe for the
                 # checksum it verifies the artifact against; the
@@ -246,7 +252,7 @@ package "cix" {
 
         cd "${src}/cix/cix" {
             run "make" {
-                "CIX_VERSION=v2.57.332"
+                "CIX_VERSION=${version}"
                 "build/cixd"
             }
 
@@ -267,7 +273,7 @@ package "cix" {
 
         cd "${src}/cix/cix" {
             run "make" {
-                "CIX_VERSION=v2.57.332"
+                "CIX_VERSION=${version}"
                 "build/cixd"
             }
         }
