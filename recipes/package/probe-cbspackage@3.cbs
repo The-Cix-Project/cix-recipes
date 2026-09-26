@@ -1,0 +1,61 @@
+#
+# probe-cbspackage -- what `cbs package` actually accepts.
+#
+# cix#528 needs cixd to emit a CIXPKG from a staged tree, and
+# cbs#247's closing comment describes the new verb in prose. A claim
+# about cbs made from prose has already diverged from its source once
+# (cbs#243: a note became a ticket became an upstream change became a
+# corpus-wide breakage, and nobody read src/fs.c). So the argv cixd
+# will exec is read from the binary instead.
+#
+# Revision 1 tried `run "bash" { "-c" ... }` and CPDL refused it --
+# CPDL-E3006, "command interpreters are not valid run executables" --
+# which is that policy working. cbs is invoked directly.
+#
+# The build deliberately fails so nothing publishes and the log is
+# retained: cixctl pkg build-logs --file=probe-cbspackage-2-1-<stamp>.log
+#
+package "probe-cbspackage" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "none" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-361.tar.gz"
+            sha256 "66605217cc407f0142ece5aa391ab72a2ae97cf92dc7e1e1a59bd9497386c662"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "3: reads `cbs --version`, `cbs --help` and `cbs package --help` from the installed cbs v0.1.71."
+    }
+
+    build {
+        run "cbs" {
+            "--version"
+        }
+        run "cbs" {
+            "--help"
+        }
+        run "cbs" {
+            "package" "--help"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr" parents
+        mkdir "${dest}/usr/share" parents
+        mkdir "${dest}/usr/share/probe-cbspackage" parents
+    }
+}

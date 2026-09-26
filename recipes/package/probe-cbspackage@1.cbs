@@ -1,0 +1,49 @@
+#
+# probe-cbspackage -- what `cbs package` actually accepts.
+#
+# cix#528 needs cixd to emit a CIXPKG from a staged tree, and
+# cbs#247's closing comment describes the verb in prose. A claim
+# about cbs made from prose has already diverged from its source once
+# (cbs#243, where a note in CLAUDE.md became a ticket became an
+# upstream change became a corpus-wide breakage, and nobody read
+# src/fs.c). So the argv cixd will exec is read from the binary.
+#
+# The build deliberately fails at the end so nothing publishes; the
+# help text is the whole point and it lands in the retained build log
+# (`cixctl pkg build-logs`).
+#
+package "probe-cbspackage" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "none" {
+            url "https://git.home.arpa/itdlabs/cix/archive/0.2.57-361.tar.gz"
+            sha256 "66605217cc407f0142ece5aa391ab72a2ae97cf92dc7e1e1a59bd9497386c662"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "1: reads `cbs package --help` and `cbs --help` from the installed cbs."
+    }
+
+    build {
+        run "bash" {
+            args "-c"
+            args "cbs --version; echo '=== cbs --help ==='; cbs --help 2>&1 || true; echo '=== cbs package --help ==='; cbs package --help 2>&1 || true; echo '=== END ==='; false"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cbspackage" parents
+    }
+}
