@@ -13,20 +13,28 @@
 # happen. If a `run` does NOT inherit it, that fix is unavailable
 # until CPDL can say `${version}` (cbs#238) and we take the other
 # route instead -- stamping the version at assembly from the package
-# record.
+# record, which needs no upstream change.
 #
 # Every recipe in this corpus sets `env` explicitly, which HINTS at no
 # passthrough, but that is an inference from absence and this decides
 # it with output instead.
 #
+# printenv rather than a shell: revision 1 used `run "bash" { "-c" ... }`
+# and CPDL refused it outright -- CPDL-E3006, "command interpreters are
+# not valid run executables" -- which is that policy working. printenv
+# is the more direct question anyway, because it prints exactly the
+# environment the run was given rather than one a shell may have
+# edited on the way in.
+#
 # HOW TO READ IT. The build deliberately fails, so the log is retained:
-#   cixctl pkg build-logs --file=probe-buildenv-1-1-<stamp>.log
-# Look for PKG_DESTDIR, HOME=/build and PATH=/usr/bin:/bin. If those
-# three appear, the container env reaches a run and the spare slot
-# works. If the environment is some other small set, it does not.
+#   cixctl pkg build-logs --file=probe-buildenv-2-1-<stamp>.log
+# Look between PROBE-ENV markers for PKG_DESTDIR, HOME=/build and
+# PATH=/usr/bin:/bin. All three present means the container env
+# reaches a run and the spare slot works. A different, smaller set
+# means it does not.
 #
 package "probe-buildenv" {
-    version "1"
+    version "2"
     release 1
     format "cixpkg"
 
@@ -45,21 +53,17 @@ package "probe-buildenv" {
     }
 
     metadata {
-        "changelog" "1: does a CPDL run inherit the build container's environment? Decides whether cixd can hand a package its own version through build_envp's spare slot (cix#516) or whether that waits on cbs#238."
+        "changelog" "2: does a CPDL run inherit the build container's environment? Decides whether cixd can hand a package its own version through build_envp's spare slot (cix#516) or whether that waits on cbs#238. 1 used run bash and was refused by CPDL-E3006."
     }
 
     build {
-        # Everything the run can see, named so the log is greppable.
-        run "bash" {
-            "-c"
-            "echo PROBE-ENV-BEGIN; printenv | sort; echo PROBE-ENV-END"
+        run "echo" {
+            "PROBE-ENV-BEGIN"
         }
-        # And the three the daemon sets, asked for individually, so a
-        # missing one is visible as an empty value rather than absent
-        # from a long list.
-        run "bash" {
-            "-c"
-            "echo PROBE-DESTDIR=[$PKG_DESTDIR] PROBE-HOME=[$HOME] PROBE-PATH=[$PATH]"
+        run "printenv" {
+        }
+        run "echo" {
+            "PROBE-ENV-END"
         }
         # Deliberate failure: the probe's whole output is its log, and
         # a successful build would publish an artifact nobody wants.
