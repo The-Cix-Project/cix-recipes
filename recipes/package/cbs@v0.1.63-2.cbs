@@ -146,16 +146,16 @@ package "cbs" {
     }
 
     metadata {
-        /*
-         * The exact bytes 192.168.15.95 produced for this version, and
-         * the reason this recipe is in the ADR-0209 test floor's reach
-         * at all: the floor refuses to seed a package whose recipe
-         * carries no artifact checksum to verify against, rather than
-         * fabricating one. Written by the daemon after the successful
-         * build (#492) and copied here so the corpus and the store
-         * agree; independently equal to what the artifact cache serves
-         * for cbs-v0.1.63-2-x86_64.cixpkg, 76462 bytes.
-         */
+        #
+        # The exact bytes 192.168.15.95 produced for this version, and
+        # the reason this recipe is in the ADR-0209 test floor's reach
+        # at all: the floor refuses to seed a package whose recipe
+        # carries no artifact checksum to verify against, rather than
+        # fabricating one. Written by the daemon after the successful
+        # build (#492) and copied here so the corpus and the store
+        # agree; independently equal to what the artifact cache serves
+        # for cbs-v0.1.63-2-x86_64.cixpkg, 76462 bytes.
+        #
         "artifact_sha256" "f0b3c4b23095f88f89e9261a198ae0ecb99484aa969c8bf1876dc166d1283db3"
         "changelog" "v0.1.63-2: seven releases at once, because six of them could not build their own suite. #239 (v0.1.63) gives all six CIXPKG-linked test targets one shared object list and one library list, so -lzstd cannot drift from src/cixpkg.o again -- five rules missed it and make stopped at the first. Also arriving: #234 extract a .cixpkg, #235 version-pinned build tools (what test_pkg's builddeps fixtures need), #236 copy names its missing SOURCE, #237, #238. -1 was the checksum probe."
     }
