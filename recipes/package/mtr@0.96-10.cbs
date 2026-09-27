@@ -1,0 +1,206 @@
+# mtr, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/mtr/0.96-8/build.sh, and the worked
+# example of `stage library` (cix-build-system#178).
+#
+# THE LIBRARY SEARCH. The shell recipe ended with twelve lines:
+#
+#     resolv=""
+#     for d in /usr/lib /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu; do
+#             if [ -e "$d/libresolv.so.2" ]; then resolv="$d/libresolv.so.2"; break; fi
+#     done
+#     [ -n "$resolv" ] || {
+#             echo "mtr: libresolv.so.2 is not in the build sandbox -- is glibc declared?" >&2
+#             exit 1
+#     }
+#     mkdir -p "$PKG_DESTDIR/usr/lib"
+#     cp -a "$resolv" "$PKG_DESTDIR/usr/lib/"
+#
+# -- a first-match search over three multiarch directories, a guard
+# naming the declared dependency that should have provided the library,
+# and a mode-preserving copy. That is one operation now:
+#
+#     stage library "libresolv.so.2" into "${dest}/usr/lib"
+#
+# and the hardcoded multiarch list is gone with it. Four recipes in this
+# corpus hand-roll that same search; this is the first converted, and
+# the list was going to rot in all four the day a build host's layout
+# changed.
+#
+# The weak __dso_handle stub stays as it was: glibc's static-destructor
+# bookkeeping wants a symbol a direct tcc link does not always supply,
+# and `weak` means it is superseded wherever the toolchain has a real
+# one. `$(pwd)` needs no equivalent -- the shell wrote it from inside a
+# directory this recipe already names.
+package "mtr" {
+    version "0.96"
+    release 10
+    format "cixpkg"
+
+    license "GPL-2.0-only"
+
+    sources {
+        main "mtr" {
+            url "https://github.com/traviscross/mtr/archive/refs/tags/v0.96.tar.gz"
+            sha256 "73e6aef3fb6c8b482acb5b5e2b8fa7794045c4f2420276f035ce76c5beae632d"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "ncurses"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            # glibc, and it is not incidental: libresolv.so.2 is what
+            # `stage library` below goes looking for, and glibc is what
+            # provides it. The shell recipe's own failure message said
+            # so ("is glibc declared?").
+            tool "glibc"
+        }
+        runtime {
+            package "ncurses"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "d170bf80282edf1e7fdef082273a5a1b9c6561f741eda27ca5914c3283b795d5"
+        "changelog" "0.96-10: no setuid, and no capability either. Upstream installs mtr-packet 4755 and CIXPKG refuses it, which kept mtr on a .tar.gz (cix#497). Nothing replaces the bit: mtr falls back to a SOCK_DGRAM/IPPROTO_ICMP ping socket when the raw one is refused, the build now asserts HAVE_LINUX_ERRQUEUE_H so that fallback cannot be silently compiled out, and the jump container already sets net.ipv4.ping_group_range to 0 65534. cap_net_raw+ep is not expressible in a .cixpkg."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/mtr"
+        }
+        require directory "${src}/mtr/mtr-0.96" {
+            exists
+        }
+        write "${src}/mtr/mtr-0.96/dso_stub.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+    }
+
+    build {
+        cd "${src}/mtr/mtr-0.96" {
+            run "tcc" {
+                "-c"
+                "dso_stub.c"
+                "-o"
+                "dso_stub.o"
+            }
+            # mtr ships no configure; bootstrap.sh generates it, which
+            # is why autoconf/automake/libtool/m4 are declared above.
+            run "./bootstrap.sh" {
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--without-gtk"
+                "--without-jansson"
+                "--without-ipinfo"
+                "LIBS=${src}/mtr/mtr-0.96/dso_stub.o"
+                env "CC" = "tcc"
+            }
+            #
+            # THE GATE THAT MAKES DROPPING SETUID SAFE (cix#497).
+            #
+            # mtr-packet opens a raw ICMP socket and, when that is
+            # refused, falls back to an unprivileged one. Its own
+            # source says so, in packet/probe_unix.c:
+            #
+            #     if (open_ip4_sockets_raw(net_state)) {
+            #     #ifdef HAVE_LINUX_ERRQUEUE_H
+            #         /* fall back to using unprivileged sockets */
+            #         if (open_ip4_sockets_dgram(net_state)) {
+            #
+            # and that dgram path is socket(AF_INET, SOCK_DGRAM,
+            # IPPROTO_ICMP) with IP_RECVERR set -- a ping socket,
+            # which needs no privilege at all wherever
+            # net.ipv4.ping_group_range admits the caller's gid. The
+            # jump container, the only place mtr is installed, already
+            # sets it to "0 65534".
+            #
+            # THE WHOLE FALLBACK IS BEHIND THAT #ifdef, which is why
+            # this is a gate and not a comment. If configure does not
+            # find <linux/errqueue.h>, mtr still compiles, still
+            # installs, still works when run as root, and fails for
+            # every real user with "Failure to open IPv4 sockets" --
+            # a silent, environment-dependent regression that a green
+            # build hides completely. Asserted, so a build that loses
+            # the header fails here instead of shipping.
+            #
+            run "grep" {
+                "HAVE_LINUX_ERRQUEUE_H"
+                "config.h"
+                expect {
+                    stdout contains "#define HAVE_LINUX_ERRQUEUE_H 1"
+                }
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/mtr/mtr-0.96" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "install"
+            }
+        }
+        #
+        # NOT SETUID (cix#497). Upstream's install chmods mtr-packet
+        # 4755, and CIXPKG refuses setuid outright:
+        #
+        #     usr/sbin/mtr-packet has mode 4755;
+        #     CIXPKG refuses setuid and setgid
+        #
+        # which is what kept mtr as the last package on a .tar.gz.
+        #
+        # THE SETUID BIT IS NOT REPLACED BY ANYTHING, and that is the
+        # point rather than a compromise. The obvious substitute, a
+        # cap_net_raw+ep file capability, cannot be expressed at all:
+        # CbsManifestEntry carries type, mode, uid, gid, size, digest
+        # and target, and the string "xattr" appears nowhere in cbs.
+        # A CONTAINER capability is no substitute either -- it lands
+        # on root, and the people who run mtr here are LDAP accounts
+        # over sshd, uid 10001 and 10002. So a capability would have
+        # been granted to a process that never needed it while the
+        # ones that do stayed unprivileged.
+        #
+        # Nothing is needed. mtr falls back to a ping socket, the
+        # build gates that the fallback is compiled in, and the
+        # container already permits it. Least privilege here is none.
+        #
+        # CPDL's `privileged file ... mode 4755` would also have
+        # worked and is a real, designed feature rather than a
+        # workaround -- but it keeps a setuid root binary on the box
+        # to buy nothing, which is the wrong trade when the
+        # unprivileged path exists and is asserted.
+        #
+        chmod 0755 "${dest}/usr/sbin/mtr-packet"
+        # The whole of the shell recipe's twelve-line search, and it
+        # preserves mode and link-ness the way `cp -a` did.
+        stage library "libresolv.so.2" into "${dest}/usr/lib"
+        require file "${dest}/usr/sbin/mtr" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/sbin/mtr-packet" {
+            exists
+            nonempty
+        }
+    }
+}
