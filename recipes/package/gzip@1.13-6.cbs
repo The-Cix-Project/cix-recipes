@@ -1,0 +1,119 @@
+# gzip, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of the previous build.sh: same tarball at the same
+# digest, the same configure invocation, the same `make install`.
+#
+# The shell recipe deleted usr/share/{man,info}; ADR-0306 withdrew that practice (#491) and those lines are gone.
+package "gzip" {
+    version "1.13"
+    release 6
+    format "cixpkg"
+
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "gzip" {
+            url "https://ftp.gnu.org/gnu/gzip/gzip-1.13.tar.xz"
+            sha256 "7454eb6935db17c6655576c2e1b0fabefd38b4d0936e0f87f48cd062ce91a057"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "d779abb7978c3c6be9627eef5f4ccb37f6f25ff93f8c62cc1f8b2f244e690d9e"
+        "changelog" "1.13-6: gunzip, uncompress and zcat become symlinks instead of hard links, so gzip can ship as a .cixpkg (cix#497). CIXPKG refuses a hard link by design (cix-build-system#182) and that kept gzip on a .tar.gz, whose approval could never match the .cixpkg this recipe declares. Same three lines as automake@1.16.5-4. Behaviour is unchanged: gzip chooses what to do from argv[0], so a symlink named zcat is zcat exactly as a hard link was."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/gzip"
+        }
+        require directory "${src}/gzip/gzip-1.13" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/gzip/gzip-1.13" {
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                "MAKEINFO=true"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/gzip/gzip-1.13" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "MAKEINFO=true"
+            }
+        }
+        #
+        # HARD LINKS BECOME SYMLINKS (cix#497).
+        #
+        # gzip's install-exec-hook links gunzip, uncompress and zcat
+        # to the gzip binary with `ln`, and CIXPKG refuses a hard
+        # link outright:
+        #
+        #     usr/bin/gunzip is a hard link (link count 2);
+        #     CIXPKG entries must have exactly one link
+        #
+        # which is what kept gzip on a .tar.gz while every other
+        # package moved to .cixpkg. Same shape, same fix and the same
+        # three lines as automake@1.16.5-4, which converts its own
+        # versioned links for exactly this reason. cbs refuses hard
+        # links by design (cix-build-system#182) -- building to that
+        # contract is not a workaround, it is the contract.
+        #
+        # Behaviour is unchanged, and that is a property of gzip
+        # rather than an assumption: it chooses what to do from
+        # argv[0], so a symlink named `zcat` is `zcat` exactly as a
+        # hard link named `zcat` was. Only the inode arrangement
+        # differs.
+        #
+        remove "${dest}/usr/bin/gunzip"
+        remove "${dest}/usr/bin/uncompress"
+        remove "${dest}/usr/bin/zcat"
+        symlink "gzip" to "${dest}/usr/bin/gunzip"
+        symlink "gzip" to "${dest}/usr/bin/uncompress"
+        symlink "gzip" to "${dest}/usr/bin/zcat"
+        require file "${dest}/usr/bin/gzip" {
+            exists
+            nonempty
+        }
+        # Each link resolves, and to the right place. A dangling
+        # symlink installs perfectly and fails at exec.
+        require symlink "${dest}/usr/bin/gunzip" {
+            exists
+            target "gzip"
+        }
+        require symlink "${dest}/usr/bin/uncompress" {
+            exists
+            target "gzip"
+        }
+        require symlink "${dest}/usr/bin/zcat" {
+            exists
+            target "gzip"
+        }
+    }
+}

@@ -1,0 +1,132 @@
+# gawk, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/gawk/5.3.0-9/build.sh: same tarball
+# at the same digest, the same weak __dso_handle stub, the same
+# configure and `make install`. See recipes/package/grep/3.11-7 for why
+# the stub exists.
+#
+# The three removals split, and gawk is the case where the split is
+# worth more than usual:
+#
+#   usr/share    -- GONE (ADR-0306, #491). This one is not just
+#                   documentation: gawk installs its own awk library
+#                   files under usr/share/awk, and `rm -rf usr/share`
+#                   took those with the man pages. Anything doing
+#                   `@include` of a shipped library was relying on a
+#                   file this package deleted.
+#   usr/include  -- kept. gawkapi.h is for building gawk extensions,
+#                   which nothing here does, and a header is neither
+#                   documentation nor something finalize handles.
+#   usr/etc      -- kept, same reasoning.
+package "gawk" {
+    version "5.3.0"
+    release 11
+    format "cixpkg"
+
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "gawk" {
+            url "https://ftp.gnu.org/gnu/gawk/gawk-5.3.0.tar.gz"
+            sha256 "378f8864ec21cfceaa048f7e1869ac9b4597b449087caf1eb55e440d30273336"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "ncurses"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "ae01a6c63740bdbd73411caec8414e464cf0b6c1cfa1f89da360b81850dd4b74"
+        "changelog" "5.3.0-11: gawk-5.3.0 becomes a symlink instead of a hard link to gawk, so gawk can ship as a .cixpkg (cix#497). CIXPKG refuses a hard link by design (cix-build-system#182) and that kept gawk on a .tar.gz, whose approval could never match the .cixpkg this recipe declares. gawk is the real binary and the versioned name is the link, not the reverse. usr/bin/awk was already a symlink, which is why the link count was 2 and not 3."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/gawk"
+        }
+        require directory "${src}/gawk/gawk-5.3.0" {
+            exists
+        }
+        write "${src}/gawk/gawk-5.3.0/dso_stub.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+    }
+
+    build {
+        cd "${src}/gawk/gawk-5.3.0" {
+            run "tcc" {
+                "-c"
+                "dso_stub.c"
+                "-o"
+                "dso_stub.o"
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--without-readline"
+                "LIBS=${src}/gawk/gawk-5.3.0/dso_stub.o"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                "MAKEINFO=true"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/gawk/gawk-5.3.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "MAKEINFO=true"
+            }
+        }
+        remove tree "${dest}/usr/include"
+        remove tree "${dest}/usr/etc"
+        #
+        # THE VERSIONED NAME BECOMES A SYMLINK (cix#497).
+        #
+        # gawk's install-exec-hook links gawk-5.3.0 to gawk with
+        # `ln`, and CIXPKG refuses a hard link outright:
+        #
+        #     usr/bin/gawk is a hard link (link count 2);
+        #     CIXPKG entries must have exactly one link
+        #
+        # which is what kept gawk on a .tar.gz while the rest of the
+        # corpus moved to .cixpkg. Same fix as automake@1.16.5-4 and
+        # gzip@1.13-6; cbs refuses hard links by design
+        # (cix-build-system#182), and building to that contract is
+        # not a workaround.
+        #
+        # WHICH WAY ROUND IS NOT ARBITRARY. `gawk` is the real
+        # binary -- bin_PROGRAMS names it and the hook creates the
+        # versioned name afterwards -- so the versioned name is the
+        # one that becomes the link. Reversing it would send every
+        # caller of `gawk` through a symlink to gain nothing.
+        #
+        # usr/bin/awk is untouched: it is already a symlink, which
+        # is why the link count on gawk was 2 and not 3.
+        #
+        remove "${dest}/usr/bin/gawk-5.3.0"
+        symlink "gawk" to "${dest}/usr/bin/gawk-5.3.0"
+        require file "${dest}/usr/bin/gawk" {
+            exists
+            nonempty
+        }
+        require symlink "${dest}/usr/bin/gawk-5.3.0" {
+            exists
+            target "gawk"
+        }
+    }
+}
