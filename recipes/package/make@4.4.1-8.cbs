@@ -1,0 +1,76 @@
+# make, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of the previous build.sh: same tarball at the same
+# digest, the same configure invocation, the same `make install`.
+#
+# The shell recipe deleted the whole of usr/share; ADR-0306 withdrew that practice (#491) and the line is gone.
+package "make" {
+    version "4.4.1"
+    release 8
+    format "cixpkg"
+
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "make" {
+            url "https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz"
+            sha256 "dd16fb1d67bfab79a72f5e8390735c49e3e8e70b4945a15ab1f81ddb78658fb3"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "f469938d58a474d7699257ad124e5020cc1a88b74d033158a0bdcce6c6e8d852"
+        "changelog" "4.4.1-8: no change but the release. The 4.4.1-7 approval was earned over a .tar.gz before the artifact-format flip, so it can never match the .cixpkg this recipe declares and every fresh host rebuilds this version from source (cix#497). This revision carries no approval and earns one over its own .cixpkg on first publish, which is ADR-0307 clause 5's path."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/make"
+        }
+        require directory "${src}/make/make-4.4.1" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/make/make-4.4.1" {
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                "MAKEINFO=true"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/make/make-4.4.1" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "MAKEINFO=true"
+            }
+        }
+        require file "${dest}/usr/bin/make" {
+            exists
+            nonempty
+        }
+    }
+}

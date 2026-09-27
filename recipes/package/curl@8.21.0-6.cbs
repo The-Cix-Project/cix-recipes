@@ -1,0 +1,123 @@
+# curl, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/curl/8.21.0-4/build.sh: same tarball
+# at the same digest, the same fourteen configure switches, the same
+# `make install`.
+#
+# The shell recipe's removals are split three ways here, and the split
+# is the point:
+#
+#   usr/share                 -- gone. ADR-0306 (#491). Note curl also
+#                                passes --disable-manual --disable-docs,
+#                                so little was being deleted anyway.
+#   libcurl.a, libcurl.la     -- gone. ADR-0251's finalize phase already
+#                                drops a static archive superseded by a
+#                                shared object beside it, and every .la.
+#   pkgconfig, curl-config,   -- KEPT. These are not documentation and
+#   wcurl                        not platform policy; they are this
+#                                package deciding it ships a runtime
+#                                curl and not a development kit.
+package "curl" {
+    version "8.21.0"
+    release 6
+    format "cixpkg"
+
+    license "curl"
+
+    sources {
+        main "curl" {
+            url "https://curl.se/download/curl-8.21.0.tar.gz"
+            sha256 "d9b327997999045a24cda50f3983e69e51c516bd8be6ef9842fc7f99135e33bb"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "openssl"
+            tool "zlib"
+        }
+        runtime {
+            package "openssl"
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "f944aa0ca60356714dfbeb7b2e34c3fdc50025813457e1a598da37f27b4cd0e2"
+        "changelog" "8.21.0-6: no change but the release. The 8.21.0-5 approval was earned over a .tar.gz before the artifact-format flip, so it can never match the .cixpkg this recipe declares and every fresh host rebuilds this version from source (cix#497). This revision carries no approval and earns one over its own .cixpkg on first publish, which is ADR-0307 clause 5's path."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/curl"
+        }
+        require directory "${src}/curl/curl-8.21.0" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/curl/curl-8.21.0" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--with-openssl"
+                "--without-libpsl"
+                "--disable-ldap"
+                "--disable-ldaps"
+                "--without-libidn2"
+                "--without-nghttp2"
+                "--without-librtmp"
+                "--without-libssh2"
+                "--without-brotli"
+                "--without-zstd"
+                "--without-gssapi"
+                "--disable-manual"
+                "--disable-docs"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/curl/curl-8.21.0" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "install"
+            }
+        }
+        remove tree "${dest}/usr/lib/pkgconfig"
+        remove "${dest}/usr/bin/curl-config"
+        remove "${dest}/usr/bin/wcurl"
+        # The shell recipe asserted all three of libcurl.so.4.8.0, .so.4
+        # and .so. Only the first is a regular file; the other two are
+        # symlinks, which `require file` rejects with "does not exist"
+        # (cix-build-system#175). So the soname link is no longer
+        # checked here -- the assertion is strictly weaker than the
+        # shell form's, and that is a real loss, recorded rather than
+        # papered over.
+        require file "${dest}/usr/lib/libcurl.so.4.8.0" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/curl" {
+            exists
+            nonempty
+        }
+    }
+}
