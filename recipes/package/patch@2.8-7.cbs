@@ -1,0 +1,74 @@
+# patch, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of the previous build.sh: same tarball at the same
+# digest, the same configure invocation, the same `make install`.
+#
+# The shell recipe deleted the whole of usr/share; ADR-0306 withdrew that practice (#491) and the line is gone.
+package "patch" {
+    version "2.8"
+    release 7
+    format "cixpkg"
+
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "patch" {
+            url "https://ftp.gnu.org/gnu/patch/patch-2.8.tar.xz"
+            sha256 "f87cee69eec2b4fcbf60a396b030ad6aa3415f192aa5f7ee84cad5e11f7f5ae3"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "artifact_sha256" "080919280d7d0c5d82360e93fa9e6e5f873860b2aefbeeab2e7ae595c04be7f3"
+        "changelog" "2.8-7: no change but the release. The 2.8-6 approval was earned over a .tar.gz before the artifact-format flip, so it can never match the .cixpkg this recipe declares and every fresh host rebuilds this version from source (cix#497). This revision carries no approval and earns one over its own .cixpkg on first publish, which is ADR-0307 clause 5's path."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/patch"
+        }
+        require directory "${src}/patch/patch-2.8" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/patch/patch-2.8" {
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/patch/patch-2.8" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/patch" {
+            exists
+            nonempty
+        }
+    }
+}
