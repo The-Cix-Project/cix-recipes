@@ -1,0 +1,63 @@
+# probe-glauth-apppass -- how the PINNED glauth (2.4.0, the same source
+# tarball glauth@2.4.0-7 builds) names and decodes a user's app
+# passwords, so cix#543 renders them the way glauth reads them rather
+# than guessing. passbcrypt's hex encoding was found the hard way
+# (daemon/src/ldap.c); this measures the app-password field before
+# anything relies on it. The source is read here, on the box, because
+# nothing but cixctl runs in the dev sandbox.
+#
+# The whole output is the build log; the build fails on purpose.
+package "probe-glauth-apppass" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "glauth" {
+            url "http://192.168.15.31:8080/glauth-src-2.4.0-1-x86_64.tar.gz"
+            sha256 "fb872485f894000a3f68a7065434322124f2173f21398b647207dbcd0d1a8c6d"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: prints glauth 2.4.0's app-password field names and the code that checks them (cix#543)."
+    }
+
+    build {
+        run "echo" {
+            "PROBE-APPPASS-BEGIN"
+        }
+        # Every mention outside vendor/: the config struct's field and
+        # tag, and the bind code that decodes it.
+        run "grep" {
+            "-rn" "-i" "--exclude-dir=vendor" "-E" "passapp|PassApp"
+            "${src}/glauth/glauth-2.4.0"
+        }
+        run "echo" {
+            "PROBE-APPPASS-CONTEXT"
+        }
+        # The bind path's handling, with context, to see the decoding.
+        run "grep" {
+            "-rn" "-B3" "-A12" "--exclude-dir=vendor" "-E" "range .*PassAppBcrypt|PassAppBcrypt \\{|for .*PassAppBcrypt"
+            "${src}/glauth/glauth-2.4.0"
+        }
+        run "echo" {
+            "PROBE-APPPASS-END"
+        }
+        # Deliberate failure: the probe's whole output is its log.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" parents chmod 0755
+    }
+}
