@@ -1,0 +1,36 @@
+#
+# probe-chaindep -- cix#380: two recipes with a byte-identical source and sha256,
+# one a runtime dependency of the other, installed as one chain.
+#
+package "probe-chaindep" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-386.tar.gz"
+            sha256 "2c00b3b73b9d834112341628b595b107448df567207b79663fe3904c8895689b"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the dependency half of the cix#380 reproducer -- same source and sha256 as probe-chainhead, builds successfully so the chain continues."
+    }
+
+    build {
+        run "true" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-chaindep" parents chmod 0755
+    }
+}

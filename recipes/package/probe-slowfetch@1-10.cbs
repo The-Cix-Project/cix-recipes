@@ -1,0 +1,37 @@
+#
+# probe-slowfetch -- cix#380: does a stage after the fetch re-resolve
+# the recipe? Install 1-1 unpinned, publish 1-2 while it fetches.
+#
+package "probe-slowfetch" {
+    version "1"
+    release 10
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "http://192.0.2.1/nothing-listens-here"
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-385.tar.gz"
+            sha256 "ec57aab1790e0098c5c68f8f3b97f62dd2cb4d5c6c58224a7722777149a54a2c"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-10: published while 1-9 fetches, on 0.2.57-389 -- as 1-2 with the 192.0.2.1 first url -- the same probe with a DIFFERENT source, published while 1-1 is still fetching -- cix#380."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-slowfetch" parents chmod 0755
+    }
+}
