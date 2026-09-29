@@ -1,0 +1,49 @@
+#
+# probe-lib64 -- which of CBS's default search roots exist inside a
+# cixd build container. CBS v0.1.93 (cbs#269) makes a build
+# fingerprint unavailable when any root in its default library path
+# (/usr/lib:/lib:/usr/lib64:/lib64) or command path (/usr/bin:/bin) is
+# missing, and cixd passes neither path, so the defaults apply. The
+# listing is the whole probe; the build fails deliberately.
+#
+package "probe-lib64" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.332.tar.gz"
+            sha256 "9dd7c9f275236c3b85f463831826469718251bcca364e1bef8ca81fadd78796e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: lists CBS's default search roots inside a cixd build container, for cbs#269's fail-closed missing-root rule."
+    }
+
+    build {
+        run "echo" {
+            "PROBE-LIB64-BEGIN"
+        }
+        run "ls" {
+            "-ld" "/usr/bin" "/bin" "/usr/lib" "/lib" "/usr/lib64" "/lib64"
+        }
+        run "echo" {
+            "PROBE-LIB64-END"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
