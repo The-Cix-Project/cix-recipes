@@ -1,0 +1,41 @@
+#
+# probe-srcrace -- cix#501: two builds of ONE name@version in two images
+# at once. Install it into two images a few seconds apart. Before the
+# fix both fetches used sources/<name>-<version>-0.src, and the second
+# fetch's unlink() detached the first one's half-written download, so
+# the first build checksummed a partial file. The large source is only
+# there to make the overlap window wide. The build fails on purpose:
+# the fetch and its checksum are the whole probe.
+#
+package "probe-srcrace" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.3.tar.xz"
+            sha256 "8ba259e8e7b13ec6ef0941c8a39ad90b24bd4a4d6c0010ba6bafb794550ecd03"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: two concurrent installs of one name@version into two images, to reproduce and then verify cix#501."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" chmod 0755
+    }
+}
