@@ -1,0 +1,98 @@
+# util-linux-common: the files every package built from util-linux
+# installs, owned by one package (cix#553).
+#
+# libuuid, libblkid and login are each one piece of the util-linux
+# source tree, and each one's `make install` also installs the tree's
+# shared data: the util-linux message catalogue in every language
+# (usr/share/locale/*/LC_MESSAGES/util-linux.mo) and
+# usr/share/man/man5/terminal-colors.d.5. So every image holding two of
+# them had two packages owning 34 paths (measured on 192.168.15.95,
+# 2026-09-30: libuuid with libblkid in cix-hosttools, libuuid with
+# login in jumpbox). A path belongs to one package, so those files move
+# here and the split packages drop them. This is Debian's shape for the
+# same tree.
+#
+# ADR-0306 is why they move rather than disappear: nothing is deleted
+# because nothing reads it, and the catalogue is what translates
+# login's messages.
+#
+# --disable-all-programs builds no library and no program, so `make
+# install` installs exactly the shared data. The build lists it, so a
+# future util-linux adding a shared file shows up here.
+package "util-linux-common" {
+    version "2.42.2"
+    release 1
+    format "cixpkg"
+
+    license "GPL-2.0-or-later"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+    }
+
+    metadata {
+        "changelog" "2.42.2-1: the util-linux message catalogue and terminal-colors.d.5, which libuuid, libblkid and login each installed, so two of them in one image owned the same 34 paths (cix#553). They move here; the three drop them."
+    }
+
+    prepare {
+        require directory "${src}/util-linux/util-linux-2.42.2" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-all-programs"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        run "find" {
+            "${dest}"
+            "-type"
+            "f"
+        }
+        require file "${dest}/usr/share/locale/de/LC_MESSAGES/util-linux.mo" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/share/man/man5/terminal-colors.d.5" {
+            exists
+            nonempty
+        }
+    }
+}

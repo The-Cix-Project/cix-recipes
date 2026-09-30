@@ -1,0 +1,98 @@
+# libuuid, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/libuuid/2.42.2-4/build.sh: the same
+# util-linux tarball at the same digest, the same four configure
+# switches, the same `make install`. The package is one library out of a
+# large source tree -- `--disable-all-programs --enable-libuuid` is what
+# makes that so.
+#
+# Both post-install removals are gone, for the two different reasons
+# this conversion keeps running into: usr/share by ADR-0306 (#491), and
+# usr/lib/*.la because ADR-0251's finalize phase already drops every
+# .la file after this phase runs.
+package "libuuid" {
+    version "2.42.2"
+    release 7
+    format "cixpkg"
+
+    license "BSD-3-Clause"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+    }
+
+    metadata {
+        "changelog" "2.42.2-7: drops util-linux's message catalogue and terminal-colors.d.5, which libblkid and login install too, so two of them in one image owned the same 34 paths. A path belongs to one package from now on; those files are util-linux-common's (cix#553)."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/util-linux"
+        }
+        require directory "${src}/util-linux/util-linux-2.42.2" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-all-programs"
+                "--enable-libuuid"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # util-linux's shared data -- its message catalogue and
+        # terminal-colors.d.5 -- is installed by every package built
+        # from this tree, and belongs to util-linux-common (cix#553).
+        remove glob "${dest}/usr/share/locale/*/LC_MESSAGES/util-linux.mo"
+        remove glob "${dest}/usr/share/man/man5/terminal-colors.d.5"
+        # The versioned file, not the libuuid.so.1 soname link beside
+        # it: `require file` lstat()s and demands a regular file, so it
+        # rejects a symlink and says "does not exist"
+        # (cix-build-system#175).
+        require file "${dest}/usr/lib/libuuid.so.1.3.0" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/uuid/uuid.h" {
+            exists
+            nonempty
+        }
+    }
+}
