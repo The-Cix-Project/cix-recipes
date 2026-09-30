@@ -1,0 +1,42 @@
+# probe-hibr-tarball: the sha256 of a hibr tag archive, measured by the box.
+#
+# Same mechanism as probe-cix-tarball: it declares zeroes, the checksum
+# gate refuses the fetch, and cixd logs the computed=<64 hex> value.
+# Nothing is built, and nothing is downloaded outside a Cix host (THE
+# SANDBOX RULE).
+#
+package "probe-hibr-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "hibr" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/hibr/archive/v0.49.1.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the sha256 of the hibr v0.49.1 tag archive, measured by the box (THE SANDBOX RULE)."
+    }
+
+    build {
+        # Never reached. Here so the recipe is complete, and so a
+        # revision that somehow gets past the checksum gate still
+        # publishes nothing.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cix-tarball"
+    }
+}
