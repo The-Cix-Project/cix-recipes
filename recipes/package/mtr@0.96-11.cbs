@@ -1,0 +1,175 @@
+# mtr, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/mtr/0.96-8/build.sh. Up to 0.96-10 it
+# also staged glibc's libresolv.so.2 into its own package, the worked
+# example of `stage library` (cix-build-system#178). 0.96-11 stops: glibc
+# owns that path, and a path belongs to one package (cix#553).
+#
+# The weak __dso_handle stub stays as it was: glibc's static-destructor
+# bookkeeping wants a symbol a direct tcc link does not always supply,
+# and `weak` means it is superseded wherever the toolchain has a real
+# one. `$(pwd)` needs no equivalent -- the shell wrote it from inside a
+# directory this recipe already names.
+package "mtr" {
+    version "0.96"
+    release 11
+    format "cixpkg"
+
+    license "GPL-2.0-only"
+
+    sources {
+        main "mtr" {
+            url "https://github.com/traviscross/mtr/archive/refs/tags/v0.96.tar.gz"
+            sha256 "73e6aef3fb6c8b482acb5b5e2b8fa7794045c4f2420276f035ce76c5beae632d"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "ncurses"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+        }
+        runtime {
+            package "ncurses"
+        }
+    }
+
+    metadata {
+        "changelog" "0.96-11: no longer ships its own copy of usr/lib/libresolv.so.2. glibc owns that path, and two packages owning one path is refused from now on (cix#553): an image held whichever copy was installed last, and this one is coupled to its own glibc through GLIBC_PRIVATE. The stage library operation and the glibc build tool it needed are gone; glibc is in every image and build environment. 0.96-10 dropped setuid from mtr-packet (cix#497)."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/mtr"
+        }
+        require directory "${src}/mtr/mtr-0.96" {
+            exists
+        }
+        write "${src}/mtr/mtr-0.96/dso_stub.c" "void *__dso_handle __attribute__((weak)) = (void *)0;\n"
+    }
+
+    build {
+        cd "${src}/mtr/mtr-0.96" {
+            run "tcc" {
+                "-c"
+                "dso_stub.c"
+                "-o"
+                "dso_stub.o"
+            }
+            # mtr ships no configure; bootstrap.sh generates it, which
+            # is why autoconf/automake/libtool/m4 are declared above.
+            run "./bootstrap.sh" {
+            }
+            run "./configure" {
+                "--prefix=/usr"
+                "--without-gtk"
+                "--without-jansson"
+                "--without-ipinfo"
+                "LIBS=${src}/mtr/mtr-0.96/dso_stub.o"
+                env "CC" = "tcc"
+            }
+            #
+            # THE GATE THAT MAKES DROPPING SETUID SAFE (cix#497).
+            #
+            # mtr-packet opens a raw ICMP socket and, when that is
+            # refused, falls back to an unprivileged one. Its own
+            # source says so, in packet/probe_unix.c:
+            #
+            #     if (open_ip4_sockets_raw(net_state)) {
+            #     #ifdef HAVE_LINUX_ERRQUEUE_H
+            #         /* fall back to using unprivileged sockets */
+            #         if (open_ip4_sockets_dgram(net_state)) {
+            #
+            # and that dgram path is socket(AF_INET, SOCK_DGRAM,
+            # IPPROTO_ICMP) with IP_RECVERR set -- a ping socket,
+            # which needs no privilege at all wherever
+            # net.ipv4.ping_group_range admits the caller's gid. The
+            # jump container, the only place mtr is installed, already
+            # sets it to "0 65534".
+            #
+            # THE WHOLE FALLBACK IS BEHIND THAT #ifdef, which is why
+            # this is a gate and not a comment. If configure does not
+            # find <linux/errqueue.h>, mtr still compiles, still
+            # installs, still works when run as root, and fails for
+            # every real user with "Failure to open IPv4 sockets" --
+            # a silent, environment-dependent regression that a green
+            # build hides completely. Asserted, so a build that loses
+            # the header fails here instead of shipping.
+            #
+            run "grep" {
+                "HAVE_LINUX_ERRQUEUE_H"
+                "config.h"
+                expect {
+                    stdout contains "#define HAVE_LINUX_ERRQUEUE_H 1"
+                }
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/mtr/mtr-0.96" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "install"
+            }
+        }
+        #
+        # NOT SETUID (cix#497). Upstream's install chmods mtr-packet
+        # 4755, and CIXPKG refuses setuid outright:
+        #
+        #     usr/sbin/mtr-packet has mode 4755;
+        #     CIXPKG refuses setuid and setgid
+        #
+        # which is what kept mtr as the last package on a .tar.gz.
+        #
+        # THE SETUID BIT IS NOT REPLACED BY ANYTHING, and that is the
+        # point rather than a compromise. The obvious substitute, a
+        # cap_net_raw+ep file capability, cannot be expressed at all:
+        # CbsManifestEntry carries type, mode, uid, gid, size, digest
+        # and target, and the string "xattr" appears nowhere in cbs.
+        # A CONTAINER capability is no substitute either -- it lands
+        # on root, and the people who run mtr here are LDAP accounts
+        # over sshd, uid 10001 and 10002. So a capability would have
+        # been granted to a process that never needed it while the
+        # ones that do stayed unprivileged.
+        #
+        # Nothing is needed. mtr falls back to a ping socket, the
+        # build gates that the fallback is compiled in, and the
+        # container already permits it. Least privilege here is none.
+        #
+        # CPDL's `privileged file ... mode 4755` would also have
+        # worked and is a real, designed feature rather than a
+        # workaround -- but it keeps a setuid root binary on the box
+        # to buy nothing, which is the wrong trade when the
+        # unprivileged path exists and is asserted.
+        #
+        chmod 0755 "${dest}/usr/sbin/mtr-packet"
+        require file "${dest}/usr/sbin/mtr" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/sbin/mtr-packet" {
+            exists
+            nonempty
+        }
+    }
+}

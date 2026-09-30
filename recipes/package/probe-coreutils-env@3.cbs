@@ -1,0 +1,50 @@
+# probe-coreutils-env: can a build still run coreutils after coreutils
+# 9.11-9 stopped bundling libcap (cix#510)? It declares only coreutils
+# and bash as tools, so libcap reaches the build environment only if
+# composition pulls in a tool's runtime dependencies. ls, id and cp all
+# link libcap; if any of them cannot load, the build fails here, naming
+# the missing library, before any real package notices.
+#
+# The source is the hibr v0.49.1 tag archive, reused only because its
+# sha256 is already measured (probe-hibr-tarball@1). Nothing in it is
+# built.
+package "probe-coreutils-env" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "hibr" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/hibr/archive/v0.49.1.tar.gz"
+            sha256 "aea69f4a1cb96a9bdd80fb7f2514ee237b4896e0a150384d863598159f3b6ab1"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "3: revision 1 again, run after coreutils 9.11-9 and libcap 2.78-18 reached every build image: ls, id and cp from a composed environment (cix#510, cix#553)."
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}"
+        }
+        run "id" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-coreutils-env" parents
+        run "cp" {
+            "${src}/hibr/hibr/Makefile"
+            "${dest}/usr/share/probe-coreutils-env/Makefile"
+        }
+    }
+}

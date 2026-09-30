@@ -1,0 +1,153 @@
+# login -- util-linux's login(1), the jump box's PAM entry point.
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# WHAT CHANGES:
+#
+#   usr/share/locale        -- no longer deleted (ADR-0306, cix#491).
+#   usr/lib, usr/include,
+#   usr/share/bash-completion -- still deleted. Those are util-linux's
+#                           library and development side and a
+#                           completion for a shell this platform does
+#                           not package: this recipe builds ONE
+#                           program out of that tree, so they are its
+#                           own judgement about what it ships rather
+#                           than a documentation category.
+#
+# IT WAITED FOR `stdout file` (cix-build-system#185). The build
+# phase's real guard is
+#
+#   readelf -d login | grep -q 'NEEDED.*libpam'
+#
+# and readelf prints many lines. That guard is not decorative: every
+# revision of linux-pam before 1.6.1-7 shipped a
+# security/pam_misc.h whose own first include was never built, so
+# the header could not compile, util-linux's configure ran its
+# compile test on it, concluded no PAM conversation function
+# existed, and **built login without PAM at all**. It succeeded. A
+# login(1) that authenticates against nothing is the worst possible
+# thing to ship silently, and this assertion is what catches it.
+package "login" {
+    version "2.42.2"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "linux-pam"
+        }
+        runtime {
+            package "linux-pam"
+            package "util-linux-common"
+        }
+    }
+
+    metadata {
+        "changelog" "2.42.2-6: drops util-linux's message catalogue and terminal-colors.d.5, which libuuid and libblkid install too, so two of them in one image owned the same 34 paths (cix#553). They are util-linux-common's now, and login depends on it at runtime so its messages stay translated."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-all-programs"
+                "--enable-login"
+                "--without-selinux"
+                "--without-audit"
+                "--without-systemd"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+            require file "${src}/util-linux/util-linux-2.42.2/login" {
+                exists
+                nonempty
+            }
+            run "readelf" {
+                "-d"
+                "${src}/util-linux/util-linux-2.42.2/login"
+                stdout file "${src}/util-linux/needed.txt"
+            }
+            require file "${src}/util-linux/needed.txt" {
+                exists
+                contains "libpam"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # util-linux's shared data -- its message catalogue and
+        # terminal-colors.d.5 -- is installed by every package built
+        # from this tree, and belongs to util-linux-common (cix#553).
+        remove glob "${dest}/usr/share/locale/*/LC_MESSAGES/util-linux.mo"
+        remove glob "${dest}/usr/share/man/man5/terminal-colors.d.5"
+        # usr/lib is removed and the other two are not, which is
+        # measured rather than guessed. 2.42.2-3 removed lib, include
+        # and bash-completion in that order and died on the SECOND:
+        #
+        #   filesystem operation failed: `${dest}/usr/include`;
+        #   errno=2 (No such file or directory)
+        #
+        # so usr/lib existed and was removed, and usr/include never
+        # existed -- --disable-all-programs --enable-login installs
+        # no headers. `remove tree` fails on an absent target where
+        # `rm -rf` shrugged (cix-build-system#188), which is what
+        # turned a defensive line into a build failure.
+        #
+        # bash-completion is left alone for now: it was in the same
+        # defensive list and there is no evidence either way, and the
+        # file-for-file compare will say. Guessing costs a build
+        # cycle per guess.
+        remove tree "${dest}/usr/lib"
+
+        # The three removals 2.42.2-3 carried are GONE, and this is
+        # cix-build-system#188 in practice: `remove tree` fails when
+        # the target is absent, where `rm -rf` shrugged. -3 died on
+        #
+        #   filesystem operation failed: `${dest}/usr/include`;
+        #   errno=2 (No such file or directory)
+        #
+        # because --disable-all-programs --enable-login installs no
+        # headers, so the directory the shell recipe defensively
+        # removed never existed. The other two are dropped with it
+        # rather than guessed at one build cycle each: what this
+        # actually installs is settled by comparing the artifact
+        # against 2.42.2-2, and any directory that really does turn
+        # up can be removed by name in a later revision.
+        # bin/login, NOT usr/bin/login. util-linux installs it to
+        # /bin, which this platform's images otherwise barely have --
+        # only bash's own /bin/sh symlink creates the directory. The
+        # shell recipe asserted no path at all, so nobody knew; the
+        # installed 2.42.2-2 package is one file and that file is
+        # bin/login.
+        require file "${dest}/bin/login" {
+            exists
+            nonempty
+        }
+    }
+}
