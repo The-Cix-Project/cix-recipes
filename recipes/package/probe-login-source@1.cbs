@@ -1,0 +1,48 @@
+# probe-login-source -- reads util-linux 2.42.2's login.c, for cix#557.
+#
+# jump's console runs /bin/login, which prints no prompt until it has
+# read input (measured on 192.168.15.95, 2026-10-01). This prints the
+# lines of login.c that touch the tty, the prompt and output flushing,
+# so the cause can be read rather than guessed. It builds nothing and
+# fails on purpose, so it never publishes.
+#
+package "probe-login-source" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: login.c's tty, prompt and flush handling in util-linux 2.42.2, for cix#557."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "grep" {
+                "-n" "-E"
+                "vhangup|tcflush|TCSAFLUSH|TCIFLUSH|tcsetattr|fflush|setvbuf|misc_conv|pam_get_user|loginpam_get_username|get_username|login: |alarm\\(|timeout|open_tty|init_tty|ttyname|isatty"
+                "login-utils/login.c"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-login-source" parents
+    }
+}

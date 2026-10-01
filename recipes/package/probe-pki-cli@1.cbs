@@ -1,0 +1,123 @@
+# probe-pki-cli -- what the openssl CLI produces for cixd's PKI, for cix#351.
+#
+# cixd is moving its certificate, export and signing work from forked
+# /usr/bin/openssl calls into libcrypto. The new code must reproduce the
+# CLI's output exactly, so this measures it on a Cix host instead of
+# recalling it: the live root CA and one leaf (public, from the API),
+# a fresh chain built with pki.c's exact argument lists, the field
+# formats the API returns, and known-answer vectors for the export
+# cipher and for Ed25519. It fails on purpose and never publishes.
+#
+package "probe-pki-cli" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the openssl CLI's certificates, field formats and enc/Ed25519 vectors, for cix#351."
+    }
+
+    build {
+        write "${build}/live-root.pem" """
+            -----BEGIN CERTIFICATE-----
+            MIIDFTCCAf2gAwIBAgIURlmBVW579wPXVqQ7vpCuuFJBRJswDQYJKoZIhvcNAQEL
+            BQAwGjEYMBYGA1UEAwwPQ2l4IFBsYXRmb3JtIENBMB4XDTI2MDkwNzE2NDcyNVoX
+            DTM2MDkwNDE2NDcyNVowGjEYMBYGA1UEAwwPQ2l4IFBsYXRmb3JtIENBMIIBIjAN
+            BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4snBTXuRblq6FfvaqPxsnc/kWsUA
+            JyvM0qxKpV0APgUIwuv5gWw8Y4SvF8nP+jqdntzuJZvkDfy2vJQTVhnbj/pyCBWm
+            mlyIyMOAgtZKuemhrMq5b6qMXGu4eO3v2G7sHMbsRh/CnIoLjyb34NSi5Cm7sGMe
+            BGNL2oWH3cknluITZmO85aD0y9SHmnobOWEN6/noDopgaGmI7UUqRTPxf2R4XXch
+            HvMPXzN4o2SosdAm4KWlpt/7wcmeCr2ei9NsloJKBuKdg9w6dmzIW//SrcvyrmJA
+            T7LyqL1IdTtvxINaTzYIftRrSwXhea/3v9MohRyCfbNQtsp/Rxlmr57tGQIDAQAB
+            o1MwUTAdBgNVHQ4EFgQUDOFHPBtr/rJQn2TO7CrUSpbncoQwHwYDVR0jBBgwFoAU
+            DOFHPBtr/rJQn2TO7CrUSpbncoQwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0B
+            AQsFAAOCAQEABV/cZn+h5jL84A5hJN9+HnOUk1XxG8o0+sHM1NRQtCnx4SZdzX4i
+            WCacw5nXzuD46e3MuMCQVVe51VeC6nY0+cxseB9nDJSWW9vJdsX5uO8w6NvQWhHQ
+            XdFZw9c04TUl4i5uEGlWr/J4D3oe6qbWTzsOLIgssuwuimHOqFmzBzh+qAqkUqPz
+            rQwx4hs1g6pwKLJHN4apx8TpGmlXSxSOAyP4vjB5WvZ6l7Aa8p8Y7+vRP2owxVxs
+            ocxjgWqfC1fUU6SropT51qMyZQ1aKRKCgSLhsvesSQyOZ6sNRREdXSDWykOWaOQA
+            HLV91zSRbaTWMSHFUoMwyPv4JGG3EKDfnw==
+            -----END CERTIFICATE-----
+            
+            """
+        write "${build}/live-leaf.pem" """
+            -----BEGIN CERTIFICATE-----
+            MIIDFDCCAfygAwIBAgIUTQvCym0yicjoYKBkVTJuVGRuMK4wDQYJKoZIhvcNAQEL
+            BQAwGjEYMBYGA1UEAwwPQ2l4IFBsYXRmb3JtIENBMB4XDTI2MDkxMjExMTk1OFoX
+            DTI3MDkxMjExMTk1OFowETEPMA0GA1UEAwwGbGRhcC0xMIIBIjANBgkqhkiG9w0B
+            AQEFAAOCAQ8AMIIBCgKCAQEAvIUXcbEDj3yMXOZGqupjKetan0XIJd1fAv409885
+            WwXD4w3jPXHqKEWhZyoYMRYXZqzO67Is29Rj1UgVNh+ppUJ1Nz4JBC8UuT528jgE
+            MPJ94GonvLRfIXTdKmBR1qooxrsQEXCJKRMkIDDZMoqyOnz5AUcj+3gGDzCayHz4
+            7f/yEYnIvqTBZ+nMi4Qj0C00sKrrk69m2bJdkh/rdc+GUoXYOdQmzxUUXREoMI+5
+            Y9+enDvZ63rH8T04YcVl9U3kTbQpYFxHmJM3Kx2B3rFF8IFnzXwk2ngd4qc3xfuF
+            ZeashVaZoT9+iP7I/wrDbMvIc8RpnfERdhfUfE42J6EAgQIDAQABo1swWTAXBgNV
+            HREEEDAOggZsZGFwLTGHBMColmcwHQYDVR0OBBYEFHnK27LUZnph5Kt8IU+nAuIm
+            M610MB8GA1UdIwQYMBaAFAzhRzwba/6yUJ9kzuwq1EqW53KEMA0GCSqGSIb3DQEB
+            CwUAA4IBAQAXiMUSueEvtgFC26uhiGJ6IgFRxMoQ54SL+lUeWfk4O32ISHCuYN0d
+            JS27ErpUWfsrwSvIBXwH1Bo7ouJoxJa0OPNFbI90JGTnLr1mEYmReTk2DMlv1SAj
+            PvKU26/1t8uDGypKtTr9LryrxYs34O7V43Z6hvR0fq1t8lIpOEQjD+bWABOeb4qN
+            G+5LBMROKAmokJGiu1Z56/d05zJIsJl3OiKY+oJEu+OCaHZRNr6Q2roLE/klvRkK
+            D1Jw4QyE4thj0oi1RKlVjPM2mqbV+I6AgO1fKApk8d6hl9sdzwaj1LrTIb2sg+1r
+            8BTuzxbYwdcyUQK4JMteKvp0d2ZmoK8C
+            -----END CERTIFICATE-----
+            
+            """
+        write "${build}/plain.txt" """
+            cix#351 export known-answer vector
+            """
+        write "${build}/pass.txt" "cix-kat-passphrase"
+        write "${build}/msg.txt" "cix#351 ed25519 known-answer message"
+        cd "${build}" {
+            run "openssl" { "version" "-a" }
+            run "openssl" { "x509" "-in" "live-root.pem" "-noout" "-text" }
+            run "openssl" { "x509" "-in" "live-root.pem" "-noout" "-subject" "-serial" "-startdate" "-enddate" "-fingerprint" }
+            run "openssl" { "x509" "-in" "live-leaf.pem" "-noout" "-text" }
+            run "openssl" { "genpkey" "-algorithm" "RSA" "-pkeyopt" "rsa_keygen_bits:2048" "-out" "p-ca.key" }
+            run "openssl" { "req" "-x509" "-new" "-key" "p-ca.key" "-days" "30" "-subj" "/CN=Probe Root" "-out" "p-ca.crt" }
+            run "openssl" { "x509" "-in" "p-ca.crt" "-noout" "-text" }
+            run "openssl" { "genpkey" "-algorithm" "RSA" "-pkeyopt" "rsa_keygen_bits:2048" "-out" "p-int.key" }
+            run "openssl" { "req" "-new" "-key" "p-int.key" "-subj" "/CN=Probe Int" "-addext" "basicConstraints=critical,CA:TRUE,pathlen:0" "-addext" "keyUsage=critical,keyCertSign,cRLSign" "-out" "p-int.csr" }
+            run "openssl" { "x509" "-req" "-in" "p-int.csr" "-CA" "p-ca.crt" "-CAkey" "p-ca.key" "-CAcreateserial" "-days" "30" "-copy_extensions" "copy" "-out" "p-int.crt" }
+            run "openssl" { "x509" "-in" "p-int.crt" "-noout" "-text" }
+            run "cat" { "p-ca.srl" }
+            run "openssl" { "genpkey" "-algorithm" "RSA" "-pkeyopt" "rsa_keygen_bits:2048" "-out" "p-leaf.key" }
+            run "head" { "-1" "p-leaf.key" }
+            run "openssl" { "req" "-new" "-key" "p-leaf.key" "-subj" "/CN=probe-leaf" "-addext" "subjectAltName=DNS:probe-leaf,IP:192.168.150.250" "-out" "p-leaf.csr" }
+            run "openssl" { "x509" "-req" "-in" "p-leaf.csr" "-CA" "p-int.crt" "-CAkey" "p-int.key" "-CAcreateserial" "-days" "30" "-copy_extensions" "copy" "-out" "p-leaf.crt" }
+            run "openssl" { "x509" "-in" "p-leaf.crt" "-noout" "-text" }
+            run "openssl" { "x509" "-in" "p-leaf.crt" "-noout" "-serial" "-enddate" }
+            run "cat" { "p-int.srl" }
+            run "openssl" { "enc" "-aes-256-cbc" "-pbkdf2" "-iter" "600000" "-md" "sha256" "-salt" "-a" "-A" "-in" "plain.txt" "-pass" "file:pass.txt" }
+            run "openssl" { "enc" "-aes-256-cbc" "-pbkdf2" "-iter" "600000" "-md" "sha256" "-S" "0011223344556677" "-pass" "file:pass.txt" "-P" }
+            run "od" { "-An" "-c" "plain.txt" }
+            run "openssl" { "genpkey" "-algorithm" "ed25519" "-out" "ed.key" }
+            run "cat" { "ed.key" }
+            run "openssl" { "pkey" "-in" "ed.key" "-pubout" "-outform" "DER" "-out" "ed.pub.der" }
+            run "od" { "-An" "-tx1" "ed.pub.der" }
+            run "openssl" { "pkeyutl" "-sign" "-rawin" "-inkey" "ed.key" "-in" "msg.txt" "-out" "ed.sig" }
+            run "od" { "-An" "-tx1" "ed.sig" }
+            run "od" { "-An" "-c" "msg.txt" }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-pki-cli" parents
+    }
+}
