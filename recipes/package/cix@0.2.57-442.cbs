@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e44ac28e12a64031a840c01fa9b2775676b74d2f3adf1d1f02e2fb3662270213"
         "changelog" "0.2.57-442: #562, ADR-0325. A login survives a restart: sessions persist as sha256(token), never the token, so a release deployed or a reboot no longer signs anyone out. The dashboard drops a token the host refused, so its badge, button and banner match the host."
     }
 
