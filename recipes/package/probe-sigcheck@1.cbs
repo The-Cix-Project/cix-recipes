@@ -1,0 +1,38 @@
+# probe-sigcheck -- a package that builds in seconds, for cix#351.
+#
+# 0.2.57-425 signs artifacts in-process (pkicrypto.c) where it forked
+# openssl before. This is built once so that build signs and pushes it,
+# then installed again after the local cache is cleared, which fetches
+# it from the remote cache and verifies its signature against the
+# trusted release keys (pkg.c, ADR-0279). It installs one file.
+#
+package "probe-sigcheck" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: one file, so a build signs and pushes it and a cache-cleared install verifies that signature, for cix#351."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-sigcheck" parents
+        write "${dest}/usr/share/probe-sigcheck/signed-in-process" """
+            built by cixd 0.2.57-425 for cix#351
+            """
+    }
+}

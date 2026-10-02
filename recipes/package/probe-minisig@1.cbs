@@ -1,0 +1,41 @@
+# probe-minisig -- the openssl CLI verifies a signature cixd made in-process (cix#351).
+#
+# node 24.21.0-3's artifact is the first cixd 0.2.57-425 signed with
+# pkicrypto.c. cixd's own install path verifies that signature, but
+# with an artifact checksum also approved its result decides nothing
+# and is not logged. So the real CLI checks it here: the Ed25519
+# signature from the .minisig against the published release key
+# (RWQLGd..., key id 0b19db46b2b6db6c), over the artifact's bytes.
+# Revision 1 learns the .minisig's sha256 from a deliberately wrong one.
+#
+package "probe-minisig" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "node" {
+            url "http://192.168.15.31:8080/node-24.21.0-3-x86_64.cixpkg"
+            sha256 "ab4d52b0e55fa41b647855053a8b2e341f9f2e1c6dc6a019a08ceb2c9245ea89"
+        }
+        extra "sig" {
+            url "http://192.168.15.31:8080/node-24.21.0-3-x86_64.cixpkg.minisig"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: learns the sha256 of node 24.21.0-3's .minisig, for cix#351."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-minisig" parents
+    }
+}

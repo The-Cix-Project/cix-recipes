@@ -1,0 +1,70 @@
+# probe-minisig -- the openssl CLI verifies a signature cixd made in-process (cix#351).
+#
+# node 24.21.0-3's artifact is the first cixd 0.2.57-425 signed with
+# pkicrypto.c. cixd's own install path verifies that signature, but
+# with an artifact checksum also approved its result decides nothing
+# and is not logged. So the real CLI checks it here: the Ed25519
+# signature from the .minisig against the published release key
+# (RWQLGd..., key id 0b19db46b2b6db6c), over the artifact's bytes.
+# Revision 1 learned the .minisig sha256; revision 2 verifies.
+#
+package "probe-minisig" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+        extra "node" {
+            url "http://192.168.15.31:8080/node-24.21.0-3-x86_64.cixpkg"
+            sha256 "ab4d52b0e55fa41b647855053a8b2e341f9f2e1c6dc6a019a08ceb2c9245ea89"
+        }
+        extra "sig" {
+            url "http://192.168.15.31:8080/node-24.21.0-3-x86_64.cixpkg.minisig"
+            sha256 "f42763b0b7824ed58fd566f91b4fa2c0c9436eabe188c04d1146a9546d832656"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the openssl CLI verifies node 24.21.0-3's in-process Ed25519 signature against the release key, for cix#351."
+    }
+
+    build {
+        materialize $source.node to "${build}/node.cixpkg"
+        materialize $source.sig to "${build}/node.minisig"
+        write "${build}/key.b64" "RWQLGdtGsrbbbP821MvxF5QqdXp7dLqGtY51P8daM8l0vt7kDbh0mtMT"
+        write "${build}/prefix.b64" "MCowBQYDK2VwAyEA"
+        cd "${build}" {
+            run "sed" { "-n" "2w sig.b64" "node.minisig" }
+            run "sed" { "-n" "3p" "node.minisig" }
+            run "openssl" { "base64" "-d" "-A" "-in" "sig.b64" "-out" "sig.raw" }
+            run "dd" { "if=sig.raw" "of=sig.bin" "bs=1" "skip=10" "count=64" }
+            run "openssl" { "base64" "-d" "-A" "-in" "key.b64" "-out" "key.raw" }
+            run "dd" { "if=key.raw" "of=pub32" "bs=1" "skip=10" "count=32" }
+            run "openssl" { "base64" "-d" "-A" "-in" "prefix.b64" "-out" "pub.der" }
+            run "dd" { "if=pub32" "of=pub.der" "bs=1" "seek=12" "conv=notrunc" }
+            run "od" { "-An" "-tx1" "-N" "10" "sig.raw" }
+            run "od" { "-An" "-tx1" "-N" "10" "key.raw" }
+            run "od" { "-An" "-tx1" "pub.der" }
+            run "openssl" { "pkeyutl" "-verify" "-rawin" "-pubin" "-inkey" "pub.der" "-keyform" "DER" "-sigfile" "sig.bin" "-in" "node.cixpkg" }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-minisig" parents
+    }
+}
