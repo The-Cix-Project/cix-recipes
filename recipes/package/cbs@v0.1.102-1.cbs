@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "402dca43651e8144a306596d25bca01600519170a23fead9a4492b71d6c7352b"
         "changelog" "v0.1.102-1: adds cbs revise (b1626a5), a validated, byte-preserving rewrite of version, release, source url and sha256 and metadata, which cixd's author stage uses to write a recipe's next revision (ADR-0323); and structured upstream metadata (ff700c7): cbs explain --json reports upstream as an object {provider, tag, source, verify} where v0.1.100 gave a bare string. Nothing else changes."
     }
 
