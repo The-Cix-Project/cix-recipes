@@ -205,6 +205,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3d8723b72a9dc44f14ef970180b79c4c2c739264a189006415466f9b0e55e02c"
         "changelog" "0.2.57-447: ADR-0323 discovery. The gitea-tags kind lists a package's own repository tags, from its upstream source template with the owning source's token, and the catalogue resolves the newest; pkg.refresh-upstreams takes params {kind}, and an unreadable feed says why. 445 and 446 failed their selftest on the test fixtures."
     }
 
