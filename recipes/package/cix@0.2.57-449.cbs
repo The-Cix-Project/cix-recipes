@@ -205,6 +205,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "cf0f75fd88a7d8b2a59b0b4f9785f0807da7496c9464907ef2fba3945ca7f39a"
         "changelog" "0.2.57-449: ADR-0323 discovery authenticates and authors. Trusted origins (cixctl pkg trusted-origins); rung 4 fetches and hashes a newer gitea-tags release from a trusted origin; the author step writes, commits and publishes it, one per run; pkg.discover replaces pkg.refresh-upstreams. 448 failed test_secrets on a test url."
     }
 
