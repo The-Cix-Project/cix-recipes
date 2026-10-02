@@ -205,6 +205,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0fe7387d3ebfe814da8ef8320127878797109feb204ff6c99c1499b3f98b8eac"
         "changelog" "0.2.57-443: ADR-0323 author stage. POST /v1/pkg/recipe-revise (cixctl pkg recipe revise) writes a recipe's next revision from its newest with cbs revise -- version, release 1, url, sha256, approval removed, a changelog naming the digest and its verification -- then commits and publishes it. cbs v0.1.102 in the host root and the test floor; explain's upstream is read as an object."
     }
 

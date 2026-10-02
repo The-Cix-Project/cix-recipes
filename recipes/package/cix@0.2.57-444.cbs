@@ -205,6 +205,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c28c0d87d672d618c2a2057d32ad3527d4ac3809988c93234e460bf501a5b139"
         "changelog" "0.2.57-444: the author stage checks what cbs revise wrote before committing it -- version, release, url, sha256, changelog, and no artifact approval -- and refuses a revision that differs, naming the field. cbs v0.1.102 wrote hibr@0.99.4-1's changelog over its metadata key (cix-build-system#279)."
     }
 
