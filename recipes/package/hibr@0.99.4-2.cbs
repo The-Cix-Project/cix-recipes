@@ -77,6 +77,7 @@ package "hibr" {
     }
 
     metadata {
+        "artifact_sha256" "a68768b10148b5b19d7547a7d0501162cb73c325b7957e3ac567c51767c0a35d"
         "changelog" "0.99.4-2: the same build as 0.99.4-1, whose metadata cbs revise v0.1.102 wrote wrong: the new changelog went over the changelog KEY, leaving the 0.49.1-2 text under a key named after it (cix-build-system#279). 0.99.4-1: hibr 0.99.4, sha256 3f098389035a982ec313fee6acb762bdb8dc62f8d07870e7256e5500d0bdb7f3, verified by origin trust (the v0.99.4 tag archive from git.home.arpa over TLS, probe-cix-tarball@300-1). Written by cixd from 0.49.1-2."
     }
 
