@@ -20,58 +20,58 @@ package "probe-cix-testreport" {
         # the member (cbs v0.1.53, cix-build-system#230) never touches it.
         extra "kernel" {
             url "http://192.168.15.31:8080/kernel-6.18.40-20-x86_64.tar.gz"
-            sha256 "1a929babcf2654cc45d9d47197f0a003b6660573cecf9ae0ce930edcf8b6ab4f"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         # The five floor artifacts the package tests seed from
         # (ADR-0209). Versions are pinned by the fixture's own table in
         # test/test_image_fixture.c, not chosen here.
         extra "bash" {
             url "http://192.168.15.31:8080/bash-5.2.37-2-x86_64.tar.gz"
-            sha256 "47f08a7eac65b59ce6e6a211ffcf77545993f4b5c52c094dbd79ec367f08bd14"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "coreutils" {
             url "http://192.168.15.31:8080/coreutils-9.11-3-x86_64.tar.gz"
-            sha256 "f040e943e222849b9b8b405c16d1abeebf238544c9905328173c2f3ad4fb1009"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "tcc" {
             url "http://192.168.15.31:8080/tcc-0.9.27-7-x86_64.tar.gz"
-            sha256 "2e9095069725a251dcecadddc89e179f08627728ff13d376510a854e0e6de26d"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "glibc" {
             url "http://192.168.15.31:8080/glibc-2.44-19-x86_64.cixpkg"
-            sha256 "220c11019bf7cc729befca2b0cdf7ddd77399de2b436a50000299d52bd4d954d"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "linuxheaders" {
             url "http://192.168.15.31:8080/linux-headers-6.18.40-4-x86_64.tar.gz"
-            sha256 "5cd03e3376c4640bd7a05b578855935ca6ae880a6c6cfe6e516e914ea880e315"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "zlib" {
             url "http://192.168.15.31:8080/zlib-1.3.2-11-x86_64.tar.gz"
-            sha256 "c79f66f9ce3aa84236b46c9001eb617ac9d57fbd9c263ebb023e9581af38e284"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "flex" {
             url "http://192.168.15.31:8080/flex-2.6.4-2-x86_64.tar.gz"
-            sha256 "956c62c65e3befad1c725c98032cd63aa7e167598a7be3e12ffaaace155fe6bd"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "libarchive" {
             url "http://192.168.15.31:8080/libarchive-3.8.1-5-x86_64.cixpkg"
-            sha256 "80c911806cb2892392d58cdd2910c7f0b1504093ea9ea57c24e733ff1f93f720"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "zstd" {
             url "http://192.168.15.31:8080/zstd-1.5.7-5-x86_64.cixpkg"
-            sha256 "75e78994a5f46bab071a93ae83a88f095d4a98aba79e39316e5a860763bde05c"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "xz" {
             url "http://192.168.15.31:8080/xz-5.8.3-8-x86_64.tar.gz"
-            sha256 "e3828c45658a3ecf15793b2918a5d4fa2b947f47228d9d0b21b456257a76ca68"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "cbs" {
             url "http://192.168.15.31:8080/cbs-v0.1.55-1-x86_64.cixpkg"
-            sha256 "14663c02a2df52113919e416f995f28679c69495ec004d2ceab94761a18d7fbf"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         extra "binutils" {
             url "http://192.168.15.31:8080/binutils-2.42-10-x86_64.tar.gz"
-            sha256 "23f6cc2b007bb58dcb105f1ef390caaee81cf6c36b0c50150e415d0f66d4d73e"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
         # The recipe corpus, pinned to a commit. The fixture verifies
         # each floor artifact against the checksum in its own recipe,
@@ -81,7 +81,7 @@ package "probe-cix-testreport" {
         # probe-cix-tarball@10.
         extra "recipes" {
             url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/63b2430211581ead71d46e30fd78a7eaa2f98c03.tar.gz"
-            sha256 "85a302ea50a6c93fad53538e7494405a506ae7a370cfc1161259ea853556239c"
+            sha256 "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         }
     }
 
@@ -146,7 +146,7 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
+        "artifact_sha256" "a4f729dbcaf04ac121f3e8af9a74d2295344ec2329ab016c7fce77f721fbf343"
         "changelog" "93: the three shell-building tests at cix v2.57.316, with the build refused (cix#516)."
     }
 

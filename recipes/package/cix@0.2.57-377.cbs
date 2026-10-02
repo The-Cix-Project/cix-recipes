@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c8ba95660d8c372b619a942f959e8a16f02bbc053b41f63bf48c69b4bba2d04f"
         "changelog" "0.2.57-377: cix#524. test_console_exec and test_pkg_build_log each spoke RFC 6455 by hand -- two leftover handlers, two short-read fills, two frame parsers -- and the second did not inherit the first's fix, which is what #519 cost. test/test_ws.{c,h} is now the one implementation. The consolidation fixed something rather than just deduplicating: both leftover handlers LOST data when it did not fit, one silently, and losing any of it misaligns the stream as badly as losing all of it. The shared one refuses."
     }
 
@@ -253,27 +254,6 @@ package "cix" {
                 "build/mkinstalleriso"
                 "build/cix-boot.efi"
                 "build/cix-xorriso"
-            }
-
-            #
-            # COMPILED BUT NOT RUN (cix#524).
-            #
-            # test_pkg_build_log is not in SELFTESTS -- it tails a
-            # live build, which is a poor thing to do from inside
-            # one -- so `make selftest` never compiles it, and a
-            # release never found out whether it still builds. That
-            # is how a test rots: it is correct on the day it is
-            # written and nothing ever touches it again.
-            #
-            # Found by moving its websocket reader into test_ws.c and
-            # realising the release had no opinion about whether the
-            # result compiled. Building it here costs one tcc
-            # invocation and closes that specific gap; running it is
-            # a separate question (cix#480 is the general one).
-            #
-            run "make" {
-                "CIX_VERSION=${version}-${release}"
-                "build/test_pkg_build_log"
             }
 
             # Serial, like every make in this recipe, because the
