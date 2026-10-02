@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "96e42f0b672a2f8357c51b1854ff6f8bc46a8b8339d4eed5fbc7a0e8d4c932f6"
         "changelog" "0.2.57-441: ADR-0324 step C. The recipe catalogue is signed: recipes/INDEX plus INDEX.minisig, signed by the writing host with the catalogue key (cixctl catalogue-key). A source with a catalogue_key is taken only as signed; an unsigned, mis-signed or replayed tree is refused, and so is any file the index does not list."
     }
 
