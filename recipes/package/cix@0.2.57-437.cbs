@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a6185dc2682724addea1d94300f7ab961c6dac50f4dcba4c2e9c756992ae9816"
         "changelog" "0.2.57-437: ADR-0324. An artifact approval this host writes into a recipe is written back to git: queued after a build approves its artifact and by every sync that finds an approval git lacks, written in one commit per batch only where git holds the same recipe without it, naming the blob it read. GET /v1/pkg/sync shows writeback. A CBS recipe a sync cannot add reports its CPDL error."
     }
 

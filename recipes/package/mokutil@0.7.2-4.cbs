@@ -49,6 +49,7 @@ package "mokutil" {
     }
 
     metadata {
+        "artifact_sha256" "926620c6287cccff514def4e21becd94e9c95f97b709b4039551549e32fea723"
         "changelog" "0.7.2-4: converted from build.sh to build.cbs (ADR-0305 stage 4) and published as a .cixpkg (ADR-0307). Same tarball at the same digest and the same autoreconf plus configure. Stops deleting usr/share (ADR-0306, #491); --disable-bash-completion already keeps the completions out."
     }
 

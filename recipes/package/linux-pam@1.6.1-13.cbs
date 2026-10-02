@@ -62,6 +62,7 @@ package "linux-pam" {
     }
 
     metadata {
+        "artifact_sha256" "6245c92cacd3c40219c33363f758982eb05daac2579c908c8b920dabc0420e41"
         "changelog" "1.6.1-13: installs unix_chkpwd setuid-root (04755), declared with privileged file, so a non-root process can verify a password through pam_unix -- a screen locker, or re-authentication inside a session (cix#552). make install leaves it 0755. 1.6.1-12 said the same with the wrong cix release (416, which never built) in a comment. 1.6.1-11 declared libxcrypt at runtime."
     }
 

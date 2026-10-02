@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c7bcc1996cf0b362885846bbe5ad9b6cdb98e781ed159a12d1a3980b05e7cd1d"
         "changelog" "0.2.57-432: ADR-0323 phase one, the commit half. A host commits a recipe to the recipe repository, then publishes it: POST /v1/pkg/recipe-commit (cixctl pkg recipe commit) validates with the publish path, commits recipes/package/NAME@VERSION.cbs through Gitea create-file, and publishes once the commit exists. Committing is an operator switch, repo-config commit, off by default and gitea only."
     }
 

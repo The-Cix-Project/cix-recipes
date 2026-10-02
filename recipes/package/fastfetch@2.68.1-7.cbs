@@ -91,6 +91,7 @@ package "fastfetch" {
     }
 
     metadata {
+        "artifact_sha256" "77743750bbf2d8312a0ac1cd86ba7a50a3ed64f9135790351315acd74651df4c"
         "changelog" "2.68.1-7: converts to CPDL (cix#487). Same tarball, same cmake line, same 46 installed files including both logos and the config. The three heredocs become block strings, so box-drawing characters and colour placeholders survive verbatim. All three gates survive, each through stdout file plus require file: -5 learned that write does not create parent directories, and -6 that expect stdout contains is only for single-line output, which fastfetch is not."
     }
 

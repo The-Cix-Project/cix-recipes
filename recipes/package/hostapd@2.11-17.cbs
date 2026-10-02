@@ -128,6 +128,7 @@ package "hostapd" {
     }
 
     metadata {
+        "artifact_sha256" "8d17067f0a5ed621073b5980f2bcfeba070742df01b7879bab2c6a5383973e67"
         "changelog" "2.11-17: names the measured cause of 2.11-14 failure, which 2.11-15 guessed wrong and 2.11-16 left open. The retained build log shows cix-init execve(/usr/bin/bash) failed errno 2 -- the build container PID 1 could not start the phase, so nothing in the recipe ran. bash is a precondition of a build phase executing, not a dependency of make."
     }
 

@@ -135,6 +135,7 @@ package "cix-tests" {
     }
 
     metadata {
+        "artifact_sha256" "09b435075c90ab18bb9e5f020232a280ce16c520bec585c0859fb5a75dc2f372"
         "changelog" "v2.57.246-1: cix v2.57.246, where test_harness resolves its child from the repository root instead of a dev-sandbox path (it failed with exit 142, ENOENT) and testreport prints 60 lines of each failing or timed-out log, to read why builds inside the nested daemon fail. v2.57.245-7: first run with the six boot tests staged."
     }
 

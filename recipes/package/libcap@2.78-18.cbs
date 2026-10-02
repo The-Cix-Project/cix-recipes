@@ -87,6 +87,7 @@ package "libcap" {
     }
 
     metadata {
+        "artifact_sha256" "174c89a99cfa43dda71caf4729364bdca3a59d32c26c314d59604a255396b8bc"
         "changelog" "2.78-18: no change but the release. coreutils 9.11-8 installed its own libcap.so.2 over this package's path, and upgrading coreutils leaves that link behind pointing at a file the upgrade deletes (cix#553). A new release reinstalls this package's own bytes; the same version would reuse the stored image tree (ADR-0155). 2.78-17 made the shebang rewrite tree-wide again (cbs#210)."
     }
 

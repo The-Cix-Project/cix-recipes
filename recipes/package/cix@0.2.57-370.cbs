@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "96478f39f7a66655fc45592c36519bb6bbfa28bfef5b16f0c14f90c6f4b6d557"
         "changelog" "0.2.57-370: #498. HEAD counts as a read. The write gate asked 'is this a GET', so `curl -sI /app.js` answered 401 where a GET answered 200 -- and the static fallthrough asked the same question, so fixing the gate alone would only have moved it to 404. HEAD now returns no body anywhere it can reach, with Content-Length describing what a GET would have. The gated identity reads and the console upgrade stay gated for HEAD; HEAD on /v1/... stays a 404."
     }
 

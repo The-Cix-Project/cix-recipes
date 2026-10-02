@@ -76,6 +76,7 @@ package "binutils-dev" {
     }
 
     metadata {
+        "artifact_sha256" "7cc52fbf77781de8fe4a32b3fc0648230216cf1d5299ac882f1b13e655df0287"
         "changelog" "2.42-6: converts to CPDL (cix#487), and moves the source to mirrors.kernel.org. ftp.gnu.org refused the fetch with SSL_ERROR_SYSCALL on 2026-09-22 (cix#409's intermittent reachability), which blocked sbsigntools behind this package. Same bytes, same sha256. The two find pipelines become explicit copies and one copy glob. 2.42-6 failed its first copy because ${dest}/usr did not exist."
     }
 

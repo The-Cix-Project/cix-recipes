@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c49be44db5f031ef493142431ea8ad928846519e4050ff4151d36ea6ca24488a"
         "changelog" "0.2.57-379: cix#504. The cause was logged all along -- a hard-link target not rewritten onto the destination, #506's bug, fixed three hours after #504 was filed. It stayed unsolved because the failure said see run_subprocess detail above, and extraction is not a subprocess any more. The message now names no mechanism, and six silent exits behind it were made to log, so its claim that the step's own error is immediately above is true."
     }
 

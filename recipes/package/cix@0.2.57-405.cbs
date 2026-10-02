@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7edbc070e06ecb4ef692855a9c18f54edea712e37f37f24095842124c5be06c9"
         "changelog" "0.2.57-405: #433 -- build logs open in one movable floating window that follows a running build live."
     }
 

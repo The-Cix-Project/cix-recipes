@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ba233ae22c64f88e50a6133a1c70cd4d5c6e9cdd05351bed79c0082f5ab5a72b"
         "changelog" "0.2.57-378: cix#524 follow-on. The release now COMPILES build/test_pkg_build_log. It is not in SELFTESTS -- it tails a live build, a poor thing to do from inside one -- so make selftest never built it and no release had an opinion about whether it still compiled. Found by moving its websocket reader into test_ws.c and noticing nothing would have told me if the result was broken. One tcc invocation; running it is a separate question, cix#480 is the general form."
     }
 

@@ -73,6 +73,7 @@ package "go-bootstrap" {
     }
 
     metadata {
+        "artifact_sha256" "cb0882e198a990316db248baaf06195c7fb8b1d86e98294dae0a107072d2c153"
         "changelog" "1.4-8: removes every src testdata directory rather than one stale path. 1.4-7 built and installed and was rejected by the finalize policy, which cannot strip Go foreign-architecture ELF fixtures. The shell form rm -rf named a Go 1.4-era path this tarball lacks and silenced its own failure, so it removed nothing. 1.4-6: converts to CPDL (cix#487); the gcc toolwrap is gone, -Werror deleted from make.bash because CC flags land left of it, and the exit-7 check becomes expect exit 7."
     }
 

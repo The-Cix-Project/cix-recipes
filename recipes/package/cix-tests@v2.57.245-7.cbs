@@ -135,6 +135,7 @@ package "cix-tests" {
     }
 
     metadata {
+        "artifact_sha256" "b9d25e89d0f95c1228bce2600bac369148def3ea917e10ed5a5858a4e6bfc1d7"
         "changelog" "v2.57.245-7: the same bzImage member extraction as -6, on cbs v0.1.53, which matches member bzImage against the artifact's ./bzImage entry (cix-build-system#230). -6 failed in prepare on v0.1.52 for exactly that. -5 packaged the first full run: 104 tests."
     }
 

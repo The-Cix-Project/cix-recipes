@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2862664e28a91e90d950910d4a3e8ca2061ecdec5d194cb84304dedbd8a1d9a0"
         "changelog" "0.2.57-390: #539 -- every API operation declares the permission it requires (ADR-0317 step 1 of 6); apigen refuses a missing or unknown one. Declared, not yet enforced."
     }
 

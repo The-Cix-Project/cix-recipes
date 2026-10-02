@@ -60,6 +60,7 @@ package "btrfs-progs" {
     }
 
     metadata {
+        "artifact_sha256" "ec3898059e81c3429a35a3b9f6f651eddb584267cc4176466242c1699b266f7c"
         "changelog" "7.1-12: converted from build.sh to build.cbs (ADR-0305 stage 4) and published as a .cixpkg (ADR-0307). Same tarball at the same digest and the same configure line. Nothing to restore under ADR-0306: --disable-documentation means there was nothing to delete and this recipe deleted nothing. The gcc reason is carried verbatim from 7.1-11, correction note and all."
     }
 

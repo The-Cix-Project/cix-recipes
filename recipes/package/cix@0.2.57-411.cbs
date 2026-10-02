@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "32fcccb2092a24628a6ffd8d103d21cc6144fbefe8f3030cb7a7d409dd4e3fcb"
         "changelog" "0.2.57-411: #499 -- existing .tar.gz artifacts turn over naturally; cixd can no longer write a .tar.gz into its cache."
     }
 

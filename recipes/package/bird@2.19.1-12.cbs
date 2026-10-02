@@ -107,6 +107,7 @@ package "bird" {
     }
 
     metadata {
+        "artifact_sha256" "59dd42fbdf165af864c7931314c6390e5c41500c72b8249a562bcc624ff431ae"
         "changelog" "2.19.1-12: converts to CPDL (cix#487). Same tarball, same autoreconf and configure line, same four installed files. The compiler-identity gate becomes a bare run: a nonzero exit fails the build and CBS prints the failing command itself. The ./bird --version gate keeps the half that matters, that the binary executes, and drops the version comparison -- 2.19.1-11 tried expect { stdout contains } and failed a correct build, because bird prints --version on stderr and CPDL asserts only on stdout (cbs#206)."
     }
 

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2601487652df828ce3de79b5fef4d2f142a7167e21a2a0bdf90922009f153d7f"
         "changelog" "0.2.57-392: #541 -- every operation authorized by its declared permission (ADR-0317 step 3 of 6); reads need a session once gated; console and build-log upgrades gated (were open); 403 names the permission. #545 test_pki race."
     }
 

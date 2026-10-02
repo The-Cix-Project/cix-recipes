@@ -111,6 +111,7 @@ package "gcc" {
     }
 
     metadata {
+        "artifact_sha256" "c0dbe978a02938f623b5726abd8a367a80fe193354cc6b54bcda99bd1b19d192"
         "changelog" "16.2.0-18: keeps its man pages, info manuals and message translations (ADR-0306, cix#491). The install rm deleted them as things a runtime never needs, the reasoning ADR-0306 withdrew. Nothing else changes; 16.2.0-17 was the CPDL conversion."
     }
 

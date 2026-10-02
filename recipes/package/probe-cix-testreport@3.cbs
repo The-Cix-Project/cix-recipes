@@ -116,6 +116,7 @@ package "probe-cix-testreport" {
     }
 
     metadata {
+        "artifact_sha256" "578745a4a91b908ef2bbfeaa2ac0e2a0ec8435744ebe35f0b74cd1512cb079e7"
         "changelog" "3: cix v2.57.250, where the tests install binutils from one shared floor list. 2: binutils was seeded but no test installed it. 1: named the finalize-without-strip failure."
     }
 

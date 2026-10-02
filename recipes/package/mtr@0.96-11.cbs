@@ -50,6 +50,7 @@ package "mtr" {
     }
 
     metadata {
+        "artifact_sha256" "1822a5ebd05a59adba1f51966b6b6b507cbd013efc357fa9694ccf0e3755a98b"
         "changelog" "0.96-11: no longer ships its own copy of usr/lib/libresolv.so.2. glibc owns that path, and two packages owning one path is refused from now on (cix#553): an image held whichever copy was installed last, and this one is coupled to its own glibc through GLIBC_PRIVATE. The stage library operation and the glibc build tool it needed are gone; glibc is in every image and build environment. 0.96-10 dropped setuid from mtr-packet (cix#497)."
     }
 

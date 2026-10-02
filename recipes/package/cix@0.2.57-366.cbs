@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "cb62863d39b46135f51baac1258a2a5312ffdc13f049fae42a2a08704c2fe436"
         "changelog" "0.2.57-365: #502 -- `pkg recipe show` served a live credential: redact_repo_token() substitutes one known string, so `user:password@` basic auth matched nothing. redact_url_userinfo() now blanks the userinfo of any scheme://user:secret@host on the serving and logging paths; {{REPO_TOKEN}} and the write path untouched. #503 -- the log store discarded its write return values and went silent exactly when things broke; failures are held in memory and reported on every read."
     }
 

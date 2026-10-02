@@ -85,6 +85,7 @@ package "libnl" {
     }
 
     metadata {
+        "artifact_sha256" "119a92e17a8b023ebea0b549afff86644bfe18bf8777e7a115110c199fd84f7c"
         "changelog" "3.11.0-7: converts to CPDL (cix#487). No build change: same source, same configure line, same seven version-script strips, same forced-include shim. The find+grep guard, the mkdir and the rm are dropped -- `exactly 7` is the guard, make install creates the pkgconfig directory, and 3.11.0-6 installed no .la. The five test -e become require file, and each soname assertion splits into the real file plus its symlink (cbs#175), more than the shell form checked. First block string here."
     }
 

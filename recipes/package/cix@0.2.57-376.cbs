@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5385cd5b382b6734657fc6e2b05baadf760483b9b7cdc69dc2dbcbf37c6e58f2"
         "changelog" "0.2.57-376: ADR-0314 accepted -- the cbs bootstrap seed is the previous Cix root. Nothing runs differently; what changes is that mkbootroot's refusal to seal a root without /usr/bin/cbs now carries TWO independent reasons in the code. ADR-0307 clause 6 (no cbs means no .cixpkg can be extracted) and ADR-0314 (building cbs needs a working cbs, and this staging guarantees every booting host has one). A reader who finds the first does not apply cannot relax the check on that ground alone."
     }
 

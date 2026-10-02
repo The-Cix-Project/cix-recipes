@@ -117,6 +117,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "56e9f855a4b101da8790982f1876c3b79851af1373f49c051eaf7bed97d00a47"
         "changelog" "v0.1.56-1: carries cix-build-system#233 -- cbs extract reported a DESTINATION fault by naming the artifact, one message and exit 4 covering a missing parent, an existing destination and an unreadable artifact alike, which cost three probes inspecting bytes that were fine (cix#485)."
     }
 

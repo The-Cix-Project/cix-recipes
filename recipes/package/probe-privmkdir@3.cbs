@@ -47,6 +47,7 @@ package "probe-privmkdir" {
     }
 
     metadata {
+        "artifact_sha256" "d9443dfe06419688ea8dffb4a2799fe34a6cc1e5563eb5503620b432d20b1f69"
         "changelog" "3: regression test for cix-build-system#246 -- a BARE deep mkdir, which fails under v0.1.66-v0.1.69 and must succeed under v0.1.70 where parent creation is the default again. Also still covers privileged file (cbs#240) and canonical declaration order (cbs#245)."
     }
 

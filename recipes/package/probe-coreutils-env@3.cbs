@@ -28,6 +28,7 @@ package "probe-coreutils-env" {
     }
 
     metadata {
+        "artifact_sha256" "540394b02a6330ff16f0df257ac382eb90e725b1dae8659b0acfbd24b8a70da4"
         "changelog" "3: revision 1 again, run after coreutils 9.11-9 and libcap 2.78-18 reached every build image: ls, id and cp from a composed environment (cix#510, cix#553)."
     }
 

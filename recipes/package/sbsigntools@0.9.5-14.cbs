@@ -166,6 +166,7 @@ package "sbsigntools" {
     }
 
     metadata {
+        "artifact_sha256" "3c41739df0ae109c7b5a3538afa129e934836ee0373552b1001f62b56ddf1aef"
         "changelog" "0.9.5-14: the --std= correction moves to the Makefile.am. 0.9.5-13 edited configure.ac and was told expected 1 matches but found 0. 0.9.5-12 measured the need: tcc: error: invalid option -- --std=gnu99, which GCC takes as a synonym for -std= and TCC refuses. A literal in a source tree is a replace, not a compiler wrapper (cbs#223). 0.9.5-11: converts to CPDL (cix#487)."
     }
 

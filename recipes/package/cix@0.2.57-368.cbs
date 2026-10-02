@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "908ea3f74ec1d2777cee0b4e8bb02e0fcda2d8cac9c96dbcdf3cb91060013930"
         "changelog" "0.2.57-368: completes #503. A fetch or build failing on a full disk now says so -- neither errno is reachable (curl and cbs are children, only an exit status survives), so the filesystem is asked at the moment of failure, worded as a correlation because a build can fail on its own merits. image gc reports WHY each version resisted, in the response rather than only the log store it told you to read. Carries kernel 7.2.3-18 with igc (#479) through assembly."
     }
 

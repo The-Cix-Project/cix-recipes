@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "cdb24b4f92ae3ec5b0816c8135f767c080c90f323106b06b56c8425328f21cda"
         "changelog" "0.2.57-406: #424 -- a build run records how long each stage took, and a running build says which stage it is in and for how long."
     }
 

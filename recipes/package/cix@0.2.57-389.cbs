@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "455f4e86f551a3c5a5e0eb2e74ffffdfaaa33d150609fd85c12b6209024091fc"
         "changelog" "0.2.57-389: #538 -- the dashboard says log in rather than No LDAP users when it has no session. With #380 (every stage after a fetch reads the recipe file the fetch resolved) and #537 (client connections end with shutdown, so cixctl no longer waits for a fetch child)."
     }
 

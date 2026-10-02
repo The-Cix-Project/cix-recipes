@@ -76,6 +76,7 @@ package "libblkid" {
     }
 
     metadata {
+        "artifact_sha256" "42b6a1c0b69aaf760e311bf7b817d2d236c9648cadd6b0dae68688a2563996ac"
         "changelog" "2.42.2-9: drops util-linux's message catalogue and terminal-colors.d.5, which libuuid and login install too, so two of them in one image owned the same 34 paths. A path belongs to one package from now on; those files are util-linux-common's (cix#553)."
     }
 

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f7f677d4f2c1360e11aef6c12077f32a05f9833796dd701d290943e4354c5a7a"
         "changelog" "0.2.57-391: #540 -- groups hold permissions (ADR-0317 step 2 of 6). admin_groups is derived from the mapping; old admin groups migrate to every permission; whoami reports permissions. Enforcement unchanged."
     }
 

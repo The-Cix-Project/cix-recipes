@@ -89,6 +89,7 @@ package "coreutils" {
 
 
     metadata {
+        "artifact_sha256" "d7f9bf7e6ab221407699bf61ebc0dca467b3fe10644903ec47c525cbf083226d"
         "changelog" "9.11-9: depends on libcap and openssl instead of shipping its own copies of libcap.so.2, libcap.so.2.66 and libcrypto.so.3 (cix#510). The .2.66 copy had rotted against the image's libcap 2.78, two packages owned the same library files, and both libraries were reached at build time undeclared. They are now runtime packages and build tools, and nothing is staged."
     }
 

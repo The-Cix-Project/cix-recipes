@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "275d1b662bc2686b78a64bdac6d776eca7a2e38945fcec4c9c2533ccc697058a"
         "changelog" "0.2.57-396: #544 part 2 -- the dashboard asks sessionMay() (permissions generated from the contract), pauses on a gated host with no session, and manages group permissions and app passwords. RBAC (ADR-0317) complete."
     }
 

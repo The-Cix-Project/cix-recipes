@@ -92,6 +92,7 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256" "f5a3ac2c32dd6e47f455938f99859d38de7316f4cae62e55857a1f0efd405c36"
         "changelog" "7.2.3-18: builds igc for Intel I225/I226 2.5GbE (cix#479). Same source and recipe as -17; only the pinned config commit moves, to 4b4429a, adding CONFIG_IGC=m. That chipset has been standard on consumer and small-server boards since roughly 2021 and the symbol was absent entirely, so such a machine had no usable Ethernet in the installer or afterwards. =m, not =y: nothing about mounting root needs a NIC."
     }
 

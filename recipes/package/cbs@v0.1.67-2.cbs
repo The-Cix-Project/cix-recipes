@@ -146,6 +146,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "3328b9668a9c5dafea874084744dd276cb061d2a58ae6c70d123ec5e5d99e360"
         #
         # The exact bytes 192.168.15.95 produced for this version, and
         # the reason this recipe is in the ADR-0209 test floor's reach

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5d45a55d1d00496c8fc461e91205256319d692bc9fb9a46b5b2a5c16982d27be"
         "changelog" "0.2.57-403: #447 -- PUT /v1/containers/{name}/sysctls sets net.* sysctls on an existing container, live when running; -402 failed its selftest on the blocking-wait ceiling."
     }
 

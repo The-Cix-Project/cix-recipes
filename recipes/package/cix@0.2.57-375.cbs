@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ed3be068576ef93606ed77d8b77f87bf1148e2c17611a7eead06b9812b77d020"
         "changelog" "0.2.57-375: cix#516 housekeeping. trash/ is deleted on the owner's instruction -- 1584 files, 22 MB of superseded shell recipes, cbs@v0.1.25-1.sh among them. Nothing read it: it sat outside recipes/, the only tree the sync walks, and the eight files the ADR-0209 floor once read through recipe_artifact_sha() stopped being read when all twelve floor pins moved to CPDL. ADR-0314 records the amendment to ADR-0309 clause 1, which had said published shell recipes stay in the repository as well as on hosts."
     }
 

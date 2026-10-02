@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f38d998cb90fce6cb18ac84772c602b821023a892f9008ef4d40cef48836db41"
         "changelog" "0.2.57-407: #550 -- each build log in the listing names its package, version and image, from the run record rather than the filename."
     }
 

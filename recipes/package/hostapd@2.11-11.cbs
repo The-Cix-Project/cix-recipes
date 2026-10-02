@@ -90,6 +90,7 @@ package "hostapd" {
     }
 
     metadata {
+        "artifact_sha256" "f37ddaaa57e5d2aaa1ecd65a1a6dfb5dfc35f16b39a3853242f377755a24a8e3"
         "changelog" "2.11-11: converts to CPDL (cix#487). The libnl-tiny unpack becomes an extra source plus a glob binding, replacing an ls of /build/extra, a tar, a second ls and an mv. The .config edits become two replaces with exactly 1 each, the second carrying the three appends since CPDL has none. The wildcard link line moves into a generated makefile (cbs#207), and the toolwrap loses its bash array because a block string may not contain dollar-brace (cbs#208). 2.11-10 could not use its glob in install (cbs#209)."
     }
 

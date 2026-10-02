@@ -93,6 +93,7 @@ package "perl" {
     }
 
     metadata {
+        "artifact_sha256" "3e48f1887b40f2ea542f72e990e9bec7bd1fc215ff780db5e8efea12f919026a"
         "changelog" "5.40.1-10: converts to CPDL (cix#487). Same tarball, same Configure line. Both runtime gates survive as stdout file plus require contains: the built perl must load a real XS module and must have a working crypt(). Two hard-link pairs become symlinks -- perl5.40.1 onto perl, perlthanks onto perlbug -- because CIXPKG refuses a hard link and every shell revision shipped both unnoticed, a shell recipe publishing tar.gz, which carries them. The cpprun probe loses its executable half."
     }
 

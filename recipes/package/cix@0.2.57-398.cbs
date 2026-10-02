@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "de2952dea6073f30d75e85bfd9db916460c32cc14088cd088c1b3b79869dde74"
         "changelog" "0.2.57-398: #549 -- a container create answers once its first process has exec'd (bounded at 5 s), not when it was cloned; test_pki asserts it."
     }
 

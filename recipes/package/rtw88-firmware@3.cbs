@@ -73,6 +73,7 @@ package "rtw88-firmware" {
     build_image "cix-builder"
 
     metadata {
+        "artifact_sha256" "2956ead95de0fc268fa0d63cdd9f85bb4a1206c14e434fce4d98bcd1982a6758"
         "changelog" "3: converts to CPDL (cix#487), impossible until cbs#205. A firmware blob is not an archive and CBS extracted every source unconditionally, so this could not be expressed at all; a non-archive main source is now preserved byte-for-byte, with the query string stripped from the basename. The 8822B header check moves into a named post-install check case (cbs#211) and gains same_as, which proves the installed blob is the verified bytes rather than merely 8822B-shaped."
     }
 

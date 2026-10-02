@@ -85,6 +85,7 @@ package "net-tools" {
     }
 
     metadata {
+        "artifact_sha256" "2b20d09980173c0534917f8d0852e1ad228f1dcd52f4a2fffbbdc066eb88117e"
         "changelog" "2.10-5: converts to CPDL (cix#487). The while-read loop that generated config.h and config.make from config.in's declared defaults becomes two awk programs, one per file, each reading config.in once through stdout file -- same rule, stated once per file instead of assembled a line at a time. The rarp.c sed becomes replace ... exactly 1, which enforces the shell comment's claim that this is the only such construct in the tree. Keeps usr/share/man (cix#491), the one output difference from 2.10-4."
     }
 

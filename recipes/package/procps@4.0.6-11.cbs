@@ -91,6 +91,7 @@ package "procps" {
     }
 
     metadata {
+        "artifact_sha256" "258e1d75305969ed65ecba866e7aa3817dd17f4b7f16978d77eec3d05035e36f"
         "changelog" "4.0.6-11: converts to CPDL (cix#487), and declares the ncurses runtime dependency every revision before it was missing. usr/bin/watch links libncursesw.so.6 and pkg_depends was empty, so the dependency held only because ncurses happened to be in the same image; cix#389's undeclared-link gate refused 4.0.6-10 by name. Otherwise the same tarball, configure and make lines and the same eighteen binaries. rm -rf usr/share is dropped (cix#491); the include, pkgconfig and .a/.la/.so removals stay."
     }
 

@@ -90,6 +90,7 @@ package "openssl" {
     }
 
     metadata {
+        "artifact_sha256" "12a038104f0e89f3c4fc179a667b8166e64e6c41ec8c84b69602fcf3ed3ff6f5"
         "changelog" "3.0.20-7: converts to CPDL (cix#487), and declares gcc for the first time. This has always been a gcc build -- Configure target linux-x86_64 sets CC=gcc and the recipe has listed gcc as a build tool since it was written -- but it carried no pkg_toolchain line, and test_toolchain_policy scans pkg_build() textually, where this recipe says only perl ./Configure. So it was gcc the audit could not see. Otherwise unchanged: same Configure line, install_sw plus install_ssldirs, same four removals."
     }
 

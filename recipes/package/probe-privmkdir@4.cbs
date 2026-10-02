@@ -47,6 +47,7 @@ package "probe-privmkdir" {
     }
 
     metadata {
+        "artifact_sha256" "2915f156517c22d5195e1e770e88467b75fe3662340b40451a8ca66e8d993f85"
         "changelog" "4: uses the v0.1.70-only `leaf` keyword, so a successful PUBLISH proves the control-plane engine is v0.1.70 and a successful BUILD proves cix-builder is. Previously 3: regression test for cix-build-system#246 -- a BARE deep mkdir, which fails under v0.1.66-v0.1.69 and must succeed under v0.1.70 where parent creation is the default again. Also still covers privileged file (cbs#240) and canonical declaration order (cbs#245)."
     }
 

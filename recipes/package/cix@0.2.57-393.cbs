@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1608e4247ff9b92b06f83662e1e1bcd2c79ed093687aa3fb074ba7be3ea8dc4e"
         "changelog" "0.2.57-393: #542 -- standard groups cix-admins, cix-operators, cix-readers provisioned once per host (ADR-0317 step 4 of 6); gid allocation skips gids users carry; cix-recover keeps ldap_tls (#546)."
     }
 

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "551ce8643d67dee8f754c21f1ca3bfce39f8fa5cdedb583b83e89985dc343551"
         "changelog" "0.2.57-385: CPDL is 1.0. The test floor runs cbs v0.1.98-1 (a relabel of 0.1, no grammar change), the host root picks it up at this assembly, and the API docs say CPDL 1.0."
     }
 

@@ -100,6 +100,7 @@ package "gettext" {
     }
 
     metadata {
+        "artifact_sha256" "baa82ba4cd778b652fc3256158a512bba4f2d08ea47a65ad892f3d6f5f4ae549"
         "changelog" "1.0-22: the msgfmt check becomes a bare run. 1.0-21 built completely -- 94 seconds of make, every tool linked -- and failed only on CPDL-E4001, stdout must be one line: GNU --version prints a four-line banner and expect stdout contains takes one line (cbs#226). A nonzero exit still fails the build, which is what cix#113 asks for. 1.0-19: converts to CPDL (cix#487)."
     }
 

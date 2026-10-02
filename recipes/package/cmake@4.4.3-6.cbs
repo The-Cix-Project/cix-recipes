@@ -93,6 +93,7 @@ package "cmake" {
     }
 
     metadata {
+        "artifact_sha256" "23f330e14cae5b99a8680d49dad5b84b878e61826f5093d1401d7c4f7d5bb25a"
         "changelog" "4.4.3-6: fixes cix#534. 4.4.3-5 built clean and its gate passed, then install refused it: usr/bin/cmake links libstdc++.so.6 and nothing declared a provider. gcc was declared as a BUILD tool, which puts it in the sandbox and not the target image, so the link was recorded and the dependency was not. gcc is the only package shipping libstdc++.so.6 (measured), and declaring it at runtime is what node@24.21.0-2 already does for the same reason."
     }
 

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "df1d6c27bede59a8be4eaf10c8c8c13d6f9b564ff100cc796d9c58e42379126a"
         "changelog" "0.2.57-400: #500 -- POST /v1/pkg/install into an image that does not exist is a 400 naming cixctl image create, and creates nothing; tests create their images first."
     }
 

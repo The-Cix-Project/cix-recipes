@@ -58,6 +58,7 @@ package "ca-certificates" {
     }
 
     metadata {
+        "artifact_sha256" "3991f72010507492752af600166ba204e2b3807e59b8ee89b7ad66a152c93466"
         "changelog" "2026.09.03-2: converts to CPDL (cix#487), impossible until cbs#205. A bare cacert.pem is not an archive and CBS extracted every source unconditionally, so this could not be expressed at all; a non-archive main source is now preserved byte-for-byte. The cert-count and header checks move into named post-install check cases (cbs#211) and get stronger: same_as proves all three installed copies are byte-identical to the verified source, which a count never did."
     }
 

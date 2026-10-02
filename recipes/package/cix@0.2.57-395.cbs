@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "552e3e5aea47203e286230583c8fe42ba5c261c8aae269e28e46079e98525c39"
         "changelog" "0.2.57-395: #544 part 1 -- cixctl hostauth-permissions, app-password and ldap user app-password; the shell prompt says (login required) on a gated host; JSON writer buffers always NUL-terminated."
     }
 

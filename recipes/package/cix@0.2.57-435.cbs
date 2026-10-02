@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3eab227826c21b3b592cfcbbf36996403015d312a2b18fb14deabe67c8528b7a"
         "changelog" "0.2.57-435: ADR-0324 step A. Recipe sources are a list (/v1/pkg/sources, cixctl pkg source) replacing repo-config; a host migrates its repo config into one source. Sync fetches every source; a name two sources offer is held until the operator chooses (/v1/pkg/source-ownership); a held version with different content is refused as divergent. Keys only from trust_keys sources. A published recipe records its owning source, whose token its fetch carries."
     }
 

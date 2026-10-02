@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "013abdc00cab1438fb2f89ecb540abf8f02266580e85fae5228b3bb6147e3696"
         "changelog" "0.2.57-380: no code change. Exists to USE the build environment the drift pass changed: libuv moved in cix-builder, xz and zlib in cix-hosttools, which feeds the control-plane root. Compiling the platform in one and assembling a root from the other is the verification. Drift went 24 behind to 3, every target already built, so the whole pass was installs; the 3 left are gcc held at 16.2.0-13 for cix#521 and libmnl@__hostbuild, which this hostbuild refreshes."
     }
 

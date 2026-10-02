@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2af8677c5c4525e439ed8c9d78b52a1d43695a671006677b1908b2f8a4c853f7"
         "changelog" "0.2.57-388: #380 -- every stage after a fetch reads the recipe file the fetch resolved, so a revision published mid-download cannot swap the recipe; #537 -- client connections end with shutdown(), so cixctl no longer waits for a forked fetch child."
     }
 

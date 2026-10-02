@@ -91,6 +91,7 @@ package "libuv" {
     }
 
     metadata {
+        "artifact_sha256" "9f5aea502d80940dca2680f3c752581762999b415ba55cbc64e6aab134537f6c"
         "changelog" "1.51.0-5: the three autogen toolwraps are gone. probe-autotools-exec measured aclocal, automake and libtoolize in a composed environment as ordinary regular files whose shebangs resolve and which exec directly -- the dangling-symlink premise they were written for was true of the pre-ADR-0199 cumulative sandbox and outlived it. Also drops a debugging ls, a require directory that asserted extraction works, and the carried-forward artifact approval."
     }
 

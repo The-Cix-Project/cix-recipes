@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b3f81bf9af394e3d20954b1b1fa7c7becdc5e2cbfd05d87e5d7b981f2e86db8d"
         "changelog" "0.2.57-381: a host that never saved a repo or artifact config starts on the public catalogue (github.com/The-Cix-Project/cix-recipes, main) and cache (cache.cix.world, pull-only), so a fresh install needs only pkg sync; a saved empty URL clears either for good (ADR-0315)."
     }
 
