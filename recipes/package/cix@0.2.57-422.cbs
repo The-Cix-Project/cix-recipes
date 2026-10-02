@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "71fc4ff0a11946a39abaa9eab789fc43ecb227d536a3849bc2045cf6dda826d8"
         "changelog" "0.2.57-422 (421 did not compile): #551 -- a stored image version is checked against the files its packages record before it is reused; a wrong one is replaced by the tree just built, and set aside until the next start."
     }
 

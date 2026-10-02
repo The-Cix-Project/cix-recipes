@@ -76,6 +76,7 @@ package "binutils-dev" {
     }
 
     metadata {
+        "artifact_sha256" "d1e120bb045ebed96065d7f70ae493e02cd4ab48e438595bd33201e7e12d0fb7"
         "changelog" "2.42-8: stops installing libiberty's fnmatch.h, getopt.h and obstack.h into usr/include. glibc owns those three paths, and one image held both packages' copies, whichever was installed last (cix#553). 2.42-6 converted to CPDL and moved the source to mirrors.kernel.org."
     }
 

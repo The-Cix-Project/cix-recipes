@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2e59d9e2695cff816d00e18eb674338b63e89e0074e42dcf9a5b79d8da6d4ab7"
         "changelog" "0.2.57-410: #438 -- cixctl help lists command groups and help COMMAND shows one; help is completable. 0.2.57-409 failed test_clitree."
     }
 

@@ -51,6 +51,7 @@ package "openssh" {
     }
 
     metadata {
+        "artifact_sha256" "149c99868e1e0bda642eb127035dd3d9861c655601048459a02e45e0ad26b52b"
         "changelog" "10.4p1-15: no change but the release. ssh-keysign has been declared 04711 since -13, but every installer before cix 0.2.57-417 masked it to 0711 (cix#552); a new release reinstalls these bytes, where the same version would reuse the stored image tree (ADR-0155). -14 moved metadata before the privileged declaration."
     }
 

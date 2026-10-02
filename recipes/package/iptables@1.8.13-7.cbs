@@ -73,6 +73,7 @@ package "iptables" {
     }
 
     metadata {
+        "artifact_sha256" "3989cc5818fb652d07fbe9e3456a027914a6041e12c2abd42a6e5f9d5a58d684"
         "changelog" "1.8.13-7: converts to CPDL (cix#487). Same tarball, same configure and make lines, same binaries and libraries. The xtables module guard stops being a floor of 20 and becomes require glob exactly 121, the number 1.8.13-5 installs -- a floor of 20 would pass a build that lost five sixths of its extensions. The test -e loops become requires, split into real file and soname symlink (cbs#175); 1.8.13-6 learned usr/sbin/iptables is itself a symlink. Keeps usr/share (cix#491)."
     }
 

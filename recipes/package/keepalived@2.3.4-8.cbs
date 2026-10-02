@@ -88,6 +88,7 @@ package "keepalived" {
     }
 
     metadata {
+        "artifact_sha256" "0d62e714539fe42df72d1477b4a25d14413868da4f5ae9510f22998ee393fa01"
         "changelog" "2.3.4-8: converted to build.cbs (ADR-0305 stage 4) as a .cixpkg (ADR-0307). Same tarball and configure line. It waited for stdout file (cix-build-system#185): its real guard is readelf -d piped to grep for NEEDED libnl-3.so.200, and readelf prints many lines, so converting earlier meant dropping it. keepalived is a probe-and-degrade build -- configure quietly omits libnl support it cannot find -- and the #389 gate cannot catch that, refusing only what links something undeclared."
     }
 

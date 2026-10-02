@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1fd4c4f432a75423b23bdb85a1bd715265cee743b59e6cd57776d704f6385c1e"
         "changelog" "0.2.57-371: #525. An artifact approval names one byte sequence from one build and is never carried forward. Publishing a recipe whose artifact_sha256 a different version of the same package already declares is now refused, 400, naming that version. cbs carried one approval across ten revisions, v0.1.30-1 to v0.1.45-1, and three have a published artifact that says otherwise. The check sits after the immutability test, because 86 corpus files carry a duplicate today."
     }
 

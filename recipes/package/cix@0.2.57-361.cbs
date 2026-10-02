@@ -200,6 +200,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1914154d9b02a15a8dd9cdb0ae10d1214113806732492949c9b629805f852d74"
         "changelog" "0.2.57-361: #533 -- an incomplete PUT to the test fixture's artifact server reported 201 and destroyed the file already at that path. http_serve_put() truncated at fopen() before reading any body, so a short read on the SECOND push of a name emptied the first good upload (hbpush pushes one name twice). A PUT is now atomic: body to <path>.part, renamed in only on a complete Content-Length, 400 otherwise; read() retries on EINTR. New test_http_put gates it in SELFTESTS."
     }
 

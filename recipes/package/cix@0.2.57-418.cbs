@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d0858457e46883b2c457091e7991a8d35ec2bd8dc732594868a7dd5fe99c60bb"
         "changelog" "0.2.57-418: #554 -- include/controlplane_programs.h lists every program code on the control-plane root runs; mkbootroot refuses to seal a root missing one, and test_controlplane_programs fails a release that runs an unlisted one. The fixture functions that fork cp and sha256sum move out of product-linked code."
     }
 

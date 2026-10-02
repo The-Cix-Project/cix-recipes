@@ -97,6 +97,7 @@ package "node" {
     }
 
     metadata {
+        "artifact_sha256" "ab4d52b0e55fa41b647855053a8b2e341f9f2e1c6dc6a019a08ceb2c9245ea89"
         "changelog" "24.21.0-3: keeps its man pages and docs (ADR-0306, cix#491); only node's C headers and npm's bundled test corpora are still removed. Nothing else changes; 24.21.0-2 was the CPDL conversion and first build."
     }
 

@@ -121,6 +121,7 @@ package "hostapd" {
     }
 
     metadata {
+        "artifact_sha256" "a867140567769d3a7dc2c3aee90aedec596fff9c4c1bd5fed874cd120c1d9d96"
         "changelog" "2.11-16: corrects 2.11-15, whose comment asserted a missing /bin/sh as the cause of the signal-14 timeout that killed 2.11-14. That cause was never measured and does not fit, since a missing shell fails make per line rather than hanging, and a second build was in flight at the time. bash stays regardless, because make needs a shell."
     }
 

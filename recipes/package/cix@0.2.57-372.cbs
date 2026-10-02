@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d86883f97457549cfca0926ac20a0785f58540b04c182a0cfee2c64968692f5a"
         "changelog" "0.2.57-372: cixctl pkg-build-config set --max-concurrent-jobs=N had never worked. The literal is 22 bytes and strncmp compared 23, which includes its own NUL, so it matched only the flag with no value and every real invocation fell through to 'unknown option'; the offset reading the value was wrong the same way. ADR-0157's operator control over build concurrency was unreachable from the CLI throughout. test_clitree check 8 now compares every flag's strncmp length to its literal, 183 of them."
     }
 

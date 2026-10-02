@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f9333412de802f91f6097dedf6a7510ddddde3a34ed3ab6721a47d578a7ccdb3"
         "changelog" "0.2.57-425: #351 -- the PKI, release key and signing keys run in the linked libcrypto instead of forking openssl (ADR-0321); openssl leaves the control-plane root; fingerprint_sha256 is now really SHA-256. Sessions record login time and source address. Dashboard: switching containers reloads Configuration/Packages, and a container with no console says so."
     }
 

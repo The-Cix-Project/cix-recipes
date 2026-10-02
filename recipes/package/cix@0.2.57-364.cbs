@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4330ee9e4dcf026d7fb348620de43a954273c4a403b759a0ea71b4240a81973a"
         "changelog" "0.2.57-364: #528 -- a hostbuild exports the format its recipe declares, via `cbs package` (cbs#247, v0.1.71). -363 proved the mechanism (the log shows `packaged ... .cixpkg`) and failed on two callers that never waited for the single export slot: a publish starts an export, and targz over a tiny tree used to finish inside the round trip where cbs package does not. Both retry on 409 now. Floor cbs v0.1.63-2 -> v0.1.71-1 with the corpus pin; cix declares tool cbs."
     }
 

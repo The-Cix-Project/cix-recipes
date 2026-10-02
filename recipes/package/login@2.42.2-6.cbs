@@ -61,6 +61,7 @@ package "login" {
     }
 
     metadata {
+        "artifact_sha256" "08dfd5a818130270c38321b067ac5ca10c520baeec98ea37a7b331597e3e8087"
         "changelog" "2.42.2-6: drops util-linux's message catalogue and terminal-colors.d.5, which libuuid and libblkid install too, so two of them in one image owned the same 34 paths (cix#553). They are util-linux-common's now, and login depends on it at runtime so its messages stay translated."
     }
 

@@ -106,6 +106,7 @@ package "nftables" {
     }
 
     metadata {
+        "artifact_sha256" "091d02393e7b53cca5e64521d7d78b5f337103c0fd28a7f2580985e4fc9a3ea2"
         "changelog" "1.1.1-5: links takes a full soname, not a substring. 1.1.1-4 built and installed correctly and failed asserting libnftables, which nft does link -- the shell form grepped readelf output, where a substring matches. Every soname is now measured. Adds the real-file and soname assertions the shell form did not make (cbs#175) and removes the .la. 1.1.1-4: converts to CPDL (cix#487)."
     }
 

@@ -22,6 +22,7 @@ package "probe-chaindep" {
     }
 
     metadata {
+        "artifact_sha256" "82261782b2e50fc75325f650ca03d98ac3c0dd7ec675ead955dd341735aa3ff4"
         "changelog" "1-2: stages a marker file (an empty package is refused). The dependency half of the cix#380 reproducer -- same source and sha256 as probe-chainhead, builds successfully so the chain continues."
     }
 

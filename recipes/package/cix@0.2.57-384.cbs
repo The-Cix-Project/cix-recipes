@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4822944831dfe4a510343dff54eaefb982d6086ca5daa1711bb61d5ffcd5e4c4"
         "changelog" "0.2.57-384: the test floor runs cbs v0.1.97-1, the engine the host and cix-builder already use, so floor tests build with the real engine. Moves extra cbs, its checksum and materialize name, and the corpus pin to 71f4a42 together."
     }
 

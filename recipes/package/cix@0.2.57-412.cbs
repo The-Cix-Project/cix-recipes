@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9855b41e3fb76b115775efd00dc63cdd4823ac376a00aaa1350b083a62f1ced8"
         "changelog" "0.2.57-412: #464 -- a userns rootfs is copied in-process on a non-btrfs host (no forked cp, no blocking wait); cp leaves the control-plane root."
     }
 

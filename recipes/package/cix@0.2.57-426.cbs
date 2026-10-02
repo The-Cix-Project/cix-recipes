@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "dd72b00e2ee06742073fc520d547cc437d85534437c27aa30a0d01955b4596cc"
         "changelog" "0.2.57-426: #559 -- the package table holds 1024 entries (256 filled on this box, and installs then failed, dependency steps silently), and an abandoned install chain logs why. Dashboard: the session idle timeout is set on the Sessions tab, and the status bar fetches its version and uptimes when a session begins."
     }
 

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "21262d67114c211c2b14b9990d6d1d87a8a1d20341eab365c11b435c9f847da1"
         "changelog" "0.2.57-386: #501 -- two builds of one package no longer share a download. Every file a fetch writes is keyed by build slot, so concurrent builds of one name@version (one per image) cannot unlink or overwrite each other; each fetch clears its slot first."
     }
 

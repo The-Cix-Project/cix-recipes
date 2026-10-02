@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "fb2df48e4d1619dcf99cd3f9fcaa780e6bc3c06cae70defe49d5bd6df96343a6"
         "changelog" "0.2.57-367: #479 -- Intel I225/I226 2.5GbE. CONFIG_IGC was absent from the kernel config entirely, so a machine with that chipset had no Ethernet in the installer or afterwards. Now =m, with igc in CIX_NIC_MODULES and nicreport's gap message corrected so it stops claiming the driver is missing. The kernel needs its own rebuild for the symbol to take effect. test_nicreport's gap assertion would have stayed green while asserting the opposite."
     }
 

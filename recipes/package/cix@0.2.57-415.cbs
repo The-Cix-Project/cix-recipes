@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a4675a80d14445eacaf0938a619e35acb71d68ce88622fac00858e6f7895397b"
         "changelog" "0.2.57-415: #480 -- the mkinstalleriso argument list is defined once (include/mkinstalleriso_args.h) and test_mkinstalleriso_args runs the real binary in SELFTESTS. #464 -- mkbootroot and mkinstalleriso copy trees in-process, since the control-plane root has had no cp since 412 and 414's assembly failed on it."
     }
 

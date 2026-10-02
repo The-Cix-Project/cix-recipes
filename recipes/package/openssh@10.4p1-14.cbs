@@ -51,6 +51,7 @@ package "openssh" {
     }
 
     metadata {
+        "artifact_sha256" "a6fe344fa2bdbe5d139cb9556200c46a5d3d95254a022e45d704808fa3b4ccaa"
         "changelog" "10.4p1-14: same recipe as -13 with metadata moved before the privileged declaration. -13 was written with them the other way round and cbs v0.1.67 accepted it silently, while its own spec said package items must be in canonical order; cix-build-system#245 resolved that by tightening the parser, so -13 stops parsing at cbs v0.1.69 with CPDL-E3003. cbs ranks items in equivalence classes, not a total order -- metadata is 7 and privileged is 8, which is the whole of the difference here. No functional change."
     }
 

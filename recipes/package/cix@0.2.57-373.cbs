@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a7caf8cdcf146a96223250c4b69efe8a3901a585968840c9d46116efa8755898"
         "changelog" "0.2.57-373: no code change. This release exists to USE the rebuilt build environment: cix#497 moved gzip, gawk and ncurses to symlinked aliases and rebuilt them in cix-builder, cix-hosttools and kernel-builder, and ncurses in particular is a library other things link. Compiling the whole platform in that environment, passing the selftest and assembling a control-plane root from cix-hosttools is the verification. #497 is now zero: 80 latest revisions approved over their own .cixpkg, none over a .tar.gz."
     }
 

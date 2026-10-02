@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e5cbbb6b6ea96124a5c9226c0addbdecbac66d38adc06d295c9612125102b8f9"
         "changelog" "0.2.57-394: #543 -- app passwords (ADR-0317 step 5 of 6): accepted per request as HTTP Basic with the user's permissions, revocation immediate, rendered into glauth as passappbcrypt; bcrypt memoized per stored hash."
     }
 

@@ -135,6 +135,7 @@ package "cix-tests" {
     }
 
     metadata {
+        "artifact_sha256" "afc26a742041b797d9d6889e3a2e3d0ddebf7f7a44d6eceed5b39bb034937b03"
         "changelog" "v2.57.247-1: cix v2.57.247, where the package tests fetch their fixtures over a loopback HTTP server instead of file:// (cixd fetches http and https only, #410) and no test needs Python; test_harness writes its result at the overlay root. v2.57.246-1: test_harness child path; 60-line failure tails."
     }
 

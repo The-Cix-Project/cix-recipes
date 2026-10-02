@@ -200,6 +200,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5178ef8a0e5432f85967349020f9d8c4674255eec3ac2638c996332be06a0eda"
         "changelog" "0.2.57-359: ADR-0312 takes the header format the ADR corpus requires -- test_docindex failed -358 on it (first line must be '# 0312 - Title', Status is a '## Status' heading, not a bullet list). Everything else in -358 passed, test_versioning included: it compiled, ran and reported PASS against the pinned corpus. Same scheme, same corpus pin, source sha only."
     }
 

@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1454a1aa3252e1d509d126138540f147c5f5e7f4b12ccba4da904f6167a5c426"
         "changelog" "0.2.57-374: cix#516. A resume now refuses a shell recipe BEFORE staging. It used to refuse having already copied the recipe, written finalize.sh and delete-and-recreated dest_dir, so a refused resume destroyed the kept container's output tree on its way to saying no. Also records why there is NO shell refusal at the top of pkg_prepare_build_and_start(): the existing one sits in the else of the cache-hit arm, so a shell package whose artifact is cached still installs. ADR-0314 proposed."
     }
 

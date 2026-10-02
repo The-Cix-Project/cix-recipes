@@ -78,6 +78,7 @@ package "iproute2" {
     }
 
     metadata {
+        "artifact_sha256" "c578f29c0aea28f071b0c0fa3da0b4d35eb295737519c12bf11ab2f0e9bb9e63"
         "changelog" "6.18.0-18: converts to CPDL (cix#487). Same tarball, same configure and make lines, same 173 files. The four pkg-config probes become four runs whose nonzero exit fails the build. Every grep-based check becomes a require file contains: the Makefile flag, the three config.mk feature lines that catch a silent configure degrade, and the three source checks that prove ip vrf is still registered. The find-for-.so check becomes require glob exactly 0, which is CPDL form for a negative existence check."
     }
 

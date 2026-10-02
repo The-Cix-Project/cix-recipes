@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "309e97e8554222a2d2f19c45a21f6eed280e5741b025c49a7973b0eabdaa7d70"
         "changelog" "0.2.57-408: #513 -- a checksum mismatch error carries the full computed hash instead of a 12-character prefix."
     }
 

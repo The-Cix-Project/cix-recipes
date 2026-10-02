@@ -87,6 +87,7 @@ package "libcap" {
     }
 
     metadata {
+        "artifact_sha256" "2085ee3243da845746cca0f50ff52cc4d059a7b55becfbb3942dc4978096c8d3"
         "changelog" "2.78-17: the shebang rewrite is tree-wide again, anchored to line 1 (cbs#210, cix#509), and now asserts the count. 2.78-15 had to name the one script the build runs, because CPDL could not anchor a replace and an unanchored tree-wide edit would have rewritten the two #!/bin/bash lines inside quicktest.sh heredocs. Twelve scripts carry a bash shebang on line 1 -- measured, since the shell sed rewrote them silently and its guard only checked that none survived."
     }
 

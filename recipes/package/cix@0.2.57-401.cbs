@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "15824bae67ab0a7bdf3eaa1ea2d656b2cb5cfa2af17acf83649b0dd9cab033b3"
         "changelog" "0.2.57-401: #381 -- POST /v1/pipeline/revoke and cixctl pipeline revoke take back an unused approval; a deploy grant no longer stays in force until used."
     }
 

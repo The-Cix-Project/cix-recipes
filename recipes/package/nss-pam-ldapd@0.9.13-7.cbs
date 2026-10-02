@@ -71,6 +71,7 @@ package "nss-pam-ldapd" {
     }
 
     metadata {
+        "artifact_sha256" "ef5ac7d259a04af9c1ed25c191bb9c9e0f61c9065b69a1810565e04c46646ada"
         "changelog" "0.9.13-7: converts to CPDL (cix#487). Same tarball, same configure line, same five make -C steps, same three installed files. The two seds become two targeted replaces with exactly 1 each: the shell form ran both over both nss/Makefile and pam/Makefile, and two of those four applications were always no-ops that looked deliberate, because the first names NSS_LDAP_SONAME and the second pam_ldap.map. The three installed objects are now asserted, which the shell form did not do at all."
     }
 

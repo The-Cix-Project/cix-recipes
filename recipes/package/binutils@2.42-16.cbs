@@ -143,6 +143,7 @@ package "binutils" {
     }
 
     metadata {
+        "artifact_sha256" "8b18609f034d1d480f4dca88e257d3bd20ca39646a8c47a2dcd38f853c0cca4c"
         "changelog" "2.42-16: stops shipping libbfd.a, libctf.a, libctf-nobfd.a, libopcodes.a and libsframe.a, which binutils-dev owns; with both in one image ADR-0319 refused the second install (cix#556). 2.42-15 kept them on the mistaken belief that finalize drops them. Nothing else changes."
     }
 

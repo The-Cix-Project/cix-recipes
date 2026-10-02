@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "bb9b088038a21e492a8bcfd21d25b12c2a3f6ed38bc7a0c02c8f718b43ebfc02"
         "changelog" "0.2.57-420 (419 failed two contract selftests): #535, ADR-0320 -- an image's policy (recipe manual|follow, apply declare|converge, downgrade refuse|allow) decides how its recipe, manifest and installs agree. An explicit install moves the pin, and image recipe export writes the box's state back as a recipe."
     }
 

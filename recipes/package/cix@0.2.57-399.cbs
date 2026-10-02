@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "56f7f4090cc134de2fd6fb50e182f55db5b189b8dcee49a4909f281f37327a52"
         "changelog" "0.2.57-399: #548 -- every dashboard action button and menu item is disabled when the session lacks its permission; list panels name a refused read; apiRequest refuses such requests before sending them."
     }
 

@@ -116,6 +116,7 @@ package "efivar" {
     }
 
     metadata {
+        "artifact_sha256" "55b41f5b3467e60551f251ca6d737411e24356910de87d3812afab8f4d2592d5"
         "changelog" "39-9: converts to CPDL (cix#487). Same tarball, same four make variables, same two CLI tools dropped. The test -e becomes a require, and the case on efivar.pc's contents becomes require file ... contains, which is the assertion that caught a .pc naming a directory no library was in."
     }
 

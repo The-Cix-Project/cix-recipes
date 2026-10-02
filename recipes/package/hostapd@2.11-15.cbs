@@ -109,6 +109,7 @@ package "hostapd" {
     }
 
     metadata {
+        "artifact_sha256" "7dc5161bc179de8b96c7f82c779ede2e7b5a1422713f8bf4c66de66dbaf8f02e"
         "changelog" "2.11-15: restores tool bash, which 2.11-14 dropped with the wrapper and which make needs for every recipe line -- the build did not fail, it hung, and was killed by signal 14. 2.11-14: drops the toolwrap. probe-hostapd-mmd@4 measured -MMD as a single literal at src/build.rules:34, so a replace does what a fabricated bash wrapper did and this recipe now contains no shell at all. It was the only proposed user of CBS compiler rewrite (cbs#219)."
     }
 

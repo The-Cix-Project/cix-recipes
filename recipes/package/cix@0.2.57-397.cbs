@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d3abde76ad15786df218222fc39c445ebc49c356a23bd34e3251be86c3ed955d"
         "changelog" "0.2.57-397: #547 -- failed authentication (login, app passwords) throttled per address before bcrypt runs; 429 past the threshold on both listeners; cleared only by a success; audited once per block."
     }
 

@@ -73,6 +73,7 @@ package "glibc" {
     }
 
     metadata {
+        "artifact_sha256" "3353abbf19d08d3b8920952664bd936226eb8d981bfd21cd4e2189519f878324"
         "changelog" "2.44-20: keeps its man pages and docs (ADR-0306, cix#491); an rm after make install deleted usr/share/{info,man,doc}. MAKEINFO=: still skips the info manual. Nothing else changes; 2.44-19 was the CPDL conversion shipping C.UTF-8 (cix#518)."
     }
 

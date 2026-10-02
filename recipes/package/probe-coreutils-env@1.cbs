@@ -28,6 +28,7 @@ package "probe-coreutils-env" {
     }
 
     metadata {
+        "artifact_sha256" "fc2c0a8836550357db87dae6d3a3175544c63c0cbd92e2f623ff260ad362c6e9"
         "changelog" "1: runs ls, id and cp from coreutils 9.11-9 in a composed build environment, to prove libcap reaches it as a runtime dependency (cix#510)."
     }
 

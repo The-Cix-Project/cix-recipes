@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ed07073b495878eda07de5498454197251103aac674896ff634f72c2b5255d78"
         "changelog" "0.2.57-436: ADR-0324. Git is authoritative for recipes: a sync whose copy differs from the stored one only in comment or blank lines, or carries an approval this host lacks, refreshes the stored text with no rebuild and is counted refreshed; this host keeps its own approval. A publish on the box is still divergent. A recipe a sync cannot add is logged with its name and reason (#561)."
     }
 

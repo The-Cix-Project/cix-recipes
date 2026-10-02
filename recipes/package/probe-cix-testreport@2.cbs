@@ -116,6 +116,7 @@ package "probe-cix-testreport" {
     }
 
     metadata {
+        "artifact_sha256" "e4c056bb1eaa5556ab49956e30ae24bde8bc00bd053b9ab56692994d549f4164"
         "changelog" "2: cix v2.57.249, whose fixture floor carries binutils, zlib and flex so fixture builds can strip; the three artifacts are supplied here. 1: named the finalize-without-strip failure."
     }
 

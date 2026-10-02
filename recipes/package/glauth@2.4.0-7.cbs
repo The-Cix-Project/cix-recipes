@@ -82,6 +82,7 @@ package "glauth" {
     }
 
     metadata {
+        "artifact_sha256" "6e57e681af6fbfb33137c7cd65953817d580e4a7d14bc25c60b41ea2097e2562"
         "changelog" "2.4.0-7: converts to CPDL (cix#487). Same tarball, same build tags, same binary. The --help gate becomes a bare run and its comment is corrected: --help prints usage whichever backend is compiled in, so it never tested the embedded SQLite backend it claimed to guard. The byte-count report is dropped."
     }
 

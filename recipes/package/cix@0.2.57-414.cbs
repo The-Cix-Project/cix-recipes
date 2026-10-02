@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e127fd1ec843752c74404918aa02e6c3d597050712707883ce33162b5fdd94ab"
         "changelog" "0.2.57-414: #553 -- a path in an image belongs to one installed package. An install claiming a path another installed package owns is refused before staging, naming both and the path; uninstall uses the same sorted index (ADR-0319)."
     }
 

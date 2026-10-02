@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d1d6e169c74bb93c45c68b243e1dc34d4d912c40be5a3079aab33329dced20b5"
         "changelog" "0.2.57-430: #558 -- a recipe declares its build memory with CPDL resources { memory } (cbs v0.1.100), and memory_max_ceiling in pkg-build-config bounds it: a need above the ceiling is refused before the build starts, naming both numbers; one within it raises the shared build budget until no build is running (ADR-0322). The floor runs cbs v0.1.100-1. Also #491: test_recipe_docs fails when CIX_RECIPES_DIR is set but unreadable."
     }
 

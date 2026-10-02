@@ -153,6 +153,7 @@ package "probe-cix-testreport" {
     }
 
     metadata {
+        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "41: the three floor tests at cix v2.57.283, whose test floor is pinned entirely to CPDL revisions and is all CIXPKG, with m4 added for flex@2.6.4-6 (cix#516)."
     }
 

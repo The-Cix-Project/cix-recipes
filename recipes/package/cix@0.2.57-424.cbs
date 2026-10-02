@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7e617e7dfa2a31a6e5ccbf03bbf8dd5415a4a55e6e5b95f498fc3449f63118e3"
         "changelog" "0.2.57-424 (423 lost a build log to a same-second name): #555 -- a package several images rebuild after one publish is built once; #553 -- a recipe may take over paths another package owns by declaring replaces (cbs v0.1.99). The test floor moves to cbs v0.1.99-1."
     }
 

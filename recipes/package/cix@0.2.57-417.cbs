@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f779518e53078b3553f9ef6c26ad4da655c44447ab3282fb90597548c8dca903"
         "changelog" "0.2.57-417: #552 (416 failed to compile test_pkg) -- a setuid or setgid file a recipe declares with privileged file is installed with that mode. The merge masked every mode to 0777, so openssh's declared 04711 ssh-keysign reached jumpbox as 0711. A tree unpacked from a legacy .tar.gz is still masked."
     }
 

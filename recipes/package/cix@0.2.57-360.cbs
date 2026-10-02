@@ -200,6 +200,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "fb6b7ccf1fd02377b2b8b1c576cb2a25251e721ef4836c6ff100602e884a83ab"
         "changelog" "0.2.57-360: a published artifact's name has ONE definition. pkg_artifact_published_name() owns <name>-<version>-<arch><suffix>; the ISO publisher's own snprintf in main.c is deleted and calls it instead. Its hardcoded -1 had been a second release number since #434 changed the version it was handed, so twenty ISOs published as cix-installer-<ver>-1-<arch>.iso. test_versioning now gates the COUNT of composers, not the spelling: both old names were well-formed alone and only wrong relative to each other."
     }
 

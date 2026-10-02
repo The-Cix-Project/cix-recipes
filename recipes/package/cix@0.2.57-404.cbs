@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9b6608b9b79f34f31094fbcacb1625d3cc80576b1660b17680d1e94c3ccf518b"
         "changelog" "0.2.57-404: #447 -- a sysctl request that only removes keys reports on next start, not now."
     }
 

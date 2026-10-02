@@ -90,6 +90,7 @@ package "btop" {
     }
 
     metadata {
+        "artifact_sha256" "8afa1d3fbadb9d1260653c9c048aee63c689c5118985fc86e4438a700502209d"
         "changelog" "1.4.7-3: the conversion that builds. 1.4.7-2 compiled btop and failed CPDL-E4001, stdout must be one line, on its --version assertion, which is now a bare run -- a nonzero exit still fails the build. The three-operation ldd guard becomes one links forbids on the installed binary, reading DT_NEEDED rather than parsing ldd. 1.4.7-2: converted to CPDL (cix#487), the first C++ package."
     }
 

@@ -89,6 +89,7 @@ package "probe-approve-pbs" {
     }
 
     metadata {
+        "artifact_sha256" "a0fc4b753f04ac334650594b86628c155b323c2f1c2fe5c23630d2b3b0dc2d65"
         "changelog" "1-3: the WITH-BLOCK case, re-run against the fixed writer. Deliberately still quotes the key in its comments, because that is what broke 1-2. Case for #492. Identical to 1-1 except for this block, so an artifact_sha256 appearing here is attributable to it."
     }
 

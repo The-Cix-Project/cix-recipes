@@ -89,6 +89,7 @@ package "wireless-regdb" {
     build_image "cix-builder"
 
     metadata {
+        "artifact_sha256" "cdb02510fc19a93392c7dc6c5acce6e33086cbee6ea22795658c7d4b9bc96fa2"
         "changelog" "2026.09.03-3: converts to CPDL (cix#487). Same tarball, same regeneration from db.txt, same two installed files. The sha256sum-and-compare becomes require file { same_as }, comparing the databases byte for byte rather than two hex strings of them. The RGDB check becomes head -c 4 into a file plus contains, exact for a four-byte file and needing no od. The command -v interpreter probe is dropped: a composed environment holds exactly the declared tools."
     }
 

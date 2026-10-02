@@ -132,6 +132,7 @@ package "cix-tests" {
     }
 
     metadata {
+        "artifact_sha256" "81ec475cc1cc5fd2297accdcc3f55c1c4e06edaf00793fc4a8fd0c25e459e83d"
         "changelog" "v2.57.245-5: adds gawk and diffutils, which the tests shell out to -- release 4 ran all 104 tests (85 pass, 17 fail, 2 timeout) and was then refused by the missing-command gate (#302). Drops minisign to stay at the 32-package limit; nothing execs it. -4 added the recipe corpus and staged the logs; -3 dropped the kernel source (cix-build-system#230)."
     }
 

@@ -147,6 +147,7 @@ package "cix-tests" {
     }
 
     metadata {
+        "artifact_sha256" "d194bc994481ef5c40a19f4978c9c4c2652e3becba20479da17263181aff4dc5"
         "changelog" "v2.57.251-1: cix v2.57.251. The fixture floor carries binutils, zlib and flex (supplied here) so fixture builds can strip, all tests install it from one shared list, and three test_pkg fixtures are updated. v2.57.247-1: fixtures fetched over loopback HTTP, no Python."
     }
 

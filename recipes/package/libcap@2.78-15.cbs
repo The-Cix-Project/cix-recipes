@@ -86,6 +86,7 @@ package "libcap" {
     }
 
     metadata {
+        "artifact_sha256" "6328f7982d46c299ae34c6a3377cca6906fc3d6dbf37b9d96f485a3a75753e94"
         "changelog" "2.78-15: converts to CPDL (cix#487). The priority-stripping sed becomes two literal replaces with exactly 1 each, which is the guard the shell form needed a grep for -- and both spellings were right first try, so the destructor really does carry one space. The shebang rewrite narrows from a tree-wide sed to the one script the build runs, leaving quicktest.sh heredocs untouched by construction. 2.78-14 asserted the build-tree libcap.so.2 as a file; it is a symlink. Keeps man pages (cix#491)."
     }
 

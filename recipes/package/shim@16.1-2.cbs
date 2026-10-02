@@ -77,6 +77,7 @@ package "shim" {
     }
 
     metadata {
+        "artifact_sha256" "3f3497be60e27f578d9f23408b2588eef420f911d297a8e331dfeb421f59afbb"
         "changelog" "16.1-2: converts to CPDL (cix#487). Same three sources at the same digests, same two installed files. The .deb pair is materialized and opened with ar and tar rather than read out of /build/extra by path, and the two test -f guards become require file, asserted on the installed artifacts as well as the unpacked ones."
     }
 

@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ea700e1fcd5c0ccefbbe21b40be6cec13a169a7cda916326d3abb3746d5019ad"
         "changelog" "0.2.57-427: #491 -- the new SELFTEST test_recipe_docs fails if the latest revision of any package recipe removes usr/share or its man, info, doc, locale or i18n tree. The corpus pin moves to a92d210, which carries glibc 2.44-20, gcc 16.2.0-18 and node 24.21.0-3, the last three to stop deleting their docs."
     }
 

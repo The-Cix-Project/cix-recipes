@@ -77,6 +77,7 @@ package "hibr" {
     }
 
     metadata {
+        "artifact_sha256" "782d6489c4702f5fc41bb16c40f0dd84fe01e49a5650098c1a625ea85606912a"
         "changelog" "0.49.1-2: builds in ${src}/hibr/hibr, where 0.21 built -- 0.49.1-1 looked for the Makefile one level up and failed at prepare, reading the repository's root-level Makefile as an archive layout change. The source directory holds the archive's own hibr/ directory, as before. 0.49.1-1: follows hibr's tagged releases, from v0.49.1 (was commit f0adafb6, 0.21). DLLIB is cleared with LDFLAGS since img.so links -ldl through it; fifteen modules asserted by name; install adds bin/desktop."
     }
 

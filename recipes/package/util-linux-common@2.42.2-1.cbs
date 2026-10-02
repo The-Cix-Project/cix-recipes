@@ -51,6 +51,7 @@ package "util-linux-common" {
     }
 
     metadata {
+        "artifact_sha256" "ba3bb416c8299c90d3e868cea73962305e96a709e55a28478b9b6a41a817333b"
         "changelog" "2.42.2-1: the util-linux message catalogue and terminal-colors.d.5, which libuuid, libblkid and login each installed, so two of them in one image owned the same 34 paths (cix#553). They move here; the three drop them."
     }
 

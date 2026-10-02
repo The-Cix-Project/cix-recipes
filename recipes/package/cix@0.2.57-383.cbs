@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "170ed1e4674f16dd3901334fef65a7d29768eb78c038ec99be862362f4311ccc"
         "changelog" "0.2.57-383: the engine sweep names the recipes it could not re-derive. The per-recipe line was logged before the log store opened and dropped, so every sweep since cbs 0.1.67 reported 2 failed and never which. First release built by cbs v0.1.97."
     }
 

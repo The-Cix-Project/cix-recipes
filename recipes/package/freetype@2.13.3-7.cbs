@@ -95,6 +95,7 @@ package "freetype" {
     }
 
     metadata {
+        "artifact_sha256" "826101a1cc30dea29826590a0a1427ba001d1ab6a4b439af0eec09702dd2bcbd"
         "changelog" "2.13.3-7: adds two mirrors. 2.13.3-6 is this recipe and was never built -- it failed twice at fetch with SSL_ERROR_SYSCALL against download.savannah.gnu.org:443, while the same host fetched libnl from github and net-tools from sourceforge in that window with 13.4 GiB free, so the fault is that one server. CPDL urls are ordered mirrors sharing one checksum, so no mirror can substitute different bytes. Otherwise unchanged from -6."
     }
 

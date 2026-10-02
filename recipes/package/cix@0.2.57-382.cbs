@@ -201,6 +201,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4c25985962e52d2ea99658e99b88a81e5ab3cd20473c37b374da67eb8aafc353"
         "changelog" "0.2.57-382: a host that never saved a schedule file starts with recipe-sync (pkg.sync every 6 hours), so a fresh install fetches the public catalogue at first boot and keeps it current; deleting or changing it sticks (ADR-0316)."
     }
 

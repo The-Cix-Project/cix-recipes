@@ -78,6 +78,7 @@ package "squashfs-tools" {
     }
 
     metadata {
+        "artifact_sha256" "da660085128be638dc171d6e6b5f0dc4e1c6556a6fdc2416cf70ee33d68e3814"
         "changelog" "4.7.5-13: converts to CPDL (cix#487). Same tarball, same make flags, same five installed files. The mksquashfs gate keeps all three checks and loses the shell around them: require file nonempty, head -c 4 plus contains hsqs, which is exact for a four-byte file and still catches the byte-swapped sqsh, and a bare unsquashfs run. Scratch moves out of /run into the build root. The three-directory libgcc_s search becomes stage library, which names every directory it searched (cbs#178)."
     }
 
