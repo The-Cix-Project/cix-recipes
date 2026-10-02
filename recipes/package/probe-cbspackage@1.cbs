@@ -12,6 +12,13 @@
 # help text is the whole point and it lands in the retained build log
 # (`cixctl pkg build-logs`).
 #
+# Fixed in git on 2026-10-02, never having been published: this
+# revision used `args` and `run "bash" { "-c" ... }`. Every sync on
+# 192.168.15.95 logged it as a recipe it could not add, with CPDL-E2001
+# (`expected glob, found -c`: `args` now introduces `args glob`), and
+# revision 2 records CPDL-E3006 for the bash form itself. It now invokes
+# cbs directly, as revision 2 does.
+#
 package "probe-cbspackage" {
     version "1"
     release 1
@@ -37,9 +44,16 @@ package "probe-cbspackage" {
     }
 
     build {
-        run "bash" {
-            args "-c"
-            args "cbs --version; echo '=== cbs --help ==='; cbs --help 2>&1 || true; echo '=== cbs package --help ==='; cbs package --help 2>&1 || true; echo '=== END ==='; false"
+        run "cbs" {
+            "--version"
+        }
+        run "cbs" {
+            "--help"
+        }
+        run "cbs" {
+            "package" "--help"
+        }
+        run "false" {
         }
     }
 
