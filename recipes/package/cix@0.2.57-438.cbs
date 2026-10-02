@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "59e5c6fabacac9b795a822e4b159e17343ea36e7a44bbc2a360db1a2c963fd93"
         "changelog" "0.2.57-438: a sync counts an image or deployment recipe it already holds unchanged as skipped, not added, and does not rewrite it. Every sync on 192.168.15.95 had reported added=28 with no change to the store."
     }
 
