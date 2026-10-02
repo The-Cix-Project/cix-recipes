@@ -10,7 +10,7 @@ package "probe-cix-testreport" {
     sources {
         main "cix" {
             url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.311.tar.gz"
-            sha256 "88e6adb74eb32ba741b96d4d933f00a33433ad3d8c6bc5419a024ccc861ba32f"
+            sha256 "389540451f590071945a7b397bf6652671572070bdc77c566b5d323e44c0e785"
         }
         # The six boot tests need build-inputs/bzImage, an INPUT that
         # make does not produce (#191). Taken from a kernel artifact a

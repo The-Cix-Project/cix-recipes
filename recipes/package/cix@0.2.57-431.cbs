@@ -75,13 +75,13 @@
 #
 package "cix" {
     version "0.2.57"
-    release 377
+    release 431
     format "cixpkg"
 
     sources {
         main "cix" {
-            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-377.tar.gz"
-            sha256 "fb4d3aca807a847e0620f906c7bf605e0ac97a36072e875a4bc75dd9df27f63b"
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-431.tar.gz"
+            sha256 "c8921be215494366bd1e3b90dc612aa6cc0324632bcba6aef67da003ffbc0c44"
         }
         # The ADR-0209 build floor, for the three FLOOR_SELFTESTS the
         # selftest below now runs (cix#485). Real published artifacts,
@@ -157,17 +157,20 @@ package "cix" {
         # floor's engine predates, and nothing says so until a build
         # fails inside the test rather than at publish.
         extra "cbs" {
-            url "http://192.168.15.31:8080/cbs-v0.1.71-1-x86_64.cixpkg"
-            sha256 "a1b9cc8bf23b0dd7c114d820e0ac0d84c1ddade4a9d0ee5c1e13ceed8bc3c472"
+            url "http://192.168.15.31:8080/cbs-v0.1.100-1-x86_64.cixpkg"
+            sha256 "f3e90383c627de5c0202519fcfb6d82739e86e282cfb1ec4556ebfdc8960a0b4"
         }
         # The corpus the floor reads each package's own recipe from, so
         # it can verify the artifact against the checksum that recipe
         # approves. Pinned, because a release has to build the same way
-        # tomorrow; bd2c3d83 is the tree probe-cix-testreport@26 proved
-        # these three tests pass against.
+        # tomorrow; 8cf5b8d carries cbs@v0.1.100-1 with
+        # its artifact approval, which the floor seeds cbs against.
+        # test_recipe_docs (cix#491) also judges this tree, so it moves
+        # whenever a recipe it must see lands. It moved to 8cf5b8d for
+        # the floor's cbs v0.1.100-1 (cix#558); the scan is unchanged.
         extra "recipes" {
-            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/c1d7367129276b46585874a4795816fdab61d5c0.tar.gz"
-            sha256 "52f5518b4237f0a74d8ccd2218178b48518f68aab82a7bb4296b3a62ee0004d5"
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/8cf5b8d6137edf47a8b4b75fa1218ff19a62b136.tar.gz"
+            sha256 "99e530b8c5a9f8b84e5e1e2e885aedfe08ec374be91141ed373ec924cdb5108c"
         }
     }
 
@@ -201,8 +204,7 @@ package "cix" {
     }
 
     metadata {
-        "artifact_sha256" "c8ba95660d8c372b619a942f959e8a16f02bbc053b41f63bf48c69b4bba2d04f"
-        "changelog" "0.2.57-377: cix#524. test_console_exec and test_pkg_build_log each spoke RFC 6455 by hand -- two leftover handlers, two short-read fills, two frame parsers -- and the second did not inherit the first's fix, which is what #519 cost. test/test_ws.{c,h} is now the one implementation. The consolidation fixed something rather than just deduplicating: both leftover handlers LOST data when it did not fit, one silently, and losing any of it misaligns the stream as badly as losing all of it. The shared one refuses."
+        "changelog" "0.2.57-431: ADR-0323 phase one, the commit half. A host commits a recipe to the recipe repository, then publishes it: POST /v1/pkg/recipe-commit (cixctl pkg recipe commit) validates with the publish path, commits recipes/package/NAME@VERSION.cbs through Gitea create-file, and publishes once the commit exists. Committing is an operator switch, repo-config commit, off by default and gitea only."
     }
 
     # The selftest creates real containers, so the build container
@@ -233,7 +235,7 @@ package "cix" {
         materialize $source.m4 to "${src}/cix/cix/build-inputs/floor-artifacts/m4-1.4.20-6.cixpkg"
         materialize $source.zstd to "${src}/cix/cix/build-inputs/floor-artifacts/zstd-1.5.7-5.cixpkg"
         materialize $source.libarchive to "${src}/cix/cix/build-inputs/floor-artifacts/libarchive-3.8.1-5.cixpkg"
-        materialize $source.cbs to "${src}/cix/cix/build-inputs/floor-artifacts/cbs-v0.1.71-1.cixpkg"
+        materialize $source.cbs to "${src}/cix/cix/build-inputs/floor-artifacts/cbs-v0.1.100-1.cixpkg"
 
         extract $source.recipes into "${src}" as "cix-recipes"
         require directory "${src}/cix-recipes/recipes/package" {
@@ -254,6 +256,27 @@ package "cix" {
                 "build/mkinstalleriso"
                 "build/cix-boot.efi"
                 "build/cix-xorriso"
+            }
+
+            #
+            # COMPILED BUT NOT RUN (cix#524).
+            #
+            # test_pkg_build_log is not in SELFTESTS -- it tails a
+            # live build, which is a poor thing to do from inside
+            # one -- so `make selftest` never compiles it, and a
+            # release never found out whether it still builds. That
+            # is how a test rots: it is correct on the day it is
+            # written and nothing ever touches it again.
+            #
+            # Found by moving its websocket reader into test_ws.c and
+            # realising the release had no opinion about whether the
+            # result compiled. Building it here costs one tcc
+            # invocation and closes that specific gap; running it is
+            # a separate question (cix#480 is the general one).
+            #
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "build/test_pkg_build_log"
             }
 
             # Serial, like every make in this recipe, because the
