@@ -204,6 +204,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "010302bb2eec65c45e11420f2f93499b153247fda0e447b4cce31c3a8dc1bb5e"
         "changelog" "0.2.57-440: ADR-0324 step B. Package repositories are a list (/v1/pkg/repositories, cixctl pkg repository) replacing artifact-config. Installs try each in order and verify every copy, refusing and naming a repository that serves a bad one. Every repository marked push gets its own upload; the first to land records the approval; ISOs go to all. A host migrates its artifact server into one repository."
     }
 
