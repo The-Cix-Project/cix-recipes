@@ -1,0 +1,49 @@
+#
+# probe-kernel-autosigner-key -- kernel.org's signed checksum list for a
+# release directory, read from the box (THE SANDBOX RULE): does
+# v7.x/sha256sums.asc exist, what is its format, and which key signs it.
+# Input to ADR-0323 rung 2 for the kernel (cix#9's kernel half).
+#
+# Revision 1 declares zeroes, so the fetch fails its checksum gate and
+# cixd's log carries the real sha256 (computed=...). Revision 2 declares
+# that sha256 and prints the file, then fails on purpose: it publishes
+# nothing.
+#
+package "probe-kernel-autosigner-key" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "sums" {
+            url "https://git.kernel.org/pub/scm/docs/kernel/pgpkeys.git/plain/keys/632D3A06589DA6B1.asc"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the kernel.org checksum autosigner public key (632D3A06589DA6B1) from the kernel pgpkeys repository, read from the box (ADR-0326)."
+    }
+
+    build {
+        run "head" {
+            "-c" "4000" "${src}/sums/632D3A06589DA6B1.asc"
+        }
+        run "tail" {
+            "-c" "3000" "${src}/sums/632D3A06589DA6B1.asc"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-kernel-autosigner-key"
+    }
+}
