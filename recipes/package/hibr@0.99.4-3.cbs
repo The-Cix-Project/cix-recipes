@@ -83,6 +83,7 @@ package "hibr" {
     }
 
     metadata {
+        "artifact_sha256" "3fc4ae41bc24176722995e814103da6c343eb2f275166c8fe3fe388613d8eade"
         "changelog" "0.99.4-3: hibr rolls by itself (ADR-0323). It declares upstream gitea-tags, tags v{version}, source the API archive url of a tag, verify origin; the source template expands to this recipe's own url. pkg.discover lists its tags with the owning source's token, authenticates a newer release by origin trust (git.home.arpa is trusted on 192.168.15.95), and writes, commits and publishes the next revision. The build is unchanged from 0.99.4-2."
     }
 
