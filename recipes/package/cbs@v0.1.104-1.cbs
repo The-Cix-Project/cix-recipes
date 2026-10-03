@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "39b61f2f39d884915ec823e5d1c1c7dbaf05b0c95e4017c3d11a7d9ac0d59a3e"
         "changelog" "v0.1.104-1: two fixes cixd's rolling pipeline waited on (ADR-0323). revise --set metadata.KEY on an existing key now replaces the value, not the key (cix-build-system#279, 7a22f22); and upstream templates treat {{...}} as opaque, so an own-forge source template can carry {{REPO_TOKEN}} (cix-build-system#280, d12a1fe). Nothing else changes from v0.1.102."
     }
 
