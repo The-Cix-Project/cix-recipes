@@ -1,0 +1,197 @@
+# THE URL CARRIES {{REPO_TOKEN}} EVEN THOUGH THE REPOSITORY IS PUBLIC.
+# 0.21-1 omitted it, reasoning that a public repo needs no credential,
+# and the fetch failed with `curl exit status 1: The requested URL
+# returned error: 404`. Measured directly afterwards against the same
+# URL: unauthenticated 404, authenticated 200. Gitea's API archive
+# route wants a token regardless of whether the repository is public,
+# and answers a missing one with 404 rather than 401 -- which reads as
+# a wrong path and is not one. The literal string is substituted at
+# fetch time by the daemon (#60) and never stored.
+#
+# hibr -- Hackable In-process Bash Runtime, and حِبر, Arabic for ink.
+# The owner's shell, packaged so it can be installed on a Cix host
+# like anything else.
+#
+# -ldl IS REMOVED FROM THE LINK, and that is the one real adaptation
+# here. hibr's Makefile sets LDFLAGS = -rdynamic -ldl, which is
+# correct nearly everywhere and fails on cix-builder:
+#
+#   tcc: error: library 'dl' not found
+#
+# cix-builder's glibc ships libc.so and libm.so linker stubs but no
+# libdl.so -- only the runtime libdl.so.2 soname, and no .a, since
+# ADR-0251's finalize policy drops the stubs. glibc folded libdl into
+# libc at 2.34, so every symbol hibr wants from it (dlopen, dlsym,
+# dlerror) resolves with no flag at all. It is the FLAG that has
+# nothing to name, not the functions that are missing -- which is why
+# the error reads like a broken image and is not one.
+#
+# -rdynamic stays, and is load-bearing: hibr's modules are .so files
+# that call back into the shell's own symbols, so those symbols have
+# to be in the dynamic symbol table.
+#
+# A TAG NOW, not a commit: hibr tags its releases, and v0.49.1 is the
+# newest. 0.21 was pinned to commit f0adafb6 because the repository had
+# no tags then. The archive's sha256 was measured on 192.168.15.95 by
+# probe-hibr-tarball@1 (909542 bytes), not computed off the box.
+#
+# WHAT CHANGED SINCE 0.21, read from the Makefile at v0.49.1:
+#   - -ldl now also arrives through DLLIB, which img.so links with,
+#     so DLLIB is cleared alongside LDFLAGS -- same reason as above;
+#   - fifteen modules, not four, each asserted by name below;
+#   - install also writes bin/desktop and share/hibr/desktop.
+package "hibr" {
+    version "0.99.22"
+    release 1
+    format "cixpkg"
+
+    upstream "gitea-tags" {
+        tag "v{version}"
+        source "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/hibr/archive/v{version}.tar.gz"
+        verify origin
+    }
+
+    sources {
+        main "hibr" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/hibr/archive/v0.99.22.tar.gz"
+            sha256 "1724754772db034938f7757d9d7558c3bf7844e895e6309ec59f550acbab5d85"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            # cmp, which the Makefile's .moddir stamp rule uses to
+            # decide whether MODDIR actually changed.
+            tool "diffutils"
+        }
+        runtime {
+            # openssl is a REAL dependency that nothing can detect:
+            # src/net.c dlopen()s libssl on first use and links nothing,
+            # so it records no DT_NEEDED and the #389 gate cannot see it.
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "0.99.22-1: hibr 0.99.22, sha256 1724754772db034938f7757d9d7558c3bf7844e895e6309ec59f550acbab5d85, verified by origin trust: the release archive fetched from trusted origin https://git.home.arpa at 2026-10-03T18:59:29Z. Written by cixd from 0.99.21-1 (ADR-0323)."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/hibr"
+        }
+        require file "${src}/hibr/hibr/Makefile" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/hibr/hibr" {
+            run "make" {
+                jobs $jobs
+                "CC=tcc"
+                "PREFIX=/usr"
+                "LDFLAGS=-rdynamic"
+                "DLLIB="
+            }
+        }
+    }
+
+    install {
+        cd "${src}/hibr/hibr" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "PREFIX=/usr"
+                "LDFLAGS=-rdynamic"
+                "DLLIB="
+            }
+        }
+        require file "${dest}/usr/bin/hibr" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/desktop" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/hibr/hibr.h" {
+            exists
+            nonempty
+        }
+        # The fifteen modules the Makefile's MODS list builds on Linux,
+        # asserted by name: a module silently dropped from the build is
+        # a failure here, not a missing builtin found in a live shell.
+        require file "${dest}/usr/lib/hibr/sys.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/http.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/ls.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/prompt.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/console.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/cat.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/trace.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/most.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/hvi.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/mon.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/sysinfo.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/pty.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/term.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/hold.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/hibr/img.so" {
+            exists
+            nonempty
+        }
+    }
+}
