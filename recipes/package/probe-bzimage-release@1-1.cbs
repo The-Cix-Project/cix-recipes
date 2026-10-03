@@ -1,0 +1,69 @@
+#
+# probe-bzimage-release 1 -- does a real Cix bzImage carry its release
+# where cix#568's bzimage_release() reads it?
+#
+# The parser reads the boot protocol version at 0x206, the
+# kernel_version pointer at 0x20E, and the version string at that
+# pointer + 0x200. Those offsets come from the x86 boot protocol and
+# were tested only against synthetic headers (test_bzimage). This reads
+# all three out of the kernel 7.2.3-18 artifact two independent ways:
+# od prints the two header fields, and grep -abo finds the version
+# string's own byte offset. The pointer is right if offset - 0x200 ==
+# pointer, and the release is the string's first word.
+#
+# Diagnostic only: it ends in a deliberate failure, and the answer is
+# in `cixctl pkg build-logs`.
+#
+package "probe-bzimage-release" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "kernel" {
+            url "http://192.168.15.31:8080/kernel-7.2.3-18-x86_64.cixpkg"
+            sha256 "f5a3ac2c32dd6e47f455938f99859d38de7316f4cae62e55857a1f0efd405c36"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: reads the boot protocol version, the kernel_version pointer and the version string's offset from the kernel 7.2.3-18 bzImage (cix#568)."
+    }
+
+    build {
+        run "/usr/bin/cbs" {
+            "extract" "${src}/kernel/kernel-7.2.3-18-x86_64.cixpkg"
+            "--into" "${build}/k"
+        }
+        run "ls" {
+            "-la" "${build}/k"
+        }
+        # 0x206 = 518: the boot protocol version, little-endian.
+        run "od" {
+            "-A" "d" "-t" "x1" "-j" "518" "-N" "2" "${build}/k/bzImage"
+        }
+        # 0x20E = 526: kernel_version, the string's offset less 0x200.
+        run "od" {
+            "-A" "d" "-t" "x1" "-j" "526" "-N" "2" "${build}/k/bzImage"
+        }
+        # The version string's own byte offset, found by content.
+        run "grep" {
+            "-a" "-b" "-o" "-m" "1" "-F" "7.2.3 (" "${build}/k/bzImage"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-bzimage-release" parents
+    }
+}
