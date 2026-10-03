@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8da0e87c2944d59115d8a2e941c5570ea2cb72c95ae98f9458079ef269ed77c4"
         "changelog" "0.2.57-451: a package can be held (#565). cixctl pkg source-policy set NAME --pinned=on keeps discovery from authoring it; its catalogue row reports the release as held by the operator. The hold is separate from channel and depth, and clear keeps it."
     }
 

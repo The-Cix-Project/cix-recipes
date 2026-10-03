@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ca56434bb64163c2d27a053b437abe8b058eeb30cb45b311d32b989ab6f395e3"
         "changelog" "0.2.57-453: a rolled container that fails goes back (ADR-0323 answer 4). Not ready within rollback_window_seconds, three unstable exits, or not creatable, and it returns to the version it last ran ready; the packages that differed are marked bad (GET /v1/pkg/bad-versions) and rolling skips them until a newer recipe or an operator clears the mark."
     }
 

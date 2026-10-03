@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9cf81e958f1e37876a5b5aac5ca890b7cd3d429b06c5975ed47d358703fdbfa5"
         "changelog" "0.2.57-450: cbs v0.1.104 in the host root and the test floor, fixing cix-build-system#279 (revise replaced a metadata key) and #280 (templates could not carry {{REPO_TOKEN}}), so hibr can declare its upstream and roll by itself (ADR-0323)."
     }
 
