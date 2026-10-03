@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "56f4d2c2c65dc5e4e447537959672c3da18b40aaba3dde79386632a629a44579"
         "changelog" "0.2.57-454: the source catalogue, pipeline view and discovery read every recipe version of a package instead of the first 64 the directory returned, so cix (94 versions) no longer reports 0.2.57-422 as its newest and discovery cannot re-author a release whose recipe lies past the cap."
     }
 

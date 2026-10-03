@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b39228f1ec9927b7d68777ae17f04a202bcf91352443218ea3d4a68e8b5637e3"
         "changelog" "0.2.57-458: rung 2 -- a release is authenticated by a signed checksum list (verify checksums), verified under an OpenPGP key an operator installs for that one package (cixctl pkg upstream-keys, ADR-0318); discovery covers kernel.org packages, and its record is per package for every kind."
     }
 
