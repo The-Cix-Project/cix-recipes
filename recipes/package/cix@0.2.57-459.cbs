@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2bb7b84c43f9014d22c4fabbc9054eb5543bd3ecf47d56c4a3755cedfc6bdd0e"
         "changelog" "0.2.57-459: upstream keys travel in the signed catalogue (recipes/keys, ADR-0326), and the host rolls nightly: system.roll builds a newer kernel and cix, stages them and reboots inside the 03:00 window (host-roll, ADR-0327)."
     }
 
