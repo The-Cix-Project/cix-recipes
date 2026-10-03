@@ -1,0 +1,52 @@
+#
+# probe-kernel-checksums -- kernel.org's signed checksum list for a
+# release directory, read from the box (THE SANDBOX RULE): does
+# v7.x/sha256sums.asc exist, what is its format, and which key signs it.
+# Input to ADR-0323 rung 2 for the kernel (cix#9's kernel half).
+#
+# Revision 1 declares zeroes, so the fetch fails its checksum gate and
+# cixd's log carries the real sha256 (computed=...). Revision 2 declares
+# that sha256 and prints the file, then fails on purpose: it publishes
+# nothing.
+#
+package "probe-kernel-checksums" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "sums" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/sha256sums.asc"
+            sha256 "fc7aebe44b3fa331a7648efd94be9a00179f85b7cbe01461741cd1e6a05381f9"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "4: which 7.2 tarballs the v7.x signed list names (cix discovery said it does not name linux-7.2.9.tar.xz)."
+    }
+
+    build {
+        run "grep" {
+            "-n" "linux-7.2." "${src}/sums/sha256sums.asc"
+        }
+        run "head" {
+            "-c" "4000" "${src}/sums/sha256sums.asc"
+        }
+        run "tail" {
+            "-c" "3000" "${src}/sums/sha256sums.asc"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-kernel-checksums"
+    }
+}
