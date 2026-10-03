@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "e39de9832e05934b8d251e6403e1d020c7d48a54d2ee04b65fc77dcddb3e3d0d"
         "changelog" "v0.1.105-1: a verify checksums url may name a per-directory list with {major} and no {version}, as kernel.org signs one sha256sums.asc per release directory (cix-build-system#281, ced27bb). Nothing else changes from v0.1.104."
     }
 
