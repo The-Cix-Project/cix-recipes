@@ -98,6 +98,7 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256" "2cde33d6f432843c7bd1956c105c6ecc14a226d7adf375a024d566d85ee334a2"
         "changelog" "7.2.9-2: the source tree and module paths follow the package version variable instead of a literal 7.2.3, so a revision discovery writes for a new release builds as written (cix#566). 7.2.9-1, written by discovery from 7.2.3-19, kept the literal and could not build. Source, sha256 and signed-list verification are those of 7.2.9-1."
     }
 
