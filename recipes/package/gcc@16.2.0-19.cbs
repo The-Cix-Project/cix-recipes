@@ -111,6 +111,7 @@ package "gcc" {
     }
 
     metadata {
+        "artifact_sha256" "8b1161e1c2eb17ccc5aeb4fc3b216b2093a2ad255bd8c4157b94f782cc52ecf8"
         "changelog" "16.2.0-19: configured --without-zstd. With --disable-lto, zstd (gcc's LTO stream compression) has no use, yet configure found it in the composed build environment and linked cc1 against libzstd.so.1, which the recipe never declared -- so cix#389's install gate refused 16.2.0-18 everywhere (192.168.15.95, 2026-10-04). zstd is now stated rather than detected."
     }
 
