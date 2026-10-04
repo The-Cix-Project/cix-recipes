@@ -1,0 +1,31 @@
+{
+  "image": "cix-builder",
+  "version": "6.2.0",
+  "notes": "6.2.0: every entry rolls (the owner, 2026-10-04: roll all three build images). Each version is now a floor, and the image follows the newest published revision at or above it, so a toolchain revision reaches it without a hand edit. The first converge moves binutils, gcc and glibc to their newest revisions, all with approved cached artifacts, so it installs and builds nothing. Moving gcc off 16.2.0-13 is also what lets cix#569 retire that version's shell recipe.\n\n6.1.4: coreutils 9.11-9 again, which depends on libcap and openssl instead of bundling them (cix#510). The cause given for the rollback in the previous revision was wrong: 9.11-8's bundled libcap.so.2 sat under libcap's own path, and a build environment composed from libcap copied that link without its target (cix#553). libcap 2.78-18 is installed straight after it, which rewrites that path with libcap's own bytes. 6.1.3: coreutils back to 9.11-8. 9.11-9 broke every build that declares coreutils as a tool (152 of the 153 packages' latest recipes): a composed build environment does not carry a declared tool's runtime dependencies, so coreutils without its bundled libcap could not load (ls: libcap.so.2: cannot open shared object file). It returns once composition includes them (cix#510).\n\n6.1.2: coreutils 9.11-9, and the pins trued up to what the image runs.\n\ncoreutils 9.11-9 depends on libcap and openssl instead of shipping its own copies (cix#510). The other pins are copied from the live manifest measured on 192.168.15.95 on 2026-09-30, not from the previous version, which had fallen behind what the image actually ran -- applying it would have downgraded packages, the same staleness jumpbox 2.8.1 had.\n\ncix-builder -- one job: build Cix itself (cixd, cixctl, web/,\nmkbootroot) via `pkg hostbuild cix`. ADR-0208.\n\n6.1.0 exists because ADR-0252 made this file authoritative, and two\npins in 6.0.0 no longer described the image:\n\n  glibc  6.0.0 pinned 2.44-12; the image holds 2.44-14\n  zlib   6.0.0 pinned 1.3.2-9;  the image holds 1.3.2-10\n\nThe glibc move is deliberate and is the point of ADR-0251: 2.44-14 is\nthe first package rebuilt under the finalize policy -- 2114 files down\nto 1341, libc.so.6 from 11.42 MiB of sections to 2,011,912 bytes,\nlibc.a no longer shipped three times. gcc was verified still able to\ncompile, link and run an ordinary dynamic binary against it before\nthis pin moved (probe-gcc-postglibc).\n\nThe zlib difference is the one ADR-0252 quotes as its own live\nevidence: it was already there, on an image materialized from its own\nrecipe minutes earlier. Under the old arrangement it would have sat\nunnoticed; under this one the recipe is what must move.\n\n6.0.0s own note, still true: what is deliberately NOT here is gitea,\ngo and go-bootstrap. The retired \"toolchain\" image carried all three,\nand they are why it could never be described honestly -- a service and\nits compiler, accumulated because someone needed them on the box once.\nBuilding Cix has never needed any of them.\n\ngcc stays, for exactly one output: build/cix-boot.efi, the UEFI boot\nmanager (ADR-0215). Everything else cix builds is TCC, per ADR-0001.\nbinutils stays for the same reason -- 2.42-10 keeps the\n--enable-targets=x86_64-pep configuration cix-boot.efi needs to link.",
+  "packages": [
+    { "package": "bash", "mode": "rolling", "version": "5.2.37-6" },
+    { "package": "binutils", "mode": "rolling", "version": "2.42-15" },
+    { "package": "coreutils", "mode": "rolling", "version": "9.11-9" },
+    { "package": "diffutils", "mode": "rolling", "version": "3.10-10" },
+    { "package": "findutils", "mode": "rolling", "version": "4.10.0-6" },
+    { "package": "flex", "mode": "rolling", "version": "2.6.4-6" },
+    { "package": "gawk", "mode": "rolling", "version": "5.3.0-11" },
+    { "package": "gcc", "mode": "rolling", "version": "16.2.0-13" },
+    { "package": "gettext", "mode": "rolling", "version": "1.0-22" },
+    { "package": "glibc", "mode": "rolling", "version": "2.44-19" },
+    { "package": "grep", "mode": "rolling", "version": "3.11-8" },
+    { "package": "gzip", "mode": "rolling", "version": "1.13-6" },
+    { "package": "linux-headers", "mode": "rolling", "version": "6.18.40-10" },
+    { "package": "m4", "mode": "rolling", "version": "1.4.20-6" },
+    { "package": "make", "mode": "rolling", "version": "4.4.1-8" },
+    { "package": "ncurses", "mode": "rolling", "version": "6.6-11" },
+    { "package": "openssl", "mode": "rolling", "version": "3.0.20-7" },
+    { "package": "patch", "mode": "rolling", "version": "2.8-7" },
+    { "package": "sed", "mode": "rolling", "version": "4.9-7" },
+    { "package": "tar", "mode": "rolling", "version": "1.35-7" },
+    { "package": "tcc", "mode": "rolling", "version": "0.9.28rc-31" },
+    { "package": "util-linux", "mode": "rolling", "version": "2.42.2-3" },
+    { "package": "xz", "mode": "rolling", "version": "5.8.3-11" },
+    { "package": "zlib", "mode": "rolling", "version": "1.3.2-15" }
+  ]
+}
