@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "32a56d0fef5661c00b03dbdd22cbd77790458bb59ba9eae3e57d330ce4b331f5"
         "changelog" "0.2.57-462: a followed image holds its recipe and nothing else (cix#571, ADR-0330). Under recipe=follow an apply removes the entries the recipe drops; with apply=converge the drain uninstalls every package outside the recipe's runtime closure, logging each. A converge that cannot start an install now says why."
     }
 
