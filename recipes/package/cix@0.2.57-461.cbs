@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9157e14e398b5639a0daf4ebe1a6d5998d0172152cf01672a055498b5be871bc"
         "changelog" "0.2.57-461: a source offers its JSON image recipes, so a sync applies them (cix#569). 460 walked recipes/image/*.json but collected image offers by .sh, so every JSON image recipe was unowned and skipped. test_pkg_sync, which asserts it, now runs in the release selftest."
     }
 
