@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f6e8dece9dc4fd1b880f06c66a1ac2b6d4a6675c50fe796895bd112dade53ca1"
         "changelog" "0.2.57-460: shell recipes and .tar.gz artifacts do not exist (cix#569, ADR-0329). Publishing is CPDL only; a host deletes its stored build.sh recipes and cached .tar.gz at startup; cixd stages no source into a build container; the root carries no tar, gzip, xz or bzip2, and mkbootroot refuses a root whose library closure does not resolve. Also: image recipes sync as JSON only, a root is staged with the kernel its modules are for (#568), and Cix produces no tarball (#411, ADR-0328)."
     }
 
