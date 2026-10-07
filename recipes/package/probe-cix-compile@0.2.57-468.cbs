@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "efe52281d93506ce25819f1d673326292f1a0cbea38f85eeb22f43a7ce47989d"
         "changelog" "0.2.57-468: compile and selftest probe of cix commit 55073d02 (cix#570, after the keepver fixture fix)."
     }
 
