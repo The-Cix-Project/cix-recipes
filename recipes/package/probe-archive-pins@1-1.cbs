@@ -1,0 +1,95 @@
+#
+# probe-archive-pins -- do the gitea archives this corpus pins still
+# hash to what it pinned?
+#
+# THE QUESTION (cix#513). An old gitea tag archive was measured on
+# 2026-09-22 to no longer match its recipe's sha256:
+# cix-aggressive-test@1.0.5 pins v2.53.47 at 42fb146b..., and the
+# archive now hashes to 87b7d88d.... It BUILT once with that hash, so
+# the bytes changed after publication, not the recipe. The likely
+# mechanism is a gitea upgrade regenerating or recompressing archives;
+# the cause was never established.
+#
+# WHY IT MATTERS MORE THAN ONE BROKEN PACKAGE. 561 recipes in this
+# corpus pin a git.home.arpa archive across 316 distinct refs. If tag
+# archives are not stable then "a published recipe version is immutable
+# and rebuildable" is not true -- and that claim is load-bearing: the
+# ADR-0209 test floor reads each artifact's checksum from a PINNED
+# cix-recipes commit on the premise that older versions stay fetchable.
+#
+# HOW THIS MEASURES IT. Four sources, each declared with the EXACT
+# sha256 its own recipe pins. The daemon's own fetch gate does the
+# comparison -- a source that still matches fetches silently, and one
+# that does not fails with the full computed hash in the message.
+#
+# ORDER MATTERS, because the fetch loop returns on the FIRST mismatch
+# and later sources are then never fetched. So the three being tested
+# come first and the KNOWN-BAD one is last: if the first three pass,
+# the run reaches the fourth and tells us whether it is still broken,
+# and we have learned about all four. If one of the first three fails,
+# that is the headline and the rest can be retested without it.
+#
+#   0  cix-build-system v0.1.105   a TAG, newest cbs -- in cix-builder
+#   1  cix              v2.57.251  a TAG, newest cix-tests, old line
+#   2  cix-recipes      84ccc91    a COMMIT, the ADR-0209 floor's pin
+#   3  cix              v2.53.47   a TAG, the one #513 measured broken
+#
+# Source 2 is the interesting one: a commit archive rather than a tag.
+# If tags regenerate and commits do not, the mitigation is to pin
+# commits, and the floor is already doing the right thing.
+#
+# NO BUILD. If every fetch passes, the build phase fails deliberately
+# so the log is kept.
+#
+# HOW TO READ IT.
+#   cixctl pkg ls | grep probe-archive-pins
+#     failed:fetch/failed + "checksum mismatch (source N)" -> N is the
+#     first archive whose bytes changed, with its full computed hash.
+#     failed:build/failed -> every archive still matches its pin.
+#
+package "probe-archive-pins" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs-v0-1-105" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.105.tar.gz"
+            sha256 "07f889235d4a63f7e1dd4da91d49c3f20d4a59ed8c668e4c9345a15168324348"
+        }
+        extra "cix-v2-57-251" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.57.251.tar.gz"
+            sha256 "da6f45460b1680a8ff8e128924649c0af011a2744416ee1641f3f5cffc3dbbed"
+        }
+        extra "cix-recipes-84ccc91" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/84ccc916ee1880a7708f2f32e7b86213da9100ca.tar.gz"
+            sha256 "746908486fcdba369d372e8099e1ea3dd0abd8401c15074003040d5ee200cc1a"
+        }
+        extra "cix-v2-53-47-known-bad" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/v2.53.47.tar.gz"
+            sha256 "42fb146b90a652e194213ecae7e34a3424fd8fc6dc9883dcae5327dfa4578afa"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: fetches four archives this corpus pins -- three tags and one commit -- each against its own recipe's sha256, so the daemon's fetch gate reports which have changed bytes since they were pinned (cix#513)."
+    }
+
+    build {
+        # Reached only if every source matched its pin.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-archive-pins" parents
+        write "${dest}/usr/share/probe-archive-pins/probe" "${version}-${release}\n"
+    }
+}
