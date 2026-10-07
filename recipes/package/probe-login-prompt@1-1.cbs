@@ -1,0 +1,122 @@
+#
+# probe-login-prompt -- where does util-linux `login` hold its first
+# prompt until the terminal is read?
+#
+# THE QUESTION AND WHY IT MATTERS (cix#557). `jump`'s only console is
+# `["/bin/login"]`, and a session opens showing nothing until the first
+# keystroke -- so the dashboard terminal is blank and the console looks
+# absent. #557 established, on 192.168.15.95 on 2026-10-01, that this is
+# NOT cixd: `handle_console_pty_event()` writes every read straight to
+# the socket, and a console running `bash -c "echo READY; exec
+# /bin/login"` delivers READY at once and then nothing. Plain
+# `/bin/login` delivers nothing in 10 s, 30 s or 70 s, and one CR
+# produces TWO `jump login:` prompts.
+#
+# So the silence is login's own, and the issue names its next
+# measurement: read util-linux 2.42.2's login.c prompt path. That is
+# what this probe does, and it is the cheapest form -- THE SANDBOX RULE
+# forbids fetching the tarball here, cixd fetches a declared source
+# host-side, and a CPDL build phase can grep it.
+#
+# The source is the same 2.42.2 tarball util-linux@2.42.2-3 declares,
+# byte-verified by the same sha256. The box runs 2.42.2-6, a different
+# RELEASE of the same upstream version, so login.c is identical unless
+# that revision patches it -- which is the first thing to check against
+# this output rather than assume.
+#
+# WHAT IT LOOKS FOR, and why each one:
+#   vhangup          -- hangs up the tty, which would DISCARD a prompt
+#                       already written. Two prompts after one CR is
+#                       consistent with that.
+#   tcsetattr/TCSA   -- a terminal-mode change; TCSAFLUSH discards
+#                       pending input AND output.
+#   init_tty/initialize_tty -- where util-linux does that setup.
+#   PAM conversation -- misc_conv does the prompting, and whether it
+#                       writes before reading is the whole question.
+#   loginpam_/login_prompt/getlogin -- the prompt path itself.
+#
+# NO COMPILE. The fetch and the greps are the probe.
+#
+# HOW TO READ IT. The build deliberately fails, so the log is retained:
+#   cixctl pkg build-logs --file=probe-login-prompt-1-1-<stamp>.log
+# Look between PROBE-LOGIN markers.
+#
+package "probe-login-prompt" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: reads util-linux 2.42.2's login-utils/login.c for where the first prompt is held until the tty is read -- cix#557's own named next measurement, done by the box because THE SANDBOX RULE forbids fetching the tarball in the dev sandbox."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "echo" {
+                "PROBE-LOGIN-BEGIN"
+            }
+            # Does this revision's login.c exist where expected, and how
+            # big is it? A missing file means the tarball layout changed
+            # and every grep below is vacuously empty.
+            run "ls" {
+                "-l" "login-utils/login.c"
+            }
+            run "echo" {
+                "--- vhangup: a hangup discards output already written"
+            }
+            run "grep" {
+                "-n" "vhangup" "login-utils/login.c"
+            }
+            run "echo" {
+                "--- terminal mode: TCSAFLUSH discards pending input AND output"
+            }
+            run "grep" {
+                "-nE" "tcsetattr|TCSAFLUSH|TCSADRAIN|TCSANOW" "login-utils/login.c"
+            }
+            run "echo" {
+                "--- the tty setup function"
+            }
+            run "grep" {
+                "-nE" "init_tty|initialize_tty|open_tty|tty_name" "login-utils/login.c"
+            }
+            run "echo" {
+                "--- the prompt path and the PAM conversation"
+            }
+            run "grep" {
+                "-nE" "loginpam_|login_prompt|misc_conv|pam_start|pam_authenticate|LOGIN_PLAIN_PROMPT" "login-utils/login.c"
+            }
+            run "echo" {
+                "--- anything that reads the terminal before prompting"
+            }
+            run "grep" {
+                "-nE" "read\\(|fgets|getpass|getlogin" "login-utils/login.c"
+            }
+            run "echo" {
+                "PROBE-LOGIN-END"
+            }
+        }
+        # Deliberate failure: the probe's whole output is its log.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-login-prompt" parents
+        write "${dest}/usr/share/probe-login-prompt/probe" "1-1\n"
+    }
+}
