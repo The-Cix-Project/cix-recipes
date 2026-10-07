@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3d25e12a28901ee7c136559d43b192c0e0c83194910d612b115a2ee79b040014"
         "changelog" "0.2.57-483: compile and selftest probe of cix commit 20b4f266 (cix#428, the published-ISO record with its gates updated)."
     }
 
