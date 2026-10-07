@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3eb221edafb2dbd40edf81720ce9e76c1a58329518471c365cd452e9b2d1590b"
         "changelog" "0.2.57-477: compile and selftest probe of cix commit ecd0d521 (cix#375, the open-run checkpoint after it stopped reaping chains)."
     }
 
