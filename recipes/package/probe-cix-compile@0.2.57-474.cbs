@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b9f42606cfb0398bb2efd8b55de8b8096bb18aafad90e3f3b5407431f261a3a0"
         "changelog" "0.2.57-474: compile and selftest probe of cix commit 44868bd0 (cix#576, the complete endpoint table and its two-way gate)."
     }
 
