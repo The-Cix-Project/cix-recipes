@@ -1,0 +1,88 @@
+#
+# probe-isoxopt 1 -- does the xorriso this host builds media with accept
+# the two options cix#430's fix would need, and in which argument mode?
+#
+# WHY IT MATTERS WHICH MODE. grub-mkrescue invokes xorriso as
+# `xorriso -as mkisofs ...`, and xorriso has two disjoint argument
+# vocabularies: native commands, and the mkisofs emulation inside
+# `-as mkisofs`. `-partition_offset` is documented as a mkisofs
+# emulation option and `-gpt_disk_guid` as a native command, so a fix
+# that injects both has to put them in different places in one argv --
+# which is the whole reason this is measured before anything is
+# written. image/src/cix-xorriso.c is the seam (it is passed as
+# --xorriso=PATH because grub-mkrescue hardcodes HFS+ arguments that
+# die on a Cix image), and today it only STRIPS arguments.
+#
+# HOW IT ASKS. Three runs that all exit 0, so one build answers
+# everything instead of a rejected option aborting the phase and
+# hiding the rest:
+#
+#   xorriso -version              the exact build, recorded not assumed
+#   xorriso -help                 every NATIVE command -- look for
+#                                 -gpt_disk_guid
+#   xorriso -as mkisofs -help     every EMULATION option -- look for
+#                                 -partition_offset
+#
+# The output lands in the retained build log, which is read with
+# `cixctl pkg build-logs --file=`. Nothing is grepped in the recipe:
+# CPDL-E3006 refuses an interpreter as a run executable, so there is no
+# shell here to pipe with.
+#
+# THE MAIN SOURCE IS NOT READ. cbs extracts the main and refuses
+# anything that is not tar, pax or zip (CPDL-E6001, measured by
+# probe-isogpt@1-1 against an ISO), and a sources block must contain
+# exactly one main (CPDL-E3001). So the cix release tarball is the
+# anchor and nothing looks at it.
+#
+# bash is declared although nothing runs it: it is a precondition of a
+# build phase EXECUTING at all, and omitting it presents as a timeout
+# with cix-init unable to start the phase, not as an error naming bash.
+#
+# NO BUILD. The phase fails deliberately at the end so the log is kept
+# and no artifact is published.
+#
+package "probe-isoxopt" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether xorriso 1.5.8.pl02 accepts -gpt_disk_guid as a native command and -partition_offset inside -as mkisofs, which cix#430's fix needs in two different places of one argv."
+    }
+
+    build {
+        run "xorriso" {
+            "-version"
+        }
+        run "xorriso" {
+            "-help"
+        }
+        run "xorriso" {
+            "-as"
+            "mkisofs"
+            "-help"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isoxopt" parents
+        write "${dest}/usr/share/probe-isoxopt/probe" "${version}-${release}\n"
+    }
+}
