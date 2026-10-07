@@ -1,0 +1,125 @@
+#
+# probe-login-prompt 2 -- PAM's conversation function writes login's
+# prompt. Does it flush it?
+#
+# WHERE REVISION 1 GOT TO (cix#557). Revision 1 read util-linux
+# 2.42.2's login-utils/login.c and established that **login.c does not
+# write the prompt at all**:
+#
+#   1564:  .conv = { misc_conv, NULL }   /* Linux-PAM conversation */
+#   1578:  init_tty(&cxt);
+#   1588:  loginpam_auth(&cxt);          -> pam_authenticate()
+#
+# login.c's only terminal work is init_tty() at 530, which closes the
+# descriptors, ignores SIGHUP, calls vhangup() (602), reopens the tty
+# (606) and then tcsetattr(STDIN_FILENO, TCSAFLUSH, &tt) (610) --
+# TCSAFLUSH discarding pending input AND output. All of that happens
+# BEFORE authentication, so it cannot be holding a prompt written
+# afterwards. And grepping login.c for a terminal read before prompting
+# found only getlogindefs_* config reads and one pread() of lastlog.
+#
+# SO THE PROMPT COMES FROM libpam_misc's misc_conv, and the question is
+# whether it reaches the pty immediately. The symptom #557 measured on
+# 192.168.15.95 constrains the answer: nothing for 35 s, then ONE CR
+# produces TWO `jump login:` prompts. Output accumulating somewhere and
+# being released by the read is consistent with that; so is output
+# being discarded and re-emitted. This reads the code rather than
+# choosing between them.
+#
+# The source is Linux-PAM 1.6.1, the same tarball linux-pam@1.6.1-13
+# declares -- the revision installed in `jumpbox`, which is the image
+# jump's console runs in.
+#
+# WHAT IT LOOKS FOR:
+#   read_string          -- misc_conv's prompt-and-read helper, printed
+#                           whole, because the ORDER of write, flush and
+#                           read is the whole question.
+#   fflush               -- whether the prompt is pushed before the read.
+#   stdout/stderr        -- which stream: stderr is unbuffered by the C
+#                           standard, stdout to a tty is LINE buffered,
+#                           and a prompt has no trailing newline.
+#   tcsetattr/TCSAFLUSH  -- a flush-on-change that would discard it.
+#   select/poll          -- misc_conv has a timeout path of its own.
+#
+# NO COMPILE. The fetch and the greps are the probe.
+#
+# HOW TO READ IT. The build deliberately fails, so the log is retained:
+#   cixctl pkg build-logs --file=probe-login-prompt-2-1-<stamp>.log
+# Look between PROBE-LOGIN markers.
+#
+package "probe-login-prompt" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux-pam" {
+            url "https://github.com/linux-pam/linux-pam/releases/download/v1.6.1/Linux-PAM-1.6.1.tar.xz"
+            sha256 "f8923c740159052d719dbfc2a2f81942d68dd34fcaf61c706a02c9b80feeef8e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: reads Linux-PAM 1.6.1's libpam_misc/misc_conv.c for whether login's prompt is flushed before the read. Revision 1 established that util-linux login.c does not write the prompt at all -- it installs misc_conv as the PAM conversation and its own tty setup runs before authentication (cix#557)."
+    }
+
+    build {
+        cd "${src}/linux-pam/Linux-PAM-1.6.1" {
+            run "echo" {
+                "PROBE-LOGIN-BEGIN"
+            }
+            run "ls" {
+                "-l" "libpam_misc/misc_conv.c"
+            }
+            run "echo" {
+                "--- read_string, whole: the ORDER of write, flush and read is the question"
+            }
+            run "grep" {
+                "-n" "-A" "60" "static int read_string" "libpam_misc/misc_conv.c"
+            }
+            run "echo" {
+                "--- every flush"
+            }
+            run "grep" {
+                "-n" "fflush" "libpam_misc/misc_conv.c"
+            }
+            run "echo" {
+                "--- which stream, and every write"
+            }
+            run "grep" {
+                "-nE" "stdout|stderr|fprintf|fputs|fwrite|write\\(" "libpam_misc/misc_conv.c"
+            }
+            run "echo" {
+                "--- terminal mode changes, which can discard pending output"
+            }
+            run "grep" {
+                "-nE" "tcsetattr|tcgetattr|TCSAFLUSH|TCSADRAIN|TCSANOW" "libpam_misc/misc_conv.c"
+            }
+            run "echo" {
+                "--- its own timeout path"
+            }
+            run "grep" {
+                "-nE" "select|poll|alarm|timeout" "libpam_misc/misc_conv.c"
+            }
+            run "echo" {
+                "PROBE-LOGIN-END"
+            }
+        }
+        # Deliberate failure: the probe's whole output is its log.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-login-prompt" parents
+        write "${dest}/usr/share/probe-login-prompt/probe" "${version}-${release}\n"
+    }
+}
