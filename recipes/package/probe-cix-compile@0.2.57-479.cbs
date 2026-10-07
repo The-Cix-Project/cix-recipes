@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "893dfc43422efcdf0d733713cec46577b9fcce1203e3ef4fd34bcbbe0dff703e"
         "changelog" "0.2.57-479: compile and selftest probe of cix commit 9be1df3c (cix#578, with the ADR index row)."
     }
 
