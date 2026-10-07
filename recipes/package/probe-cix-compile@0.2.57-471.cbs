@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2a7f141c438b32c5fb6990b99695a7c84050fcd00128550f419e89cdb8f03f18"
         "changelog" "0.2.57-471: compile and selftest probe of cix commit 3d731ec0 (cix#575, the response-shape gate)."
     }
 
