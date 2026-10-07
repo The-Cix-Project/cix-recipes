@@ -1,0 +1,147 @@
+#
+# probe-isogrub 1 -- with grub-mkrescue's OWN arguments in play, does
+# `-boot_image any partition_offset=16` produce a GPT entry covering the
+# filesystem, and does `gpt_disk_guid=` fix the disk GUID? (cix#430)
+#
+# WHY THIS AND NOT A CODE CHANGE. probe-isopoff@1-1 already showed the
+# mechanism works for a BARE `xorriso -as mkisofs`: byte 65537 read
+# CD001 and an MBR entry spanned LBA 64 to the end. But that ISO had no
+# GPT at all (byte 512 onward zeroes, no "EFI PART"), because a bare
+# invocation writes none. Real media is GPT-based -- grub-mkrescue adds
+# the ESP and the protective label, which is where the Gap0/ESP/Gap1
+# layout cix#430 measured comes from. A `root=PARTUUID=` names a GPT
+# partition, so the untested half is the half that matters.
+#
+# #430 is about whether installer media BOOTS. partition_offset shifts
+# the ISO layout, and this project has a memory file about assembly
+# reporting success proving nothing about whether an image boots. So
+# this is measured in a build container before image/src/cix-xorriso.c
+# is touched, not after.
+#
+# WHY A WRAPPER IS UNAVOIDABLE. Native -boot_image commands must precede
+# `-as mkisofs`, which consumes its own argument list to the end
+# (measured by probe-isoxopt@1-1: both settings are parameters of the
+# native -boot_image command, and `xorriso -as mkisofs -help` prints
+# nothing at all). Arguments after grub-mkrescue's own `--` land INSIDE
+# the emulation, so they cannot be injected that way. grub-mkrescue
+# does support --xorriso=PATH, which is the same hook
+# image/src/cix-xorriso.c already occupies.
+#
+# The wrapper also STRIPS the HFS+ arguments, because that is why
+# cix-xorriso exists at all: grub-mkrescue asks for HFS+ metadata
+# unconditionally, libisofs converts filenames to UTF-16 for it, and no
+# Cix image has gconv modules -- the build dies at its last step with
+# "libisofs: FAILURE : Charset conversion error". A probe that did not
+# strip them would fail for that reason and prove nothing about
+# partitions. So this wrapper is deliberately the shape the real fix
+# would take: strip the four HFS+ options, inject the two native
+# commands, exec the real xorriso.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log
+# is kept and no artifact is published.
+#
+package "probe-isogrub" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grub"
+            tool "mtools"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "2: whether partition_offset=16 yields a GPT entry covering the filesystem, and whether gpt_disk_guid= takes effect, with grub-mkrescue's own arguments in play (cix#430)."
+    }
+
+    build {
+        # A tiny content directory. The extracted cix tree would work
+        # but is far larger than this question needs.
+        mkdir "${build}/isoroot/boot" parents
+        write "${build}/isoroot/boot/marker" "cix#430 probe-isogrub\n"
+
+        # The wrapper: strip HFS+, inject the two native commands
+        # BEFORE whatever grub-mkrescue passes (its own argv begins
+        # with -as mkisofs), then exec the real xorriso. Shift counts
+        # are option+values, taken from cix-xorriso.c's own table.
+        write "${build}/xw" """
+        #!/usr/bin/bash
+        out=(-boot_image any partition_offset=16)
+        out+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        echo "cix#430 wrapper argv: ${out[@]}"
+        exec /usr/bin/xorriso "${out[@]}"
+        """
+        run "chmod" {
+            "0755"
+            "${build}/xw"
+        }
+
+        run "grub-mkrescue" {
+            "--xorriso=${build}/xw"
+            "-o"
+            "${build}/g1.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/g1.iso"
+        }
+
+        # MBR at 0, GPT header at 512 (disk GUID at byte 568), first
+        # four GPT entries at 1024 with first_lba at +32, last_lba +40.
+        run "dd" {
+            "if=${build}/g1.iso"
+            "of=${build}/g1.head"
+            "bs=1"
+            "count=2048"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/g1.head"
+        }
+
+        # Byte 65537 is the partition-relative volume descriptor that
+        # only exists when partition_offset is in effect.
+        run "dd" {
+            "if=${build}/g1.iso"
+            "of=${build}/g1.off"
+            "bs=1"
+            "skip=65536"
+            "count=5"
+        }
+        run "od" {
+            "-c"
+            "${build}/g1.off"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isogrub" parents
+        write "${dest}/usr/share/probe-isogrub/probe" "${version}-${release}\n"
+    }
+}
