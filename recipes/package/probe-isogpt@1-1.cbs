@@ -1,0 +1,159 @@
+#
+# probe-isogpt 1 -- does the installer ISO's partition table still look
+# the way cix#430 measured it, and is the GPT disk GUID still different
+# on every build?
+#
+# WHY RE-MEASURE. #430's numbers were read from
+# cix-installer-2.57.127-1-x86_64.iso on 2026-09-12, which is a retired
+# version line. Two issues picked up on 2026-10-07 turned out to have
+# moved on (cix#363 was three-quarters fixed; cix#428's own figures had
+# changed), so this asks the question of the media a host would install
+# from today before any work is designed around the old answer.
+#
+# WHAT IT READS. Two published ISOs, each against the sha256 the cache
+# itself reports for it, so a mismatch fails the fetch rather than
+# being inspected:
+#
+#   main  cix-installer-0.2.57-406  the newest published
+#   extra cix-installer-0.2.57-390  an earlier one, for the GUID
+#                                   comparison -- one ISO cannot show
+#                                   whether a value differs per build
+#
+# THE THREE CLAIMS, and the bytes that answer each:
+#
+#   1. "No partition covers the ISO9660 filesystem." The GPT entries
+#      start at LBA 2; each is 128 bytes with first_lba at +32 and
+#      last_lba at +40. #430 measured Gap0 (64..1455), the ESP
+#      (1456..7215) and Gap1 (7216..133059), none spanning the image.
+#   2. "No partition-offset descriptor." Byte 65537 is not CD001, so
+#      xorriso's -partition_offset 16 is not in effect. If it were, a
+#      partition at LBA 64 would carry its own primary volume
+#      descriptor and be mountable as iso9660 directly.
+#   3. "The GPT disk GUID is not deterministic." It sits at offset 56
+#      of the GPT header (LBA 1), so the two ISOs are compared.
+#
+# Also dumped: the MBR partition type at offset 450 (#430 read 0xEE,
+# protective) and the MBR disk signature at 440 (it read all zeroes,
+# which is what makes the MBR-form PARTUUID=SSSSSSSS-PP unusable).
+#
+# NO BUILD. od and dd only, from coreutils; nothing is compiled and the
+# phase fails deliberately at the end so the log is kept and no
+# artifact is published.
+#
+package "probe-isogpt" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "iso406" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-406-x86_64.iso"
+            sha256 "45845052dcf4775a3e9383897de4d9ac1081197652681506ab0eabb5b1d5e5b0"
+        }
+        extra "iso390" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-390-x86_64.iso"
+            sha256 "a0ac54ce238370803e66255c8281894330212c33ad9ed7ca6a48be8a34d88fdf"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: re-measures cix#430's three claims against cix-installer-0.2.57-406 -- whether any GPT partition covers the ISO9660 filesystem, whether byte 65537 is CD001, and whether the disk GUID differs from 0.2.57-390's."
+    }
+
+    build {
+        # Both at paths this recipe chose. No shell is available --
+        # CPDL-E3006 refuses an interpreter as a run executable -- so
+        # there are no globs and nothing guesses where a source landed.
+        materialize $source.iso406 to "${build}/a406.iso"
+        materialize $source.iso390 to "${build}/b390.iso"
+
+        # The first 2048 bytes carry three of the four answers at once:
+        # the MBR at 0 (its disk signature at 440, its partition type
+        # at 450), the GPT header at 512 (disk GUID at +56, so byte
+        # 568), and the first four GPT entries at 1024 (each 128 bytes,
+        # first_lba at +32 and last_lba at +40, 8-byte little endian).
+        # Dumped raw rather than decoded: there is no shell to decode
+        # with, and raw bytes cannot be decoded wrongly by this recipe.
+        run "dd" {
+            "if=${build}/a406.iso"
+            "of=${build}/a406.head"
+            "bs=1"
+            "count=2048"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/a406.head"
+        }
+        run "dd" {
+            "if=${build}/b390.iso"
+            "of=${build}/b390.head"
+            "bs=1"
+            "count=2048"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/b390.head"
+        }
+
+        # CLAIM 2, the one that decides whether -partition_offset 16 is
+        # in effect. Byte 32769 is the real primary volume descriptor
+        # and must read CD001; #430 measured byte 65537 NOT reading it,
+        # which is what says the mode is off. Were it on, a partition
+        # at LBA 64 would carry its own partition-relative descriptor
+        # and be mountable as iso9660 directly, which is the whole
+        # reason PARTUUID becomes usable.
+        run "dd" {
+            "if=${build}/a406.iso"
+            "of=${build}/a406.pvd"
+            "bs=1"
+            "skip=32768"
+            "count=5"
+        }
+        run "od" {
+            "-c"
+            "${build}/a406.pvd"
+        }
+        run "dd" {
+            "if=${build}/a406.iso"
+            "of=${build}/a406.off"
+            "bs=1"
+            "skip=65536"
+            "count=5"
+        }
+        run "od" {
+            "-c"
+            "${build}/a406.off"
+        }
+        run "dd" {
+            "if=${build}/b390.iso"
+            "of=${build}/b390.off"
+            "bs=1"
+            "skip=65536"
+            "count=5"
+        }
+        run "od" {
+            "-c"
+            "${build}/b390.off"
+        }
+
+        # Deliberate: the findings are in the log above, and a failed
+        # phase publishes no artifact. Same shape probe-cix-tarball and
+        # probe-archive-pins already use.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isogpt" parents
+        write "${dest}/usr/share/probe-isogpt/probe" "${version}-${release}\n"
+    }
+}
