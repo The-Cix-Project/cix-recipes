@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "951e336f308cb172720cced0621f141c4e892ab2e244ac4c0f2a5f4dfe7009ad"
         "changelog" "0.2.57-472: compile and selftest probe of cix commit 44363891 (cix#576, the endpoint-index gate)."
     }
 
