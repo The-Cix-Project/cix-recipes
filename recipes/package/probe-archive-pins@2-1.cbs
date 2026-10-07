@@ -1,0 +1,73 @@
+#
+# probe-archive-pins 2 -- the two pins revision 1 did not reach.
+#
+# WHAT 1 ESTABLISHED (cix#513). Four archives, each declared with the
+# exact sha256 its own recipe pins, ordered so the known-bad one came
+# last. The fetch stopped at source 3, which means 0, 1 and 2 all still
+# match:
+#
+#   0  cix-build-system v0.1.105  TAG     -> matches
+#   1  cix              v2.57.251 TAG     -> matches  (a RETIRED line)
+#   2  cix-recipes      84ccc91   COMMIT  -> matches  (the ADR-0209
+#                                                      floor's own pin)
+#   3  cix              v2.53.47  TAG     -> MISMATCH, 5588054 bytes
+#                                            hashing to 87b7d88d539b...
+#
+# That last value is byte-for-byte what cix#513 measured on 2026-09-22,
+# so the archive's bytes changed ONCE and have been stable since. This
+# is not ongoing churn, and it is not "old tags are unstable" either --
+# v2.57.251 is an old tag from a retired line and it still matches.
+#
+# WHAT THIS ONE ASKS. Revision 1 covered every package in the corpus
+# that pins a gitea archive except two, and those two are what a host
+# would actually resolve and build today:
+#
+#   0  cix 0.2.57-459   what cix-aggressive-test@1.0-8 pins, and 1.0-8
+#                       is what `pkg recipe show cix-aggressive-test`
+#                       resolves to -- NOT the 1.0.6 revision that
+#                       carries the broken v2.53.47 pin
+#   1  hibr v0.99.87    the newest hibr, in its own repository
+#
+# If both match, then nothing the corpus resolves to is unbuildable,
+# and the breakage is confined to one superseded revision.
+#
+# NO BUILD. If both fetches pass, the build fails deliberately so the
+# log is kept.
+#
+package "probe-archive-pins" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix-0-2-57-459" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-459.tar.gz"
+            sha256 "31d4edc1375fe59c2d43d8d9f41521b303b420c6bf2d4c779c9eb5930f4e4c47"
+        }
+        extra "hibr-v0-99-87" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/hibr/archive/v0.99.87.tar.gz"
+            sha256 "4b68cda9389d9ce7c1ca17b1eba35407abf61cf0f73757c577906edc2a668079"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the two pins revision 1 did not reach -- what cix-aggressive-test actually resolves to, and the newest hibr -- each against its own recipe's sha256 (cix#513)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-archive-pins" parents
+        write "${dest}/usr/share/probe-archive-pins/probe" "${version}-${release}\n"
+    }
+}
