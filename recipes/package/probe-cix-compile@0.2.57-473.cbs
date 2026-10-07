@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3c7ffb1514e16baeb9b0ce02fb2679d8d8c591fee244df96023e1abb1ab914fb"
         "changelog" "0.2.57-473: compile and selftest probe of cix commit b69c413f (cix#576, the combined-method parser fix)."
     }
 
