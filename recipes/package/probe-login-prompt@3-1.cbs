@@ -1,0 +1,99 @@
+#
+# probe-login-prompt 3 -- does login's own tty setup leave fd 2 alive?
+#
+# WHERE 1 AND 2 GOT TO (cix#557), both measured from source on the box:
+#
+#   1. util-linux 2.42.2's login.c does NOT write the prompt. It sets
+#      `.conv = { misc_conv, NULL }` (1564), calls init_tty() (1578)
+#      and then loginpam_auth() (1588). Grepping it for a terminal read
+#      before prompting found only getlogindefs_* config reads.
+#
+#   2. Linux-PAM 1.6.1's libpam_misc/misc_conv.c read_string() does, in
+#      this order: tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_tmp) (173),
+#      fprintf(stderr, "%s", prompt) (175), read(STDIN_FILENO, ...)
+#      (182). stderr is unbuffered by the C standard and there is no
+#      fflush anywhere in the file -- the grep for one matched zero
+#      lines. So PAM writes the prompt immediately before reading, and
+#      the flush that precedes it cannot discard what comes after.
+#
+# Neither layer holds the prompt. And cixd does not swallow it either:
+# handle_console_pty_event() drains on EPOLLIN first and tears the
+# session down on EPOLLHUP with no EPOLLIN (cix#291), so a hangup would
+# END the session at once rather than produce 35 s of silence.
+#
+# THE REMAINING QUESTION THIS ASKS. init_tty() closes the descriptors,
+# ignores SIGHUP, calls vhangup() (602), then open_tty(cxt->tty_path)
+# (606). If open_tty reopens 0 and 1 but leaves 2 on a descriptor
+# vhangup() has revoked, then `fprintf(stderr, prompt)` writes to a dead
+# fd: EIO, nothing on the wire, and the prompt is never delayed because
+# it is never sent. That is a different failure from the one assumed,
+# and it is settled by reading which descriptors open_tty actually
+# installs.
+#
+# WHY THE PATTERNS ARE CHOSEN TO MATCH. A `run "grep"` that selects no
+# lines exits 1, and CPDL fails the phase on it -- revision 2 stopped
+# early for exactly that reason, after its fflush grep matched nothing.
+# Each grep below either prints a function body by name (certain to
+# exist, since revision 1 printed its line number) or alternates a
+# pattern already known to match.
+#
+# NO COMPILE. The fetch and the greps are the probe.
+#
+# HOW TO READ IT. The build deliberately fails, so the log is retained:
+#   cixctl pkg build-logs --file=probe-login-prompt-3-1-<stamp>.log
+#
+package "probe-login-prompt" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "3: reads util-linux login.c's open_tty() and init_tty() bodies for which descriptors survive vhangup(), after revisions 1 and 2 ruled out login.c and PAM as holding the prompt (cix#557)."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "echo" {
+                "PROBE-LOGIN-BEGIN"
+            }
+            run "echo" {
+                "--- open_tty(), whole: which descriptors does it install?"
+            }
+            run "grep" {
+                "-n" "-A" "55" "static void open_tty" "login-utils/login.c"
+            }
+            run "echo" {
+                "--- init_tty(), whole: the order of close, vhangup and reopen"
+            }
+            run "grep" {
+                "-n" "-A" "90" "static void init_tty" "login-utils/login.c"
+            }
+            run "echo" {
+                "PROBE-LOGIN-END"
+            }
+        }
+        # Deliberate failure: the probe's whole output is its log.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-login-prompt" parents
+        write "${dest}/usr/share/probe-login-prompt/probe" "${version}-${release}\n"
+    }
+}
