@@ -1,0 +1,132 @@
+#
+# probe-isopoff 1 -- does `-boot_image any partition_offset=16` actually
+# produce a partition covering the ISO9660 filesystem, and does
+# `gpt_disk_guid=` actually fix the GUID? (cix#430)
+#
+# WHAT IS ALREADY MEASURED. probe-isogpt@2-1 confirmed #430's three
+# claims still hold on cix-installer-0.2.57-406: no GPT entry spans the
+# filesystem (Gap0 64..2039, ESP 2040..7799, Gap1 7800..143903, image
+# 0..143967), byte 65537 is not CD001, and the disk GUID differs on
+# every build. probe-isoxopt@1-1 then found the syntax: both settings
+# are parameters of the NATIVE -boot_image command, not options of the
+# mkisofs emulation --
+#
+#   -boot_image "any"|... |"partition_offset="| ... |"gpt_disk_guid="|
+#
+# which means a fix must inject them BEFORE `-as mkisofs`, since the
+# emulation consumes its own argument list.
+#
+# WHAT THIS ASKS, and why it is worth a build. The syntax existing does
+# not mean the result is a partition covering the filesystem. That is
+# the only thing #430 actually needs, and it is cheaper to make a tiny
+# ISO here and read its table than to change image/src/cix-xorriso.c,
+# build real media, and find out afterwards.
+#
+# A fixed GUID is passed so determinism is tested in the same run: if
+# the output's disk GUID is the value given, baking a PARTUUID into
+# grub.cfg at build time becomes possible, which is the other half of
+# why #430 is open.
+#
+# The source is the cix release tarball, extracted by cbs into ${src};
+# it is the ISO's content purely because it is already here and is a
+# real directory. Nothing reads it.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log
+# is kept and no artifact is published.
+#
+package "probe-isopoff" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "1: whether -boot_image any partition_offset=16 yields a GPT partition covering the ISO9660 filesystem, and whether gpt_disk_guid= fixes the disk GUID (cix#430)."
+    }
+
+    build {
+        # Native commands first, then the emulation, exactly as a fix
+        # would have to order them.
+        run "xorriso" {
+            "-boot_image"
+            "any"
+            "partition_offset=16"
+            "-boot_image"
+            "any"
+            "gpt_disk_guid=11111111-2222-3333-4444-555555555555"
+            "-as"
+            "mkisofs"
+            "-o"
+            "${build}/t1.iso"
+            "${src}"
+        }
+        run "ls" {
+            "-la"
+            "${build}/t1.iso"
+        }
+
+        # The first 2048 bytes: MBR at 0, GPT header at 512 (disk GUID
+        # at byte 568), first four GPT entries at 1024 with first_lba
+        # at +32 and last_lba at +40.
+        run "dd" {
+            "if=${build}/t1.iso"
+            "of=${build}/t1.head"
+            "bs=1"
+            "count=2048"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/t1.head"
+        }
+
+        # Byte 32769 is the real primary volume descriptor; byte 65537
+        # is the partition-relative one that only exists when
+        # partition_offset is in effect. That second read is the whole
+        # question.
+        run "dd" {
+            "if=${build}/t1.iso"
+            "of=${build}/t1.pvd"
+            "bs=1"
+            "skip=32768"
+            "count=5"
+        }
+        run "od" {
+            "-c"
+            "${build}/t1.pvd"
+        }
+        run "dd" {
+            "if=${build}/t1.iso"
+            "of=${build}/t1.off"
+            "bs=1"
+            "skip=65536"
+            "count=5"
+        }
+        run "od" {
+            "-c"
+            "${build}/t1.off"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isopoff" parents
+        write "${dest}/usr/share/probe-isopoff/probe" "${version}-${release}\n"
+    }
+}
