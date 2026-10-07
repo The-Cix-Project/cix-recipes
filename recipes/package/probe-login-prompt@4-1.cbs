@@ -1,0 +1,100 @@
+#
+# probe-login-prompt 4 -- does pam_ldap contact nslcd BEFORE it asks
+# the conversation for a username?
+#
+# WHERE 1-3 GOT TO (cix#557), all measured from source on the box:
+#
+#   1. util-linux login.c does not write the prompt. It installs
+#      misc_conv as the PAM conversation (1564) and calls
+#      pam_authenticate() through loginpam_auth() (1588).
+#   2. Linux-PAM's misc_conv read_string() writes the prompt with
+#      fprintf(stderr, ...) (175) immediately before read() (182), and
+#      the file contains no fflush at all. stderr is unbuffered.
+#   3. login.c's open_tty() (456) opens the tty, closes every lower
+#      descriptor and dup2()s the new one onto 0, 1 AND 2 (476-482), so
+#      stderr is the live, reopened tty -- not a descriptor vhangup()
+#      revoked.
+#
+# And cixd does not swallow it: handle_console_pty_event() drains on
+# EPOLLIN before acting on a hangup, and tears the session down on
+# EPOLLHUP with no EPOLLIN (cix#291) -- so a hangup ends the session at
+# once rather than producing 35 s of silence.
+#
+# THE QUESTION THIS ASKS. Every layer that WRITES the prompt is ruled
+# out, so the remaining possibility is that nothing ever asks for it.
+# The prompt is produced when a PAM module calls pam_get_user(), and
+# jump's /etc/pam.d/login stack is one module:
+#
+#   auth     required     pam_ldap.so
+#
+# No pam_unix. So if nss-pam-ldapd's pam_sm_authenticate() talks to
+# nslcd before calling pam_get_user(), a slow or unreachable directory
+# blocks before anything is printed -- which fits every measurement in
+# cix#557, including that a scratch container on the jumpbox image with
+# NO NETWORK reproduced the silence exactly.
+#
+# This reads the module. It does not prove the timing: that needs the
+# live trace #557 already names.
+#
+# Patterns are chosen to match (a zero-match grep exits 1 and CPDL
+# fails the phase -- revision 2 stopped early on exactly that).
+#
+# NO COMPILE. The fetch and the greps are the probe.
+#
+package "probe-login-prompt" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "nss-pam-ldapd" {
+            url "https://arthurdejong.org/nss-pam-ldapd/nss-pam-ldapd-0.9.13.tar.gz"
+            sha256 "e01784e17cb533bb66bd0601e205e785263445c3c2df7a6f90232ab4131c716d"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "4: reads nss-pam-ldapd 0.9.13's pam/pam.c for whether pam_sm_authenticate contacts nslcd before calling pam_get_user, after revisions 1-3 ruled out login.c, PAM's misc_conv and the fd plumbing as holding the prompt (cix#557)."
+    }
+
+    build {
+        cd "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13" {
+            run "echo" {
+                "PROBE-LOGIN-BEGIN"
+            }
+            run "ls" {
+                "-l" "pam/pam.c"
+            }
+            run "echo" {
+                "--- pam_sm_authenticate, whole: what runs before pam_get_user?"
+            }
+            run "grep" {
+                "-n" "-A" "70" "int pam_sm_authenticate" "pam/pam.c"
+            }
+            run "echo" {
+                "--- every pam_get_user and every nslcd round trip, in file order"
+            }
+            run "grep" {
+                "-nE" "pam_get_user|nslcd_request|NSLCD_ACTION|init_context|ctx_get" "pam/pam.c"
+            }
+            run "echo" {
+                "PROBE-LOGIN-END"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-login-prompt" parents
+        write "${dest}/usr/share/probe-login-prompt/probe" "${version}-${release}\n"
+    }
+}
