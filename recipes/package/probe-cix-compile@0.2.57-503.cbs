@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "14d5e6a81e438e20d66447c9b2f26dc5f875a071ceeb99372a048eaa1c94e8e2"
         "changelog" "0.2.57-503: compile and selftest probe of cix commit 520ddb3e (cix#344 -- the bring-up helper reports its own split)."
     }
 
