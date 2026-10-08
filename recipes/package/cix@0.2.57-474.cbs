@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "244654ee42a68f551eca0844fea35b44aaf958fcaae3786d1ee839b2a93954e3"
         "changelog" "0.2.57-474: per-step timing on the interface attach path (cix#344). A container carrying a radio blocks the reactor ~1.7 s on every create; the issue named two candidates and the path has four. The unnamed one is a fork plus BLOCKING waitpid bringing the moved interface up -- the shape ADR-0247 forbids, and what froze this control plane for 366 s in cix#399. container_net_last_attach_ms() reports classify/down/move/bring-up/total; the daemon logs one line per such create. Measurement, not a fix."
     }
 
