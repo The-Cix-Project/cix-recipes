@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1b3c2ac65af791715146727df927c1340273b0b60392549cfb956b8eca411508"
         "changelog" "0.2.57-488: a RE-RUN of 487 against the same cix commit 40208707, to separate a flake from a regression (cix#579). 487 failed with greeter unable to compose a build environment, cascading to 11; the only delta from the green 486 is one logstore_write reachable from the converge drain and three .md files."
     }
 
