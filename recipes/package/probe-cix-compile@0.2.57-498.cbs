@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ec64711321ad8c0478655d29260902ca1b84697824209ab5163b6b7e79d63bb9"
         "changelog" "0.2.57-498: compile and selftest probe of cix commit ccdf0888 (cix#582 -- the architecture diagram is mermaid and test_docindex gates it, ADR-0334)."
     }
 
