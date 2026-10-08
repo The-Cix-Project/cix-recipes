@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "19a7eeb8f7d69695ec19a98147363c3c35ce4abfd9c798ed38b2323dd25478fb"
         "changelog" "0.2.57-495: compile and selftest probe of cix commit 4259807f (cix#581 -- test_pki trustc on_exit corrected)."
     }
 
