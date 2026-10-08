@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "14cf19f9110dce2daed743fbee28a5507d39d919c17eac41995e72cce2616c65"
         "changelog" "0.2.57-504: compile and selftest probe of cix commit 88081b30 (ADR-0335 proposed; the ADR gate sees a new file and index row)."
     }
 
