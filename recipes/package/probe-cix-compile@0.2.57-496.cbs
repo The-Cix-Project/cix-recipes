@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5817693473d3ed040b7b2b6311c3ce1f33a90fd15ac747ac95b114433635c5a1"
         "changelog" "0.2.57-496: compile and selftest probe of cix commit c1cacfb8 -- the documentation audit, including test_docindex now link-checking every document in the tree."
     }
 
