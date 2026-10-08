@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d8cce2076a91c5ff8e8f813edd1022a63e9cd00a7809483aeb653b9b39278558"
         "changelog" "0.2.57-492: compile and selftest probe of cix commit 6277ec6e (cix#581 steps 2-3 -- nsswitch.conf and the host CA bundle staged per container from both registry_create() callers; pure addition, the image copies still stand)."
     }
 
