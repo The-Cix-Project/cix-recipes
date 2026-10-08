@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "aaa8cf25949c9a00453fa40898d30da87f0ee644a054761226a9b13eb6faaa94"
         "changelog" "0.2.57-472: record what installer ISOs this host published (cix#428). A built ISO was visible on one tab and nothing recorded where a published one went -- the box held one built at 0.2.57-417 while the cache newest was 0.2.57-406, eleven releases of drift no surface reported. GET /system/iso/published is the log: one entry per (ISO, repository), appended when that repository has taken BOTH the signature and the image, since cix-cache refuses an unsigned ISO with 409."
     }
 
