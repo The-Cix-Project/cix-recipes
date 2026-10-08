@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "41b7fe3ef7272cebd58ab407623b16bb085de415b15a1c30c70706e80059ea42"
         "changelog" "0.2.57-502: compile and selftest probe of cix commit 707b9f6c (cix#344 -- per-step timing on the interface attach path)."
     }
 
