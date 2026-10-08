@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "39bdd15d5f049f82d5fce165065078deb8ffdf749de36f4c4cc14ba12c48c6bc"
         "changelog" "0.2.57-486: compile and selftest probe of cix commit 750135e5 (ADR-0332, cix#579 -- the arrival case with its fixture staging a state that can actually occur)."
     }
 
