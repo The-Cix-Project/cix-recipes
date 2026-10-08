@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f0849aef6a6fbfd341f15cf83517e1cc08cb084e2ed22c1fd977285db08f90be"
         "changelog" "0.2.57-499: compile and selftest probe of cix commit b133d2e1 (ROADMAP parts 259-261; check_architecture_components() now fails when it compared nothing)."
     }
 
