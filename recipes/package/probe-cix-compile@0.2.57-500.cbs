@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ab6cec86a71b8e4413e395ad707de8279d5a2acbab42271edef235385b028ad9"
         "changelog" "0.2.57-500: compile and selftest probe of cix commit 1b4c24bd (cix#582 -- eight wrong arrows in the architecture diagram, read against the code)."
     }
 
