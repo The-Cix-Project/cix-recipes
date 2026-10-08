@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "10d8a04e71e4d35dacd7a1f017ab1649ee49eec2d9cd3b06d19b09a5a1dc87b1"
         "changelog" "0.2.57-484: compile and selftest probe of cix commit 6567e7a6 (ADR-0332, cix#579 -- an image version identifies its baseline, and test_baseline gates the generation)."
     }
 
