@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "adcaf6865271736e29326c94732f89f125252bbb3b64386e8d4fd7f6b01c4eed"
         "changelog" "0.2.57-497: compile and selftest probe of cix commit a4291d44 (cix#580 step 1 -- test_print_daemon_log() makes a pre-build failure readable)."
     }
 
