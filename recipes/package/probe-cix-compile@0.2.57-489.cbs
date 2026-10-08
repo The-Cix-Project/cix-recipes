@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "afaefd8f220d7327785c8b30d388a4424e56896a5d2924f021aa387e7513b223"
         "changelog" "0.2.57-489: compile and selftest probe of cix commit 2951f5cb (cix#581 step 5 -- ADR-0332's implementation removed unreleased, pkg.c and container.h byte-identical to d95197ca again)."
     }
 
