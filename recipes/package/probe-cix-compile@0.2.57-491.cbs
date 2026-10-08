@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ef95c51b2a0edda94d49b1b2359adf22b1c1b660abac99a5d2696e8d4d70f680"
         "changelog" "0.2.57-491: compile and selftest probe of cix commit dc57ca76 (cix#581 step 1 -- the staged nodes owner now follows the userns presentation, and test_pkg no longer asserts an image carries them)."
     }
 
