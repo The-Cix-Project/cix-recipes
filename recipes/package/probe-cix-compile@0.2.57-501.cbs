@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "41c5a38c0fa327f94a793d6235d0642bc5d5c5b28e73a1f6f0e54e0c829425bc"
         "changelog" "0.2.57-501: compile and selftest probe of cix commit f7370487 (cix#582 -- the architecture diagram is six legible charts)."
     }
 
