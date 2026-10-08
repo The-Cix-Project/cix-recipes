@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a83b43dfc16c5fb240cbe532ec5c028af5197925c6f3ead4446c60750c7c5366"
         "changelog" "0.2.57-473: an image's content comes only from its packages (cix#581, ADR-0333) -- pkg_seed_image_baseline() ceases to exist, and nothing it did became a package: the device nodes are staged host-side per container, because mknod needs CAP_MKNOD in the INITIAL userns (cix#321) and userns is the default. Fixes cix#579 for every image, old or new. And the architecture diagram is mermaid text with a test_docindex gate (cix#582, ADR-0334); a build that fails before its container starts says why (cix#580)."
     }
 
