@@ -1,0 +1,94 @@
+# nasm -- the Netwide Assembler, and ndisasm, its disassembler.
+#
+# WHY THIS PLATFORM WANTS IT (cix#584). edk2 cannot build OVMF without
+# nasm: the firmware's reset vector, SEC entry and several assembly
+# libraries are .nasm sources, and edk2's GCC5 toolchain definition
+# invokes `nasm` by name. OVMF is half of what cix#584 needs before a
+# boot test can run on a Cix host at all -- seven test binaries boot
+# real media under QEMU with OVMF firmware and not one of them can run
+# here today, which is why #430's "does this installer actually boot"
+# had to be answered by a person with a USB stick.
+#
+# TCC, by the Toolchain Tenet's default (ADR-0224/ADR-0226): tried
+# first because it usually works and the result is smaller. If it does
+# not, the move to gcc is ordinary and wants only
+# `pkg_toolchain`/`pkg_toolchain_reason` recorded -- not a battle.
+#
+# perl is declared even though a release tarball ships nasm's generated
+# instruction tables pre-built. The Makefile still has rules that would
+# regenerate them from `asm/insns.dat` with perl, and whether they fire
+# depends on extracted file timestamps rather than on anything this
+# recipe controls. Declaring it costs nothing and removes a failure
+# mode that would present as a missing-interpreter error in a tarball
+# that visibly contains the file.
+#
+# `make` alone, deliberately: nasm's documentation targets need asciidoc
+# and are not part of `all`, so nothing here reaches for a doc
+# toolchain this platform does not carry.
+package "nasm" {
+    version "2.16.03"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "nasm" {
+            url "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz"
+            sha256 "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "perl"
+        }
+    }
+
+    metadata {
+        "changelog" "2.16.03-1: first revision. The Netwide Assembler, needed by edk2 to build OVMF -- without which no boot test can run on a Cix host (cix#584). Built with tcc; `make` only, since nasm's doc targets need asciidoc and are not part of all."
+    }
+
+    prepare {
+        require directory "${src}/nasm/nasm-2.16.03" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/nasm/nasm-2.16.03" {
+            run "./configure" {
+                "--prefix=/usr"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/nasm/nasm-2.16.03" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/nasm" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/ndisasm" {
+            exists
+            nonempty
+        }
+    }
+}
