@@ -1,0 +1,270 @@
+#
+# probe-isogrub 8 -- the candidate fix for cix#430, measured before any C
+# is written: strip the two arguments that make the embedded EFI image a
+# PARTITION, append the same image past the end of the ISO instead, and
+# see whether the GPT then carries an entry spanning the ISO9660
+# filesystem.
+#
+# WHY THIS IS THE ONLY ROUTE LEFT. 7-1 measured that libisofs REFUSES a
+# spanning entry while the ESP sits inside the filesystem -- "Overlapping
+# MBR partition entries requested" -- so the published Gap0/ESP/Gap1
+# layout is not a flag nobody passed. probe-grubsrc@1-1 then read
+# grub-mkrescue.c: `efi.img` is built inside iso9660_dir (line 857), so
+# it is a file in the filesystem, and `--efi-boot efi.img`,
+# `-efi-boot-part`, `--efi-boot-image` are pushed at 865-868 under no
+# system_area guard, so no grub-side option can ask for an appended ESP.
+# The wrapper has to do it.
+#
+# WHAT IS KEPT AND WHY. `--efi-boot efi.img` STAYS, so the El Torito
+# catalogue still points at the copy inside the filesystem and optical
+# EFI boot is untouched. Only the pair that describes that copy as a
+# partition is removed, and the same file is appended as partition 2 of
+# type 0xef, which is the layout probe-isopoff@4-1 already measured
+# produces an `ISO9660` entry spanning the filesystem. grub-mkrescue's
+# own line 870 keeps that copy deliberately ("so that we have a
+# duplicate on the ISO 9660 file system"), so there is a file to append.
+#
+# --directory IS PASSED THIS TIME, which is the caveat the earlier
+# revisions carried. mkinstalleriso computes
+# `<isotools_root>/lib/grub/x86_64-efi` and passes it as --directory=,
+# and `-d` is what re-runs grub's platform auto-detection (line 560) and
+# decides which push blocks fire -- including the HFS+ block whose
+# absence from 6-1's and 7-1's argv was unexplained. The build image's
+# own module directory is the same thing structurally, so the argv shape
+# here is the real one rather than a default-path approximation. The
+# directory is listed first, so what platforms are actually present is
+# recorded rather than assumed.
+#
+# TWO VARIANTS, primary first so a failing control cannot cost the
+# answer:
+#
+#   A  strip the pair AND append the image   -- the candidate fix
+#   B  strip the pair only                   -- isolates which half acts
+#
+# B is a control, not a candidate: without an appended ESP there is no
+# EFI system partition in the GPT for firmware to find on a USB stick,
+# which is the thing cix#430 exists to provide.
+#
+# THE WRAPPER FAILS LOUDLY. It prints its input argv (the capture that
+# earlier revisions were missing), locates the staged directory holding
+# the relative `--efi-boot` value by testing the argv's own directory
+# arguments, and exits non-zero rather than guessing if either the value
+# or the directory cannot be found. Producing media from a half-applied
+# rewrite is the one outcome worse than failing.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-isogrub" {
+    version "8"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grub"
+            tool "mtools"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "8: the candidate fix for cix#430 -- strip -efi-boot-part/--efi-boot-image, append the same efi.img as partition 2 type 0xef, with --directory passed as mkinstalleriso passes it. Does the GPT then span the ISO9660 filesystem? Control variant strips without appending."
+    }
+
+    build {
+        # What platforms the module directory actually holds. This is
+        # what --directory points grub-mkrescue at, and what decides
+        # which of its push blocks fire.
+        run "ls" {
+            "-la"
+            "/usr/lib/grub"
+        }
+        run "ls" {
+            "/usr/lib/grub/x86_64-efi"
+        }
+
+        mkdir "${build}/isoroot/boot" parents
+        write "${build}/isoroot/boot/marker" "cix#430 probe-isogrub\n"
+
+        # Variant A: the candidate fix.
+        write "${build}/xw_a" """
+        #!/usr/bin/bash
+        echo "cix#430 A input argv: $@"
+        pre=(-boot_image any partition_offset=16)
+        pre+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        pre+=(-boot_image any appended_part_as=gpt)
+        out=()
+        efirel=""
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            --efi-boot) efirel="$2"; out+=("$1" "$2"); shift 2 ;;
+            -efi-boot-part) shift ;;
+            --efi-boot-image) shift ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        efiabs=""
+        for a in "${out[@]}"; do
+          if [ -d "$a" ] && [ -f "$a/$efirel" ]; then efiabs="$a/$efirel"; fi
+        done
+        if [ -z "$efirel" ]; then echo "cix#430 A: no --efi-boot in argv"; exit 9; fi
+        if [ -z "$efiabs" ]; then echo "cix#430 A: no argv directory holds $efirel"; exit 9; fi
+        echo "cix#430 A efi image: $efiabs"
+        ls -la "$efiabs"
+        full=("${pre[@]}" "${out[@]}" -append_partition 2 0xef "$efiabs")
+        echo "cix#430 A output argv: ${full[@]}"
+        exec /usr/bin/xorriso "${full[@]}"
+        """
+
+        # Variant B: the control -- strip the pair, append nothing.
+        write "${build}/xw_b" """
+        #!/usr/bin/bash
+        echo "cix#430 B input argv: $@"
+        pre=(-boot_image any partition_offset=16)
+        pre+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        pre+=(-boot_image any appended_part_as=gpt)
+        out=()
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            -efi-boot-part) shift ;;
+            --efi-boot-image) shift ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        full=("${pre[@]}" "${out[@]}")
+        echo "cix#430 B output argv: ${full[@]}"
+        exec /usr/bin/xorriso "${full[@]}"
+        """
+        run "chmod" {
+            "0755"
+            "${build}/xw_a"
+            "${build}/xw_b"
+        }
+
+        # ---------------- variant A: the candidate fix ----------------
+        run "grub-mkrescue" {
+            "--directory=/usr/lib/grub/x86_64-efi"
+            "--xorriso=${build}/xw_a"
+            "-o"
+            "${build}/ga.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/ga.iso"
+        }
+        # GPT header: "EFI PART" +0, disk GUID +56, entry array LBA +72,
+        # entry count +80, entry size +84.
+        run "dd" {
+            "if=${build}/ga.iso"
+            "of=${build}/ha"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ha"
+        }
+        # Five entries. Per entry: type GUID +0, unique GUID +16, first
+        # LBA +32, last LBA +40, attributes +48, UTF-16LE name +56.
+        run "dd" {
+            "if=${build}/ga.iso"
+            "of=${build}/ea"
+            "bs=1"
+            "skip=1024"
+            "count=640"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ea"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/ea"
+        }
+        # The partition-relative volume descriptor.
+        run "dd" {
+            "if=${build}/ga.iso"
+            "of=${build}/oa"
+            "bs=1"
+            "skip=65536"
+            "count=8"
+        }
+        run "od" {
+            "-c"
+            "${build}/oa"
+        }
+
+        # ---------------- variant B: the control ----------------
+        run "grub-mkrescue" {
+            "--directory=/usr/lib/grub/x86_64-efi"
+            "--xorriso=${build}/xw_b"
+            "-o"
+            "${build}/gb.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/gb.iso"
+        }
+        run "dd" {
+            "if=${build}/gb.iso"
+            "of=${build}/hb"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/hb"
+        }
+        run "dd" {
+            "if=${build}/gb.iso"
+            "of=${build}/eb"
+            "bs=1"
+            "skip=1024"
+            "count=640"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/eb"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/eb"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isogrub" parents
+        write "${dest}/usr/share/probe-isogrub/probe" "${version}-${release}\n"
+    }
+}
