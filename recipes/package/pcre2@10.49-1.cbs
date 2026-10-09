@@ -1,0 +1,94 @@
+#
+# pcre2 -- Perl-compatible regular expressions, version 2. (cix#584)
+#
+# WHY IT IS HERE. glib has required pcre2 as an EXTERNAL library since
+# 2.74 rather than bundling it, and glib is qemu's one hard
+# dependency. So this is a leaf of the chain cix#584 needs for a QEMU
+# boot test to run on a Cix host.
+#
+# --enable-unicode because glib's regex API is Unicode-aware and the
+# property classes are not optional for it. JIT is deliberately NOT
+# enabled: it is pcre2-internal, glib does not require it, and it
+# writes executable pages at runtime -- a thing to turn on when
+# something asks for it, with a reason, rather than by default.
+#
+# --libdir=/usr/lib because every package in this corpus installs
+# there, and libffi@3.8.0-3 measured that an explicit libdir is not
+# always sufficient on its own: check the install log's own paths
+# rather than assuming the flag won.
+#
+# THE GATES NAME NO VERSION. A soname carries a library version
+# (libffi's was .so.8.5.0) that the package version does not predict,
+# so gating on one is a guess that costs a build cycle. pcre2grep and
+# the .pc file are named the same whatever the release.
+#
+package "pcre2" {
+    version "10.49"
+    release 1
+    format "cixpkg"
+
+    license "BSD-3-Clause"
+
+    sources {
+        main "pcre2" {
+            url "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.49/pcre2-10.49.tar.gz"
+            sha256 "929f0b20e62879252a15886b06c89f1edef61a363cbd5826fb041080a5e557ae"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "10.49-1: first revision. glib has required pcre2 as an external library since 2.74 and glib is qemu's one hard dependency, so this is a leaf of the chain a QEMU boot test on a Cix host needs (cix#584). sha256 measured on this box by probe-pcre2-tarball@1-1. Unicode on because glib's regex API needs the property classes; JIT off because glib does not require it and it writes executable pages at runtime."
+    }
+
+    prepare {
+        require directory "${src}/pcre2/pcre2-10.49" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/pcre2/pcre2-10.49" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                "--enable-unicode"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/pcre2/pcre2-10.49" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/pcre2grep" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libpcre2-8.pc" {
+            exists
+            nonempty
+        }
+    }
+}
