@@ -1,0 +1,226 @@
+#
+# probe-isoverify 1 -- the four structural facts about a real installer
+# ISO built by the fixed mkinstalleriso, measured rather than reasoned.
+# (cix#430, ADR-0336)
+#
+# WHY THESE FOUR. cix#430's fix is verified structurally by
+# mkinstalleriso's own gate on every build, and its remaining
+# uncertainty is whether real firmware accepts the medium. Nothing here
+# can boot anything -- no Cix host has qemu or OVMF, and neither has a
+# recipe (cix#584) -- so the job is to shrink that uncertainty to
+# something nameable instead of leaving it as "firmware is untested".
+#
+#   1  THE PROTECTIVE MBR, at LBA 0. No probe in cix#430 ever dumped
+#      it. With appended_part_as=gpt the MBR should carry one 0xEE
+#      entry spanning the disk and nothing else; if xorriso also wrote
+#      an MBR entry for the appended ESP then the medium is a HYBRID
+#      MBR, which is the one shape firmware isohybrid heuristics react
+#      to. That is the measurable fact behind the residual risk, and
+#      it decides whether the risk is real or imaginary.
+#
+#   2  THE GPT, as before -- entry 1 named ISO9660 from LBA 64, entry 2
+#      the ESP type, no overlap -- but this time with a disk GUID
+#      DERIVED FROM A RELEASE rather than repeated nibbles. That
+#      matters: a GUID of all-repeated bytes cannot distinguish GPT's
+#      mixed-endian storage of a UUID's first three fields, so every
+#      measurement so far would have passed even if mkinstalleriso's
+#      guid_to_text() had that convention backwards. This is the first
+#      read where the bytes differ and the conversion is really tested.
+#
+#   3  THE TWO COPIES OF efi.img. grub-mkrescue keeps one inside the
+#      ISO9660 filesystem (its own comment at grub-mkrescue.c:870) and
+#      the fix appends that same file as partition 2. If their bytes
+#      are identical then "firmware prefers El Torito or prefers the
+#      GPT ESP" is MOOT -- both paths load the same BOOTX64.EFI -- and
+#      that can be said from measurement instead of from reasoning
+#      about which file xorriso copied.
+#
+#   4  THE EL TORITO CATALOGUE. The CD/DVD boot path is unchanged by
+#      construction, since --efi-boot is still passed, but "by
+#      construction" is an argument and this is a reading. A catalogue
+#      present and pointing at a real image is what optical EFI boot
+#      needs, and it costs nothing to look.
+#
+# THE ISO ARRIVES AS AN EXTRA SOURCE, because cbs EXTRACTS the main one
+# and an ISO is not a tar -- `CPDL-E6001: archive format 'ISO9660 with
+# Rockridge extensions' is not tar, pax, or zip`. So the mandatory main
+# is a real archive nothing reads, and the ISO is materialized to a
+# path this recipe chose. Its sha256 comes from the artifact cache's
+# own listing, which carries one per format.
+#
+# RAW DUMPS COME FIRST, then xorriso's own reports. od and dd cannot
+# fail on a readable file; `-report_system_area` and
+# `-report_el_torito` are the right instruments but a wrong option
+# spelling would end the phase, and losing the raw evidence to a
+# spelling would be the one avoidable outcome.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log
+# is kept and no artifact is published.
+#
+package "probe-isoverify" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-478-x86_64.iso"
+            sha256 "318fd5c59baf5cb8d1f62323cc09d88be07e148cd40a5474bd53613221a09863"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the protective MBR, the GPT with a release-derived disk GUID, both copies of efi.img, and the El Torito catalogue of a real installer ISO built by the fixed mkinstalleriso (cix#430, ADR-0336)."
+    }
+
+    build {
+        materialize $source.iso to "${build}/i.iso"
+        run "ls" {
+            "-la"
+            "${build}/i.iso"
+        }
+
+        # 1. The protective MBR. Bytes 446..509 are partition entries
+        # 2 to 4 and 510..511 the 0x55AA signature; entry 1 starts at
+        # 446-16 = 430. Dumped from 432 so all four entries and the
+        # signature land in one 80-byte window.
+        run "dd" {
+            "if=${build}/i.iso"
+            "of=${build}/mbr"
+            "bs=1"
+            "skip=432"
+            "count=80"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/mbr"
+        }
+
+        # 2. The GPT header and the first five entries.
+        run "dd" {
+            "if=${build}/i.iso"
+            "of=${build}/hdr"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/hdr"
+        }
+        run "dd" {
+            "if=${build}/i.iso"
+            "of=${build}/ent"
+            "bs=1"
+            "skip=1024"
+            "count=640"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ent"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/ent"
+        }
+
+        # The partition-relative volume descriptor.
+        run "dd" {
+            "if=${build}/i.iso"
+            "of=${build}/pvd"
+            "bs=1"
+            "skip=65536"
+            "count=8"
+        }
+        run "od" {
+            "-c"
+            "${build}/pvd"
+        }
+
+        # 4. The El Torito boot record volume descriptor, at sector 17
+        # of the ISO (byte 34816). Its bytes 7..38 are the identifier
+        # "EL TORITO SPECIFICATION" and 71..74 the catalogue's own
+        # sector, little-endian.
+        run "dd" {
+            "if=${build}/i.iso"
+            "of=${build}/eltorito"
+            "bs=1"
+            "skip=34816"
+            "count=80"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/eltorito"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/eltorito"
+        }
+
+        # 3. Both copies of efi.img. The one inside the filesystem is
+        # extracted by xorriso itself; the appended one is read at the
+        # offset the GPT entry above reports, which is why this probe
+        # prints that entry before taking it. The offsets below are
+        # the measured ones for this image and are checked by the
+        # comparison itself: a wrong offset yields a different hash
+        # and says so, rather than passing quietly.
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/i.iso"
+            "-extract"
+            "/efi.img"
+            "${build}/efi_in_iso.img"
+        }
+        run "ls" {
+            "-la"
+            "${build}/efi_in_iso.img"
+        }
+        run "sha256sum" {
+            "${build}/efi_in_iso.img"
+        }
+
+        # xorriso's own account of the system area and the catalogue.
+        # Last, because a wrong option spelling here must not cost the
+        # raw evidence above.
+        run "xorriso" {
+            "-indev"
+            "${build}/i.iso"
+            "-report_system_area"
+            "plain"
+        }
+        run "xorriso" {
+            "-indev"
+            "${build}/i.iso"
+            "-report_el_torito"
+            "plain"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isoverify" parents
+        write "${dest}/usr/share/probe-isoverify/probe" "${version}-${release}\n"
+    }
+}
