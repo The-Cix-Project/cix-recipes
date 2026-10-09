@@ -1,0 +1,122 @@
+#
+# probe-isoverify 2 -- are the installer ISO's TWO copies of efi.img
+# byte for byte identical? (cix#430, ADR-0336)
+#
+# WHY IT MATTERS. The medium offers firmware two routes to a
+# bootloader: the El Torito catalogue, which points at the copy inside
+# the ISO9660 filesystem, and the GPT's EFI system partition, which is
+# that same file appended past the end of the image. Some vendor
+# firmware prefers one, some the other. If the two copies are identical
+# then WHICH it prefers cannot matter -- both load the same
+# BOOTX64.EFI -- and the question stops being a risk and becomes a
+# non-question. That is worth measuring rather than reasoning about,
+# because the reasoning rests on cix-xorriso appending the same path
+# --efi-boot names, which is this project's own code and therefore
+# exactly the thing that should not be taken on trust.
+#
+# WHAT REVISION 1 ESTABLISHED, so this does not repeat it: the
+# protective MBR holds one 0xEE entry and nothing else (xorriso's own
+# summary reads "MBR protective-msdos-label cyl-align-off GPT", so the
+# medium is NOT a hybrid MBR); partition 1 is ISO9660 at LBA 64 for
+# 142416 sectors with PARTUUID ...d501... derived from disk GUID
+# ...d500...; partition 2 is the ESP type at LBA 142480 for 5760
+# sectors; byte 65537 reads CD001; and the El Torito catalogue at
+# sector 921 points at /efi.img, UEFI, bootable, Ldsiz 5760.
+#
+# THE OFFSETS BELOW COME FROM THAT REPORT and are not guesses:
+#
+#   appended ESP      LBA 142480 x 512 = byte 72949760, 2949120 bytes
+#   in-filesystem     xorriso extracts /efi.img directly, 2949120 bytes
+#
+# and 5760 sectors is 2949120 bytes, which is already the measured size
+# of the extracted copy -- so a size match is established and only the
+# CONTENT is open. If the two hashes differ, the appended partition is
+# not the file El Torito points at and the medium has two different
+# bootloaders, which is the failure this probe exists to exclude.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log
+# is kept and no artifact is published.
+#
+package "probe-isoverify" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-478-x86_64.iso"
+            sha256 "318fd5c59baf5cb8d1f62323cc09d88be07e148cd40a5474bd53613221a09863"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "2: are the installer ISO's two copies of efi.img -- the one El Torito points at inside the filesystem, and the one appended as the GPT's EFI system partition -- byte for byte identical? (cix#430, ADR-0336)."
+    }
+
+    build {
+        materialize $source.iso to "${build}/i.iso"
+
+        # The appended partition, at the offset xorriso's own
+        # -report_system_area gave for partition 2.
+        run "dd" {
+            "if=${build}/i.iso"
+            "of=${build}/efi_appended.img"
+            "bs=512"
+            "skip=142480"
+            "count=5760"
+        }
+        run "ls" {
+            "-la"
+            "${build}/efi_appended.img"
+        }
+
+        # The copy inside the filesystem, extracted by xorriso itself
+        # rather than read at a computed offset, so the two are reached
+        # by independent routes.
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/i.iso"
+            "-extract"
+            "/efi.img"
+            "${build}/efi_in_iso.img"
+        }
+        run "ls" {
+            "-la"
+            "${build}/efi_in_iso.img"
+        }
+
+        run "sha256sum" {
+            "${build}/efi_appended.img"
+            "${build}/efi_in_iso.img"
+        }
+
+        # The answer, stated by a tool rather than by comparing two
+        # hashes by eye: cmp is silent and exits 0 when they match.
+        run "cmp" {
+            "${build}/efi_appended.img"
+            "${build}/efi_in_iso.img"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isoverify" parents
+        write "${dest}/usr/share/probe-isoverify/probe" "${version}-${release}\n"
+    }
+}
