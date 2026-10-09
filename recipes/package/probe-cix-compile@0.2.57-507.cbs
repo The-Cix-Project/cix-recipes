@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7cdb2fd373ad557c6cde9c9fd1d9d45e980443a820066d26ef3d16ff2d32d355"
         "changelog" "0.2.57-507: compile and selftest probe of cix commit 8c42ee1c (ADR-0335 step 2: the reactor stops waiting for the interface bring-up)."
     }
 
