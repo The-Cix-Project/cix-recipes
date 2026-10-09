@@ -1,0 +1,45 @@
+#
+# probe-glib-tarball -- the sha256 and reachability of this source,
+# measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# glib 2.90.1, qemu's one hard library dependency (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to -- on the pkg ls row itself. The fetch IS
+# the probe: no build container is composed and nothing is published.
+# A 404 instead would mean the url or the version is wrong, which is
+# equally worth knowing before a real recipe carries it.
+#
+package "probe-glib-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "glib" {
+            url "https://download.gnome.org/sources/glib/2.90/glib-2.90.1.tar.xz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: glib 2.90.1, qemu's one hard library dependency (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-glib-tarball" parents
+    }
+}
