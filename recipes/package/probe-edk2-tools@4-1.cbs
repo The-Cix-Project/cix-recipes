@@ -1,0 +1,88 @@
+#
+# probe-edk2-tools 4 -- would GenMake HONOUR a TRIM_PATH entry that
+# tools_def.template simply omits? (cix#584)
+#
+# THE STATE OF THE QUESTION. edk2's generated makefiles call the
+# BaseTools by bare name and edksetup.sh resolves that by prepending
+# BinWrappers/PosixLike to PATH, which a CPDL recipe may not do
+# (CPDL-E3006, a deliberate CBS property). What 1-1 to 3-1 ruled out:
+#
+#   - EDK_TOOLS_BIN is WINDOWS-ONLY. toolsetup.bat puts it on PATH;
+#     on POSIX build.py:795 only logs it. My recipe set it and it was
+#     inert.
+#   - BinWrappers appears NOWHERE in BaseTools/Source/Python, so
+#     nothing in edk2's python finds that directory for itself.
+#   - tools_def.template names every tool bare (GenFw, EfiRom,
+#     VfrCompile, GenCrc32, LzmaCompress, ...) and has NO TRIM_PATH.
+#
+# What is still open, and is the whole question: GenMake.py resolves a
+# tool through <TOOL>_PATH out of tools_def -- its own error at line
+# 842 is "%s_PATH doesn't exist in %s ToolChain and %s Arch" -- and it
+# SPECIAL-CASES Trim at line 784. If that lookup is generic, then a
+# TRIM_PATH line the template merely omits would still be honoured,
+# and Conf/tools_def.txt (which edksetup copies from a template
+# precisely so a site can edit it) is a complete and legitimate answer
+# with no PATH anywhere. If instead 784 hard-codes the literal name,
+# PATH is the only lever and the answer is an upstream ticket rather
+# than a clever recipe.
+#
+# Also reads BinWrappers/PosixLike/posix_path_env.yaml, which 3-1
+# found sitting in that directory and whose name suggests edk2 states
+# this PATH requirement somewhere declaratively.
+#
+# tool "sed" is declared this time: 3-1's sed run died 127 because it
+# was not, which is a reminder that a build container has exactly the
+# tools a recipe names and nothing else.
+#
+package "probe-edk2-tools" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/tags/edk2-stable202608.tar.gz"
+            sha256 "bac40812213576c3025cf780c33d882f9e087a44201b1cd28a07f6d1eb54b76a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "4: would GenMake honour a TRIM_PATH entry the template omits? 1-1 to 3-1 ruled out EDK_TOOLS_BIN (Windows-only, inert on POSIX) and showed BinWrappers appears nowhere in edk2's python. If the lookup is generic, Conf/tools_def.txt answers this with no PATH override (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+
+        on_fail {
+            run "grep" {
+                "-n"
+                "-B"
+                "14"
+                "-A"
+                "24"
+                "CmdName == 'Trim'"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/AutoGen/GenMake.py"
+                allow_failure
+            }
+
+            run "cat" {
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/BinWrappers/PosixLike/posix_path_env.yaml"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-tools" parents
+    }
+}
