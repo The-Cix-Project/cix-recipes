@@ -1,0 +1,120 @@
+#
+# probe-edk2-build 2 -- does BaseTools build once the brotli submodule
+# is supplied? (cix#584)
+#
+# WHAT REVISION 1 ESTABLISHED, now that cbs v0.1.106 lets the tree
+# extract at all (cix-build-system#283, live on this box since the
+# assembly of 2026-10-09):
+#
+#   - the archive extracts with one CPDL-W6001 skip, as designed;
+#   - python3 is 3.13.5;
+#   - master offers the toolchain tags *_GCC_, *_GCCNOLTO_,
+#     *_CLANGDWARF_ and *_CLANGPDB_. **There is no GCC5**, the tag
+#     every edk2 guide still names -- a recipe naming it would have
+#     failed after a full BaseTools build rather than at parse;
+#   - edksetup.sh exports WORKSPACE=$PWD, EDK_TOOLS_PATH=$DIR/BaseTools,
+#     PYTHON_COMMAND=python3 and PYTHONHASHSEED=1, which is the list
+#     CPDL has to pass explicitly because it cannot source a script;
+#   - and BaseTools FAILED at BrotliCompress.c:21 for
+#     ./brotli/c/common/constants.h -- the brotli submodule, which no
+#     source tarball carries.
+#
+# SO THIS SUPPLIES IT. brotli v1.1.0 is declared as an extra source and
+# extracted to the path .gitmodules maps it to,
+# BaseTools/Source/C/BrotliCompress/brotli, where BrotliCompress.c's
+# own relative include resolves. Declared rather than fetched in-build
+# because a build container is sealed and because a declared source is
+# checksum-verified host-side.
+#
+# A VERSION RISK STATED RATHER THAN HIDDEN: edk2 pins an exact brotli
+# commit and a tarball cannot tell us which, so this takes the current
+# release. brotli's C API has been stable across 1.0.x and 1.1.0, and
+# BrotliCompress uses only the encoder entry points -- but if the pin
+# predates 1.1.0 incompatibly, this fails in BrotliCompress rather than
+# anywhere subtle, and that is the next thing the log would say.
+#
+# NO BUILD OUTPUT. The phase ends on a deliberate failure so the log is
+# kept and nothing is published.
+#
+package "probe-edk2-build" {
+    version "9"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/heads/master.tar.gz"
+            sha256 "be3f938b7d476a5b72790ba4af16cb698f39ecf5352e07d53544f1309baa7356"
+        }
+        extra "brotli" {
+            url "https://github.com/google/brotli/archive/refs/tags/v1.1.0.tar.gz"
+            sha256 "e720a6ca29428b803f4ad165371771f5398faba397edf6778837a18599ea13ff"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "python"
+            tool "nasm"
+            tool "acpica"
+            # uuid/uuid.h: GenFv's GenFvInternalLib.c includes it.
+            # Revision 6 built every other C target and failed only
+            # there, which is the declaration system naming its own gap.
+            tool "libuuid"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "edk2's BaseTools are gcc C and its firmware toolchain tags are GCC, GCCNOLTO, CLANGDWARF and CLANGPDB -- measured from BaseTools/Conf/tools_def.template by revision 1 of this probe, 2026-10-09. There is no TCC tag."
+    }
+
+    metadata {
+        "changelog" "9: how does tools_def declare the BaseTools binaries? CPDL forbids PATH overrides (CPDL-E3006, deliberate), and edk2 resolves GenFw and friends by name -- so this reads whether tools_def.txt can name them absolutely instead (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/edk2/edk2-master" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/edk2/edk2-master" {
+            # How are the in-tree BaseTools binaries named? If
+            # tools_def declares them as bare names they need PATH,
+            # which CPDL forbids by design; if it declares them through
+            # a variable or an absolute form, the generated file this
+            # recipe writes can point at them directly.
+            run "grep" {
+                "-nE"
+                "_(GENFW|GENFV|GENSEC|GENFFS|GENCRC32|LZMA|VFRPP|VFR|TIANO|DEVPATH|OPTROM|ASLPP|ASL|ASLCC|ASLDLINK)_PATH"
+                "BaseTools/Conf/tools_def.template"
+            }
+            # And what the GCC tag's own entries look like, since that
+            # is the tag master defines.
+            run "grep" {
+                "-nE"
+                "^DEFINE GCC_|^\\*_GCC_X64_(CC|ASM|ASLCC|ASL|NASM|PP)_PATH"
+                "BaseTools/Conf/tools_def.template"
+            }
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-build" parents
+    }
+}
