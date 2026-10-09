@@ -127,6 +127,7 @@ package "edk2-basetools" {
     }
 
     metadata {
+        "artifact_sha256" "da805401118d5440174b31581e50645d2c472c187ee3711c1393c0276e2fd3dd"
         "changelog" "202608-5: VFR_LFLAGS, not BUILD_LFLAGS. 202608-4 set the latter and the flag never reached the link, because VfrCompile's GNUmakefile line 48 links with VFR_LFLAGS and BUILD_LFLAGS appears nowhere in this tree. Carries -static-libgcc too. btop is the precedent for static rather than a declared provider, and gcc, the only candidate, is not installed in base (cix#584)."
     }
 
