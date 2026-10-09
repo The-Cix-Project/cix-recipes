@@ -1,0 +1,177 @@
+#
+# probe-edk2-build 2 -- does BaseTools build once the brotli submodule
+# is supplied? (cix#584)
+#
+# WHAT REVISION 1 ESTABLISHED, now that cbs v0.1.106 lets the tree
+# extract at all (cix-build-system#283, live on this box since the
+# assembly of 2026-10-09):
+#
+#   - the archive extracts with one CPDL-W6001 skip, as designed;
+#   - python3 is 3.13.5;
+#   - master offers the toolchain tags *_GCC_, *_GCCNOLTO_,
+#     *_CLANGDWARF_ and *_CLANGPDB_. **There is no GCC5**, the tag
+#     every edk2 guide still names -- a recipe naming it would have
+#     failed after a full BaseTools build rather than at parse;
+#   - edksetup.sh exports WORKSPACE=$PWD, EDK_TOOLS_PATH=$DIR/BaseTools,
+#     PYTHON_COMMAND=python3 and PYTHONHASHSEED=1, which is the list
+#     CPDL has to pass explicitly because it cannot source a script;
+#   - and BaseTools FAILED at BrotliCompress.c:21 for
+#     ./brotli/c/common/constants.h -- the brotli submodule, which no
+#     source tarball carries.
+#
+# SO THIS SUPPLIES IT. brotli v1.1.0 is declared as an extra source and
+# extracted to the path .gitmodules maps it to,
+# BaseTools/Source/C/BrotliCompress/brotli, where BrotliCompress.c's
+# own relative include resolves. Declared rather than fetched in-build
+# because a build container is sealed and because a declared source is
+# checksum-verified host-side.
+#
+# A VERSION RISK STATED RATHER THAN HIDDEN: edk2 pins an exact brotli
+# commit and a tarball cannot tell us which, so this takes the current
+# release. brotli's C API has been stable across 1.0.x and 1.1.0, and
+# BrotliCompress uses only the encoder entry points -- but if the pin
+# predates 1.1.0 incompatibly, this fails in BrotliCompress rather than
+# anywhere subtle, and that is the next thing the log would say.
+#
+# NO BUILD OUTPUT. The phase ends on a deliberate failure so the log is
+# kept and nothing is published.
+#
+package "probe-edk2-build" {
+    version "14"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/heads/master.tar.gz"
+            sha256 "be3f938b7d476a5b72790ba4af16cb698f39ecf5352e07d53544f1309baa7356"
+        }
+        # MdePkg.dec declares its include path unconditionally
+        # in [Includes], and edk2 validates every declared
+        # include path of every package whose .dec it parses --
+        # so this has to be present even though OVMF never uses
+        # MIPI SysT logging. A master-branch snapshot pinned by
+        # sha256: edk2 pins an exact commit and a tarball cannot
+        # say which, the same limit brotli already demonstrated.
+        extra "mipisyst" {
+            url "https://github.com/MIPI-Alliance/public-mipi-sys-t/archive/refs/heads/master.tar.gz"
+            sha256 "bc8f65e59799b340ac877b0206cdec235ec11f79962657271a7f09ea96c97ef1"
+        }
+        extra "brotli" {
+            url "https://github.com/google/brotli/archive/refs/tags/v1.1.0.tar.gz"
+            sha256 "e720a6ca29428b803f4ad165371771f5398faba397edf6778837a18599ea13ff"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "python"
+            tool "nasm"
+            tool "acpica"
+            # uuid/uuid.h: GenFv's GenFvInternalLib.c includes it.
+            # Revision 6 built every other C target and failed only
+            # there, which is the declaration system naming its own gap.
+            tool "libuuid"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "edk2's BaseTools are gcc C and its firmware toolchain tags are GCC, GCCNOLTO, CLANGDWARF and CLANGPDB -- measured from BaseTools/Conf/tools_def.template by revision 1 of this probe, 2026-10-09. There is no TCC tag."
+    }
+
+    metadata {
+        "changelog" "14: supplies the mipisyst submodule as well. Revision 11 got past multiprocessing once python was rebuilt with SemLock, and failed at MdePkg.dec(33) error 000E -- its [Includes] declares Library/MipiSysTLib/mipisyst/library/include unconditionally, and edk2 validates every declared include path of every package it parses (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/edk2/edk2-master" {
+            exists
+        }
+
+        # Both submodules the tarball represents as empty mount points.
+        # allow_failure on the removes because an absent placeholder is
+        # a legitimate shape too -- and the extract immediately after
+        # fails loudly (CPDL-E4006) if the directory is still there.
+        remove "${src}/edk2/edk2-master/BaseTools/Source/C/BrotliCompress/brotli" allow_failure
+        extract $source.brotli into "${src}/edk2/edk2-master/BaseTools/Source/C/BrotliCompress" as "brotli"
+        remove "${src}/edk2/edk2-master/MdePkg/Library/MipiSysTLib/mipisyst" allow_failure
+        extract $source.mipisyst into "${src}/edk2/edk2-master/MdePkg/Library/MipiSysTLib" as "mipisyst"
+        require directory "${src}/edk2/edk2-master/MdePkg/Library/MipiSysTLib/mipisyst/library/include" {
+            exists
+        }
+
+        mkdir "${src}/edk2/edk2-master/Conf" parents
+        copy "${src}/edk2/edk2-master/BaseTools/Conf/target.template" to "${src}/edk2/edk2-master/Conf/target.txt"
+        copy "${src}/edk2/edk2-master/BaseTools/Conf/tools_def.template" to "${src}/edk2/edk2-master/Conf/tools_def.txt"
+        copy "${src}/edk2/edk2-master/BaseTools/Conf/build_rule.template" to "${src}/edk2/edk2-master/Conf/build_rule.txt"
+    }
+
+    build {
+        cd "${src}/edk2/edk2-master" {
+            run "make" {
+                "-C"
+                "BaseTools/Source/C"
+                "VfrCompile"
+                "EfiRom"
+                "GenFfs"
+                "GenFv"
+                "GenFw"
+                "GenSec"
+                "GenCrc32"
+                "LzmaCompress"
+                "TianoCompress"
+                "VolInfo"
+                "DevicePath"
+                env "CC" = "/usr/bin/gcc"
+                env "PYTHON_COMMAND" = "/usr/bin/python3"
+                env "PYTHONHASHSEED" = "1"
+            }
+
+            run "BaseTools/BinWrappers/PosixLike/build" {
+                "-a"
+                "X64"
+                "-t"
+                "GCC"
+                "-b"
+                "RELEASE"
+                "-p"
+                "OvmfPkg/OvmfPkgX64.dsc"
+                "-D"
+                "SECURE_BOOT_ENABLE=FALSE"
+                "-D"
+                "FD_SIZE_4MB"
+                env "WORKSPACE" = "${src}/edk2/edk2-master"
+                env "EDK_TOOLS_PATH" = "${src}/edk2/edk2-master/BaseTools"
+                env "EDK_TOOLS_BIN" = "${src}/edk2/edk2-master/BaseTools/Source/C/bin"
+                env "CONF_PATH" = "${src}/edk2/edk2-master/Conf"
+                env "GCC_BIN" = "/usr/bin/"
+                env "PYTHON_COMMAND" = "/usr/bin/python3"
+                env "PYTHONHASHSEED" = "1"
+            }
+
+            run "find" {
+                "Build"
+                "-name"
+                "OVMF*.fd"
+            }
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-build" parents
+    }
+}
