@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "6250bd4255858666ca5b61f179024274e1b58660d9bd7fb7c836e84e86090c27"
         "changelog" "v0.1.106-1: an escaping symlink member is skipped and named (CPDL-W6001) rather than refusing the whole source archive (cbs#283). The confinement rule is unchanged, and member selection, hard links and a recipe own require still refuse. Unblocks edk2 and qemu for cix#584, where one dangling X11 symlink in EmulatorPkg refused both trees. v0.1.107 is deliberately not taken here: it changes the build event stream every package build parses."
     }
 
