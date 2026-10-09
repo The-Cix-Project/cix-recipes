@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7fdc2e601fdc85b0c81648def5439eca05dd016d55ea6633ff7cfecc228423e5"
         "changelog" "0.2.57-476: cix-init waits for the interfaces it was given (cix#344, ADR-0335 step 1 of 2). The hello carries iface_count/iface[] (version 2 -> 3) and cix-init polls /sys/class/net/<if>/flags for IFF_UP before any service starts, bounded by 5000 ms. IFF_UP and not operstate: measured, operstate reads unknown for an interface that is genuinely up. The daemon still waits for the bring-up helper in this step, so nothing's ordering changes and the log line is the radio's real flags value."
     }
 
