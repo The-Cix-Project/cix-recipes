@@ -1,0 +1,99 @@
+#
+# ninja -- the build backend meson generates for. (cix#584)
+#
+# WHY IT IS HERE. pixman, glib, libslirp and qemu all build with
+# meson, and meson emits ninja files. So this is a prerequisite of
+# everything above it in the chain cix#584 needs for a QEMU boot test
+# to run on a Cix host.
+#
+# CMAKE RATHER THAN configure.py --bootstrap. Upstream's preferred
+# bootstrap is a python script, and CPDL may not run an interpreter as
+# a run executable (CPDL-E3006) -- correctly, since a recipe that
+# shells out to a language runtime is not declaring what it builds
+# with. ninja ships a CMakeLists.txt for exactly this case and cmake
+# is a real executable.
+#
+# gcc BECAUSE NINJA IS C++. tcc compiles no C++ at all, so this is not
+# a measurement that could have come out the other way and the
+# toolchain reason says so plainly.
+#
+# -static-libstdc++ -static-libgcc UP FRONT, not after a failure. The
+# install-time ELF gate refuses a binary linking a library nothing
+# declares, no package in this corpus ships a shared libstdc++ (btop
+# links it statically and then forbids the soname), and gcc -- the
+# only candidate provider -- is not installed in base. edk2-basetools
+# paid two build cycles to learn this on VfrCompile; this recipe pays
+# none.
+#
+package "ninja" {
+    version "1.13.2"
+    release 1
+    format "cixpkg"
+
+    license "Apache-2.0"
+
+    sources {
+        main "ninja" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "cmake"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "ninja is written in C++ and tcc compiles no C++ at all, so there is no TCC path to measure. Stated 2026-10-09."
+    }
+
+    metadata {
+        "changelog" "1.13.2-1: first revision. meson emits ninja files and pixman, glib, libslirp and qemu all build with meson, so this is a prerequisite of everything above it in the chain a QEMU boot test on a Cix host needs (cix#584). Built with cmake rather than upstream's configure.py, because CPDL may not run an interpreter as a run executable. Links libstdc++ and libgcc statically, which the install-time ELF gate requires here since no package ships a shared libstdc++."
+    }
+
+    prepare {
+        require directory "${src}/ninja/ninja-1.13.2" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/ninja/ninja-1.13.2" {
+            run "cmake" {
+                "-S"
+                "."
+                "-B"
+                "build"
+                "-DCMAKE_BUILD_TYPE=Release"
+                "-DBUILD_TESTING=OFF"
+                "-DCMAKE_C_COMPILER=/usr/bin/gcc"
+                "-DCMAKE_CXX_COMPILER=/usr/bin/g++"
+                "-DCMAKE_EXE_LINKER_FLAGS=-static-libstdc++ -static-libgcc"
+            }
+            run "cmake" {
+                "--build"
+                "build"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" chmod 0755
+        copy "${src}/ninja/ninja-1.13.2/build/ninja" to "${dest}/usr/bin/ninja"
+        chmod 0755 "${dest}/usr/bin/ninja"
+        require file "${dest}/usr/bin/ninja" {
+            exists
+            nonempty
+        }
+    }
+}
