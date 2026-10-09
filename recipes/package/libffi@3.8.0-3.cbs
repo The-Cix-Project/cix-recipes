@@ -1,0 +1,99 @@
+#
+# libffi -- a portable foreign function interface. (cix#584)
+#
+# WHY IT IS HERE. glib needs it for GObject closures, and glib is
+# qemu's one hard library dependency, so this is the first leaf of the
+# chain cix#584 needs for a QEMU boot test to run on a Cix host.
+#
+# TCC WAS TRIED AND SAID WHY NOT, which is the ADR-0224 order: 3.8.0-1
+# declared compiler "tcc" and died at ../src/types.c:125 with
+# "_Complex is not yet supported". libffi defines complex FFI types
+# unconditionally, so this is not a flag away. gcc is the ordinary next
+# step (ADR-0226) and carries the reason below.
+#
+# --disable-static because nothing here links a .a, and
+# --disable-docs because the texinfo toolchain is not in this build
+# image and the documentation is not what glib wants.
+#
+# --disable-multi-os-directory AS WELL AS --libdir=/usr/lib, because
+# --libdir ALONE IS NOT ENOUGH -- measured, not predicted. 3.8.0-2
+# installed to /build/cbsws/dest/usr/lib/../lib64/libffi.so.8.5.0: the
+# multi-os suffix is appended to libdir rather than replacing it, so
+# the explicit libdir was honoured and then had lib64 hung off it.
+# Every other package in this corpus installs to /usr/lib, and a second
+# library directory is a path nothing here looks in.
+#
+package "libffi" {
+    version "3.8.0"
+    release 3
+    format "cixpkg"
+
+    license "MIT"
+
+    sources {
+        main "libffi" {
+            url "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz"
+            sha256 "7da3e2d9a171eb0a038f592ecad3ff2bb2550f3496d87b3b29ad0cf4430c0db4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "tcc cannot compile libffi: ../src/types.c:125 is '_Complex is not yet supported', and libffi defines complex FFI types unconditionally rather than behind a flag. Measured on 192.168.15.95, 2026-10-09 by libffi@3.8.0-1, which declared compiler tcc."
+    }
+
+    metadata {
+        "changelog" "3.8.0-3: adds --disable-multi-os-directory. 3.8.0-2 built clean with gcc and then failed its own install gate, having put the library at usr/lib/../lib64/libffi.so.8.5.0 -- libffi appends the multi-os suffix to libdir rather than replacing it, so --libdir=/usr/lib was honoured and then had lib64 hung off it. gcc because tcc answers _Complex is not yet supported at src/types.c:125 (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/libffi/libffi-3.8.0" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/libffi/libffi-3.8.0" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-multi-os-directory"
+                "--disable-static"
+                "--disable-docs"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libffi/libffi-3.8.0" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/libffi.so" {
+            exists
+        }
+        require file "${dest}/usr/lib/pkgconfig/libffi.pc" {
+            exists
+            nonempty
+        }
+    }
+}
