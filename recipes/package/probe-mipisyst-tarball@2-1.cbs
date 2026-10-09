@@ -1,0 +1,43 @@
+#
+# probe-mipisyst-tarball -- the sha256 of the exact tree edk2-stable202608
+# pins, measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# the sha256 of the mipisyst commit edk2-stable202608 pins; MdePkg.dec declares its include path unconditionally, so OVMF needs the tree present without compiling it (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published.
+#
+package "probe-mipisyst-tarball" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "mipisyst" {
+            url "https://github.com/MIPI-Alliance/public-mipi-sys-t/archive/370b5944c046bab043dd8b133727b2135af7747a.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the sha256 of the mipisyst commit edk2-stable202608 pins; MdePkg.dec declares its include path unconditionally, so OVMF needs the tree present without compiling it (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-mipisyst-tarball" parents
+    }
+}
