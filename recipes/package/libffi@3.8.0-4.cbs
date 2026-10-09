@@ -56,6 +56,7 @@ package "libffi" {
     }
 
     metadata {
+        "artifact_sha256" "0ba0639a24c866e98f900cc5d6f0dd699e4ddf6fae5ca6c77b93cc5e36f66558"
         "changelog" "3.8.0-4: gates the real library rather than the symlink -- require file matches regular files only, and 3.8.0-3 failed on usr/lib/libffi.so being a link. 3.8.0-3 added --disable-multi-os-directory, without which libffi appends the multi-os suffix to libdir and installs to usr/lib/../lib64. gcc because tcc answers _Complex is not yet supported at src/types.c:125 (cix#584)."
     }
 
