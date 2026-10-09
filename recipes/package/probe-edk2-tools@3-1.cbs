@@ -1,0 +1,115 @@
+#
+# probe-edk2-tools 2 -- does edk2 extend PATH itself, and if so from
+# which variable? (cix#584)
+#
+# WHAT 1-1 ESTABLISHED. tools_def.template names its tools BARE --
+# GenFw, EfiRom, VfrCompile, GenCrc32, LzmaCompress, TianoCompress,
+# BrotliCompress, BPDG, Pkcs7Sign, Rsa2048Sha256Sign -- and only NASM
+# has a prefix hook (ENV(NASM_PREFIX)nasm). Crucially there is NO
+# *_*_*_TRIM_PATH line at all, so Conf/tools_def.txt cannot name Trim
+# however much of it I rewrite: that route is closed, which is worth
+# knowing before spending a cycle on it.
+#
+# 1-1 also showed edksetup.sh does not mention EDK_TOOLS_BIN, so
+# whatever reads that variable is elsewhere. This finds it.
+#
+# EVERY DIAGNOSTIC IS IN on_fail, because a grep that matches nothing
+# exits 1 and would otherwise take the rest of the phase down with it
+# -- which is exactly what truncated 1-1. The phase fails immediately
+# and deliberately, so all five run and nothing is published.
+#
+package "probe-edk2-tools" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/tags/edk2-stable202608.tar.gz"
+            sha256 "bac40812213576c3025cf780c33d882f9e087a44201b1cd28a07f6d1eb54b76a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "3: how GenMake.py resolves a BaseTools command name. 2-1 proved EDK_TOOLS_BIN is Windows-only -- toolsetup.bat puts it on PATH while build.py merely logs it on POSIX -- so my setting of it was inert. GenMake.py:784 special-cases Trim, which is the last place a non-PATH route could live (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+
+        on_fail {
+            run "sed" {
+                "-n"
+                "755,800p"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/AutoGen/GenMake.py"
+                allow_failure
+            }
+
+            run "grep" {
+                "-rn"
+                "BinWrappers"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python"
+                allow_failure
+            }
+
+            run "grep" {
+                "-n"
+                "-E"
+                "ToolPath|_PATH|EDK_TOOLS_PATH"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/AutoGen/GenMake.py"
+                allow_failure
+            }
+
+            # Who reads EDK_TOOLS_BIN, and does anything put it on PATH?
+            run "grep" {
+                "-rn"
+                "EDK_TOOLS_BIN"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools"
+                allow_failure
+            }
+
+            # Does edk2's own python extend PATH for its sub-makes?
+            run "grep" {
+                "-rn"
+                "--include=*.py"
+                "-E"
+                "environ..PATH|putenv"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python"
+                allow_failure
+            }
+
+            # How does the generated makefile name Trim?
+            run "grep" {
+                "-rn"
+                "Trim"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/AutoGen/GenMake.py"
+                allow_failure
+            }
+
+            # Does one directory cover both the python and the C tools?
+            run "ls" {
+                "-1"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/BinWrappers/PosixLike"
+                allow_failure
+            }
+
+            run "cat" {
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/BinWrappers/PosixLike/Trim"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-tools" parents
+    }
+}
