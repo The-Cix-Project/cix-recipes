@@ -51,6 +51,7 @@ package "pcre2" {
     }
 
     metadata {
+        "artifact_sha256" "dc11ef466e6ccc0c3c4f744c05ff05ee35ee7e3f9a6f600ffb8f8f053cc0efad"
         "changelog" "10.49-1: first revision. glib has required pcre2 as an external library since 2.74 and glib is qemu's one hard dependency, so this is a leaf of the chain a QEMU boot test on a Cix host needs (cix#584). sha256 measured on this box by probe-pcre2-tarball@1-1. Unicode on because glib's regex API needs the property classes; JIT off because glib does not require it and it writes executable pages at runtime."
     }
 
