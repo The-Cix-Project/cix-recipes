@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1ebb787ccc6742b3bd945d29691f8d8060d7366830d0395f111678df172ce545"
         "changelog" "0.2.57-509: compile and selftest probe of cix commit c3ada276 (#430, ADR-0336). 508 failed on three test_docindex complaints about the ADR format alone -- every target built clean and every other test passed."
     }
 
