@@ -1,0 +1,162 @@
+#
+# probe-grubsrc 1 -- read grub-mkrescue's OWN source for what pushes
+# `-efi-boot-part --efi-boot-image`, and whether it has any native way
+# to append the ESP instead of embedding it. (cix#430)
+#
+# WHY A SOURCE READ RATHER THAN ANOTHER ISO. probe-isogrub@7-1 settled
+# the measurement side: libisofs REFUSES a GPT entry that spans the
+# ISO9660 filesystem while the ESP sits inside it -- "Overlapping MBR
+# partition entries requested" -- so no combination of partition_offset,
+# gpt_disk_guid, appended_part_as or part_like_isohybrid can produce
+# what cix#430 needs. What makes the ESP sit inside the filesystem is
+# grub-mkrescue's own `--efi-boot efi.img -efi-boot-part
+# --efi-boot-image`, and the next decision is whether that pair is
+# conditional on something, or whether grub-mkrescue can be asked for an
+# appended ESP at all. That is a question about 1500 lines of C, and
+# guessing it costs ISO builds while reading it costs one fetch.
+#
+# THE SOURCE MATCHES THE BINARY. The ISO probes ran against grub
+# 2.14-13, installed in iso-builder, and grub@2.14-13.cbs declares
+# exactly this tarball and sha256 -- so this is the code that produced
+# the argv recorded in cix#430, not a nearby version of it.
+#
+# NOTHING IS COMPILED. The main source is extracted and read. The one
+# tool is grep.
+#
+# EVERY GREP IS BUNDLED WITH A PATTERN THAT CANNOT MISS ("efi-boot",
+# which the captured argv proves is present), because grep exits 1 on no
+# match and that would end the phase -- turning "this identifier does
+# not appear" from the finding into an abort that hides which grep
+# aborted. The noise is the price of every run reporting.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-grubsrc" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "grub" {
+            url "https://mirrors.kernel.org/gnu/grub/grub-2.14.tar.xz"
+            sha256 "bc8d3c73535b8838d8c8e2654d73edc4e6ae8c8acdb45d5df5dc9a1547446d43"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: reads grub-mkrescue.c for what pushes -efi-boot-part/--efi-boot-image, what gates it, and whether grub-mkrescue can append the ESP rather than embed it (cix#430, after 7-1 measured that libisofs refuses the overlapping layout)."
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+        run "wc" {
+            "-l"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        # Every mention of the EFI boot arguments, so the push sites are
+        # located before anything is read in context.
+        run "grep" {
+            "-n"
+            "-e"
+            "efi-boot"
+            "-e"
+            "efi_boot"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        # The push site in context: what comes before it decides
+        # whether it is conditional.
+        run "grep" {
+            "-n"
+            "-B"
+            "40"
+            "-A"
+            "20"
+            "-e"
+            "efi-boot-part"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        # The guard cix-xorriso.c's header names. If -efi-boot-part sits
+        # under it, the HFS+ escape that was already investigated and
+        # rejected applies to the ESP too, and that is worth knowing
+        # before designing around it.
+        run "grep" {
+            "-n"
+            "-e"
+            "SYS_AREA_COMMON"
+            "-e"
+            "system_area"
+            "-e"
+            "efi-boot"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        # The HFS+ strip list cix-xorriso.c carries, read from the
+        # source it was taken from -- the captured argv contained none
+        # of these, so what gates them is also unverified.
+        run "grep" {
+            "-n"
+            "-e"
+            "hfsplus"
+            "-e"
+            "apm-block-size"
+            "-e"
+            "hfs-bless-by"
+            "-e"
+            "efi-boot"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        # Does grub-mkrescue know about appended partitions at all, or
+        # about partition_offset? If it pushes either anywhere, the
+        # injection has to account for it.
+        run "grep" {
+            "-n"
+            "-e"
+            "append_partition"
+            "-e"
+            "appended_part"
+            "-e"
+            "partition_offset"
+            "-e"
+            "efi-boot"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        # Where the staged directory and the xorriso path come from, so
+        # the efi.img path a wrapper would need can be derived from argv
+        # rather than guessed.
+        run "grep" {
+            "-n"
+            "-e"
+            "xorriso"
+            "-e"
+            "graft"
+            "-e"
+            "sort-weight"
+            "${src}/grub/grub-2.14/util/grub-mkrescue.c"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-grubsrc" parents
+        write "${dest}/usr/share/probe-grubsrc/probe" "${version}-${release}\n"
+    }
+}
