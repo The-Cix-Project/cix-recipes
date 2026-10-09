@@ -1,0 +1,45 @@
+#
+# probe-libffi-tarball -- the sha256 and reachability of this source,
+# measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# libffi 3.8.0, which glib needs for GObject closures and is the first leaf of the qemu dependency chain (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to -- on the pkg ls row itself. The fetch IS
+# the probe: no build container is composed and nothing is published.
+# A 404 instead would mean the url or the version is wrong, which is
+# equally worth knowing before a real recipe carries it.
+#
+package "probe-libffi-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "libffi" {
+            url "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: libffi 3.8.0, which glib needs for GObject closures and is the first leaf of the qemu dependency chain (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-libffi-tarball" parents
+    }
+}
