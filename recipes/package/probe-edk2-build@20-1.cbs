@@ -1,0 +1,273 @@
+#
+# probe-edk2-build 18 -- OVMF from edk2-stable202608, with every
+# submodule OVMF reaches supplied at edk2's OWN pin. (cix#584)
+#
+# WHAT CHANGED, AND WHY IT IS A DIFFERENT KIND OF RECIPE
+#
+# Revisions 1-17 fetched `archive/refs/heads/master.tar.gz` and pinned
+# it by sha256. That is a moving target: upstream's next push changes
+# those bytes, and ADR-0323 then halts the package -- correctly. So
+# this names the TAG edk2-stable202608 (commit 2970e569), whose tarball
+# and whose submodule pins are both fixed forever.
+#
+# And the two submodule versions revisions 15-17 carried were GUESSES.
+# brotli v1.1.0 was a guess and its objects did not link; the mipisyst
+# master snapshot was a guess that happened to parse. Both are replaced
+# by the commit edk2 itself pins, read from the gitlinks at the tag:
+#
+#   openssl   8cf17aaeb4599f8af87fefd810b5b5fee90fe69e
+#   mbedtls   0bebf8b8c7f07abe3571ded48a11aa907a1ffb20
+#   brotli    e230f474b87134e8c6c85b630084c612057f253e  (TWO paths)
+#   mipisyst  370b5944c046bab043dd8b133727b2135af7747a
+#   libspdm   f55cf6d48ec69b4ac60a63903e9c6a2cb0fd155d
+#
+# Every sha256 below was measured on this box by a fetch-only probe
+# (probe-{edk2,ossl,mbedtls,brotli,mipisyst,libspdm}-tarball), never
+# computed in the dev sandbox -- THE SANDBOX RULE.
+#
+# WHY OPENSSL AT ALL, WITH SECURE BOOT OFF. Revision 17 grepped
+# OvmfPkg/OvmfPkgX64.dsc: SECURE_BOOT_ENABLE is already FALSE (line 32)
+# and NETWORK_TLS_ENABLE too (50), the !if SECURE_BOOT_ENABLE guards
+# are at 245/581/890/1048, and BaseCryptLib is mapped at
+# 276/370/411/504/542/791 -- every one OUTSIDE those guards.
+# CRYPTO_SERVICES appears nowhere. There is no flag that drops crypto
+# from OVMF, so OpensslLibCrypto.inf(29) -- $(OPENSSL_PATH)/ms/uplink.h
+# in its [Sources] -- is reached on a default X64 build.
+#
+# BASETOOLS IS BUILT WHOLE. Revision 16 named eleven targets to skip
+# BrotliCompress, which was compensating for the wrong brotli pin. With
+# the real pin that exclusion would be a workaround for a problem that
+# no longer exists, so it is gone -- and a clean BaseTools build is
+# also the test that the pin is right.
+#
+# THE ONE NAME NOT PINNED BY `as`: the main source's own top-level
+# directory. `extract ... as "x"` renames a submodule tree, so those
+# are certain; GitHub names a tag archive <repo>-<tag>, which should be
+# edk2-edk2-stable202608. prepare's on_fail lists ${src}/edk2 so a
+# wrong guess names the real directory in THIS cycle rather than the
+# next one.
+#
+# BASETOOLS COMES FROM A PACKAGE NOW, and that is what makes this
+# revision work at all. 19-1 cleared LTO and then died on
+# `make: Trim: No such file or directory`, Error 127: edk2's generated
+# makefiles invoke the BaseTools by BARE NAME, and upstream resolves
+# that by putting BinWrappers/PosixLike on PATH -- it says so itself,
+# in that directory's own posix_path_env.yaml, `"flags": ["set_path"]`.
+#
+# A CPDL recipe may not set PATH (CPDL-E3006), and four probes closed
+# every other door: EDK_TOOLS_BIN is Windows-only (toolsetup.bat
+# prepends it; build.py:795 merely prints it on POSIX, so this
+# recipe's own setting of it was inert and is now gone); BinWrappers
+# appears nowhere in BaseTools/Source/Python; and Conf/tools_def.txt
+# holds exactly 17 *_*_*_<TOOL>_PATH lines with no entry for Trim,
+# GenSec, GenFfs, GenFv, Split or AmlToC -- so rewriting that file
+# would have fixed some tools and silently missed the rest.
+#
+# The one sanctioned way anything reaches PATH here is to be a
+# declared tool, so BaseTools is `edk2-basetools@202608-5`, pinned to
+# the same tag as this tree because BaseTools and firmware from
+# different stables is a real failure mode. That also deletes the
+# in-tree `make -C BaseTools/Source/C` this recipe used to run: the C
+# tools arrive built.
+#
+# WHAT 18-1 ESTABLISHED, and it is nearly all of it. Every submodule
+# pin above is CORRECT: OvmfPkgX64.dsc parsed in full, every declared
+# .dec include path resolved (no more error 000E anywhere), AutoGen
+# completed, and the build was compiling real modules -- it died on
+# MdePkg/.../DriverEntryPoint.obj, which is module 1 of the firmware
+# rather than anything to do with sources. The inventory grep also
+# settled the submodule question: RedfishPkg.dec declares jansson
+# include paths and TcgTpmPkg.dec declares one under TPM, and NEITHER
+# is reached, so OVMF really does need exactly these six.
+#
+# THE ONE REMAINING BLOCKER, and it is in our own toolchain rather than
+# in edk2: `cc1: error: LTO support has not been enabled in this
+# configuration`. The GCC toolchain tag passes `-flto -DUSING_LTO` on
+# every compile, and Cix's gcc is configured without LTO -- that is
+# gcc's own message about its own build, not an edk2 opinion.
+#
+# So this revision changes ONE argument, `-t GCC` to `-t GCCNOLTO`.
+# That is not a workaround: GCCNOLTO is edk2's own supported toolchain
+# tag, it exists for exactly this configuration, and revision 1 already
+# measured it as one of the four tags this tree offers (GCC, GCCNOLTO,
+# CLANGDWARF, CLANGPDB -- there is no GCC5). Teaching our gcc to do LTO
+# would be a compiler rebuild to obtain a code-generation option that
+# firmware does not need, which is the escalation CLAUDE.md's cost rule
+# exists to stop.
+#
+# NO BUILD OUTPUT. The phase ends on a deliberate failure so the log is
+# kept and nothing is published. A real edk2 package recipe follows
+# once this reports an OVMF_CODE_4M.fd.
+#
+package "probe-edk2-build" {
+    version "20"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/tags/edk2-stable202608.tar.gz"
+            sha256 "bac40812213576c3025cf780c33d882f9e087a44201b1cd28a07f6d1eb54b76a"
+        }
+        extra "ossl" {
+            url "https://github.com/openssl/openssl/archive/8cf17aaeb4599f8af87fefd810b5b5fee90fe69e.tar.gz"
+            sha256 "03154360ff8808ac38da7530cd69d211e105683e077e9835e48161493c3d0050"
+        }
+        extra "mbedtls" {
+            url "https://github.com/Mbed-TLS/mbedtls/archive/0bebf8b8c7f07abe3571ded48a11aa907a1ffb20.tar.gz"
+            sha256 "61ac65f6362f898677b2a4cf2a769b41e4aee0985cb45f046d3b719388e5be59"
+        }
+        extra "brotli" {
+            url "https://github.com/google/brotli/archive/e230f474b87134e8c6c85b630084c612057f253e.tar.gz"
+            sha256 "a9ba3940267de5dd73581a47c2e81b3eb1e1df6a704138c599020d66f3677a92"
+        }
+        extra "mipisyst" {
+            url "https://github.com/MIPI-Alliance/public-mipi-sys-t/archive/370b5944c046bab043dd8b133727b2135af7747a.tar.gz"
+            sha256 "9fda3b9a78343ab2be6f06ce6396536e7e065abac29b47c8eb2e42cbb4c4f00b"
+        }
+        extra "libspdm" {
+            url "https://github.com/DMTF/libspdm/archive/f55cf6d48ec69b4ac60a63903e9c6a2cb0fd155d.tar.gz"
+            sha256 "a815aa38874d2c82255f379a7ee1eb07cccbb439a7788ff14316fce52d61a516"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "python"
+            tool "nasm"
+            tool "edk2-basetools@202608-5"
+            tool "acpica"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "edk2 builds with GCC toolchain tags only; edk2-stable202608 offers GCC, GCCNOLTO, CLANGDWARF and CLANGPDB, and no TCC tag exists. GCCNOLTO rather than GCC because Cix gcc is configured without LTO and the GCC tag passes -flto: cc1 answers that LTO support has not been enabled in this configuration. Measured on 192.168.15.95, 2026-10-09."
+    }
+
+    metadata {
+        "changelog" "20: BaseTools comes from edk2-basetools@202608-5, a declared tool, which is the one sanctioned way anything reaches PATH -- and PATH is how edk2 invokes its own tools, as BinWrappers/PosixLike/posix_path_env.yaml states outright. 19-1 cleared LTO and then died on make: Trim: No such file or directory. Drops the in-tree BaseTools build and the EDK_TOOLS_BIN env, measured inert on POSIX (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/edk2/edk2-edk2-stable202608" {
+            exists
+        }
+
+        # Each submodule the tarball represents as an empty mount point.
+        # allow_failure on the removes because an absent placeholder is
+        # a legitimate shape too -- and the extract immediately after
+        # fails loudly (CPDL-E4006) if the directory is still there.
+        remove "${src}/edk2/edk2-edk2-stable202608/CryptoPkg/Library/OpensslLib/openssl" allow_failure
+        extract $source.ossl into "${src}/edk2/edk2-edk2-stable202608/CryptoPkg/Library/OpensslLib" as "openssl"
+
+        remove "${src}/edk2/edk2-edk2-stable202608/CryptoPkg/Library/MbedTlsLib/mbedtls" allow_failure
+        extract $source.mbedtls into "${src}/edk2/edk2-edk2-stable202608/CryptoPkg/Library/MbedTlsLib" as "mbedtls"
+
+        remove "${src}/edk2/edk2-edk2-stable202608/MdePkg/Library/MipiSysTLib/mipisyst" allow_failure
+        extract $source.mipisyst into "${src}/edk2/edk2-edk2-stable202608/MdePkg/Library/MipiSysTLib" as "mipisyst"
+
+        remove "${src}/edk2/edk2-edk2-stable202608/SecurityPkg/DeviceSecurity/SpdmLib/libspdm" allow_failure
+        extract $source.libspdm into "${src}/edk2/edk2-edk2-stable202608/SecurityPkg/DeviceSecurity/SpdmLib" as "libspdm"
+
+        # ONE declared brotli source, TWO destinations: .gitmodules maps
+        # the same commit to both paths. Nothing is fetched twice.
+        remove "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/C/BrotliCompress/brotli" allow_failure
+        extract $source.brotli into "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/C/BrotliCompress" as "brotli"
+        remove "${src}/edk2/edk2-edk2-stable202608/MdeModulePkg/Library/BrotliCustomDecompressLib/brotli" allow_failure
+        extract $source.brotli into "${src}/edk2/edk2-edk2-stable202608/MdeModulePkg/Library/BrotliCustomDecompressLib" as "brotli"
+
+        # The include directories edk2 validates at parse, one per
+        # submodule, so a wrong archive shape names itself here rather
+        # than as an edk2 error 000E a long way into the build.
+        require directory "${src}/edk2/edk2-edk2-stable202608/CryptoPkg/Library/OpensslLib/openssl/include" {
+            exists
+        }
+        require directory "${src}/edk2/edk2-edk2-stable202608/CryptoPkg/Library/MbedTlsLib/mbedtls/include" {
+            exists
+        }
+        require directory "${src}/edk2/edk2-edk2-stable202608/MdePkg/Library/MipiSysTLib/mipisyst/library/include" {
+            exists
+        }
+        require directory "${src}/edk2/edk2-edk2-stable202608/SecurityPkg/DeviceSecurity/SpdmLib/libspdm/include" {
+            exists
+        }
+        require directory "${src}/edk2/edk2-edk2-stable202608/MdeModulePkg/Library/BrotliCustomDecompressLib/brotli/c/include" {
+            exists
+        }
+
+        # edksetup.sh copies these three; CPDL cannot source a script.
+        mkdir "${src}/edk2/edk2-edk2-stable202608/Conf" parents
+        copy "${src}/edk2/edk2-edk2-stable202608/BaseTools/Conf/target.template" to "${src}/edk2/edk2-edk2-stable202608/Conf/target.txt"
+        copy "${src}/edk2/edk2-edk2-stable202608/BaseTools/Conf/tools_def.template" to "${src}/edk2/edk2-edk2-stable202608/Conf/tools_def.txt"
+        copy "${src}/edk2/edk2-edk2-stable202608/BaseTools/Conf/build_rule.template" to "${src}/edk2/edk2-edk2-stable202608/Conf/build_rule.txt"
+
+        on_fail {
+            run "ls" {
+                "-1"
+                "${src}/edk2"
+                allow_failure
+            }
+        }
+    }
+
+    build {
+        cd "${src}/edk2/edk2-edk2-stable202608" {
+            # Every .dec reference to any of the thirteen submodule
+            # paths, so a submodule this recipe does NOT supply names
+            # itself now rather than one build cycle from now.
+            run "grep" {
+                "-rn"
+                "--include=*.dec"
+                "-E"
+                "openssl|mbedtls|brotli|mipisyst|libspdm|oniguruma|jansson|cmocka|googletest|subhook|libfdt|TpmLib/TPM"
+                "."
+            }
+
+
+            run "BaseTools/BinWrappers/PosixLike/build" {
+                "-a"
+                "X64"
+                "-t"
+                "GCCNOLTO"
+                "-b"
+                "RELEASE"
+                "-p"
+                "OvmfPkg/OvmfPkgX64.dsc"
+                "-D"
+                "SECURE_BOOT_ENABLE=FALSE"
+                "-D"
+                "FD_SIZE_4MB"
+                env "WORKSPACE" = "${src}/edk2/edk2-edk2-stable202608"
+                env "EDK_TOOLS_PATH" = "${src}/edk2/edk2-edk2-stable202608/BaseTools"
+                env "CONF_PATH" = "${src}/edk2/edk2-edk2-stable202608/Conf"
+                env "GCC_BIN" = "/usr/bin/"
+                env "PYTHON_COMMAND" = "/usr/bin/python3"
+                env "PYTHONHASHSEED" = "1"
+            }
+
+            run "find" {
+                "Build"
+                "-name"
+                "OVMF*.fd"
+            }
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-build" parents
+    }
+}
