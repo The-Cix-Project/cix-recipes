@@ -1,0 +1,152 @@
+#
+# probe-srpart 1 -- does this kernel create partition devices for an
+# OPTICAL drive, so that `root=PARTUUID=` could name one? (cix#430)
+#
+# WHY IT DECIDES SOMETHING. cix#430 gave the installer media a GPT
+# partition over its own ISO9660 filesystem, and the USB boot entries
+# now say `root=PARTUUID=`. The CD/DVD entries still say
+# `root=/dev/sr0`, deliberately, because nothing had measured whether
+# PARTUUID can work on a disc at all. If the kernel scans partitions on
+# sr* then one entry serves both media and the installer's four menu
+# entries collapse to two; if it does not, then four entries is not a
+# wart, it is the correct shape and should be recorded as such so nobody
+# tries again.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL. `cixctl boot` reports kernel
+# 7.2.9 and kernel@7.2.9-2.cbs declares exactly this tarball and
+# sha256, so this reads the code that is running.
+#
+# THREE PLACES, because the answer is a conjunction and reading only
+# the first would be the usual mistake:
+#
+#   drivers/scsi/sr.c          -- does the CD driver mark its disk as
+#                                 having no partitions?
+#   block/partitions/core.c    -- what honours that mark, and what
+#                                 exactly does it skip?
+#   block/early-lookup.c       -- how does root=PARTUUID= resolve a
+#                                 name to a device, and would it see a
+#                                 disk with no partitions?
+#
+# EVERY GREP IS BUNDLED WITH `#include`, which cannot miss in a C file,
+# because grep exits 1 on no match and that would end the phase --
+# turning "this identifier does not appear" from the finding into an
+# abort that hides which grep aborted. The noise is the price of every
+# run reporting its own answer.
+#
+# NOTHING IS COMPILED. The tarball is extracted and read.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-srpart" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.9.tar.xz"
+            sha256 "b4c5dfbe51a364a6c7f03869200f88c8e1f77403539005f14b7fc6bc91b8d8ba"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: does this kernel scan partitions on an optical drive, so root=PARTUUID= could name one? Decides whether the installer's four GRUB entries can collapse to two (cix#430)."
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}/linux/linux-7.2.9/drivers/scsi/sr.c"
+        }
+
+        # 1. Does the CD driver declare its disk partitionless?
+        run "grep" {
+            "-n"
+            "-e"
+            "GENHD_FL"
+            "-e"
+            "disk->flags"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.9/drivers/scsi/sr.c"
+        }
+
+        # The same question with context, since a flag set beside
+        # others reads differently from one set alone.
+        run "grep" {
+            "-n"
+            "-B"
+            "12"
+            "-A"
+            "12"
+            "-e"
+            "GENHD_FL_NO_PART"
+            "-e"
+            "#include <linux/module.h>"
+            "${src}/linux/linux-7.2.9/drivers/scsi/sr.c"
+        }
+
+        # 2. What honours the mark, and what does it skip?
+        run "grep" {
+            "-n"
+            "-e"
+            "GENHD_FL_NO_PART"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.9/block/partitions/core.c"
+        }
+        run "grep" {
+            "-n"
+            "-B"
+            "8"
+            "-A"
+            "16"
+            "-e"
+            "GENHD_FL_NO_PART"
+            "-e"
+            "#include <linux/fs.h>"
+            "${src}/linux/linux-7.2.9/block/partitions/core.c"
+        }
+
+        # 3. How does root=PARTUUID= resolve, and what would it see?
+        run "grep" {
+            "-n"
+            "-e"
+            "PARTUUID"
+            "-e"
+            "partuuid"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.9/block/early-lookup.c"
+        }
+        run "grep" {
+            "-n"
+            "-B"
+            "6"
+            "-A"
+            "30"
+            "-e"
+            "devt_from_partuuid"
+            "-e"
+            "#include <linux/blkdev.h>"
+            "${src}/linux/linux-7.2.9/block/early-lookup.c"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-srpart" parents
+        write "${dest}/usr/share/probe-srpart/probe" "${version}-${release}\n"
+    }
+}
