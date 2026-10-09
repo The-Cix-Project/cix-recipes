@@ -1,0 +1,128 @@
+#
+# probe-qemu-kernel -- does `-kernel` direct boot work with OVMF and no
+# SeaBIOS at all? (cix#587, cix#584)
+#
+# WHY THIS MIGHT ALREADY WORK, which is worth one probe before
+# packaging anything. cix#587 says `-kernel` needs SeaBIOS and the
+# linuxboot/pvh option ROMs, and that is true of the LEGACY BIOS path:
+# SeaBIOS loads an option ROM which pulls the kernel out of fw_cfg.
+# But edk2 grew QemuKernelLoaderFsDxe, which makes OVMF expose a
+# fw_cfg kernel as a boot option by itself -- no BIOS, no option ROM.
+# If that works here then test/test_boot.c is unblocked with no new
+# packages, and cix#587 shrinks to legacy BIOS and NIC/display ROMs.
+#
+# THE KERNEL COMES FROM THE CACHE AS A .cixpkg, extracted in-build by
+# cbs. That keeps provenance exact: it is the kernel this host built
+# and booted (7.2.9-2), not a foreign bzImage fetched to test a
+# feature. The sha256 came from the cache's own artifact listing.
+#
+# -vga none -nic none, because qemu will not start a device whose
+# option ROM it cannot find and this qemu ships none -- measured by
+# probe-qemu-boot@2-1..@4-1, which is a separate matter from the
+# firmware itself.
+#
+# panic=-1 with -no-reboot: a kernel with no root panics, and panic=-1
+# reboots immediately, which -no-reboot turns into qemu exiting. So a
+# WORKING boot ends by itself rather than sitting at a timeout, and
+# the serial log is the evidence either way.
+#
+# THE BZIMAGE PATH IS A GUESS, stated as one: the ISO's grub.cfg boots
+# /boot/cix-bzImage, so the package most likely installs it there. The
+# `find` runs first regardless, so if the guess is wrong the log names
+# the real path and the next revision costs one cycle rather than a
+# discovery probe costing one anyway.
+#
+package "probe-qemu-kernel" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "kernelpkg" {
+            url "http://192.168.15.31:8080/kernel-7.2.9-2-x86_64.cixpkg"
+            sha256 "2cde33d6f432843c7bd1956c105c6ecc14a226d7adf375a024d566d85ee334a2"
+        }
+    }
+
+    requires {
+        build {
+            tool "qemu"
+            tool "ovmf"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: does -kernel direct boot work with OVMF and no SeaBIOS? cix#587 assumes it needs SeaBIOS plus the linuxboot option ROMs, which is true of the legacy BIOS path -- but edk2's QemuKernelLoaderFsDxe makes OVMF expose a fw_cfg kernel as a boot option on its own. If it works, test_boot is unblocked with no new packages and cix#587 shrinks (cix#587, cix#584)."
+    }
+
+    prepare {
+        materialize $source.kernelpkg to "${build}/kernel.cixpkg"
+    }
+
+    build {
+        # cbs is the engine running this build, so it is in here.
+        # --into must not exist already (CIXPKG-E4001 is what cbs says
+        # about its DESTINATION while naming the artifact).
+        run "cbs" {
+            "extract"
+            "${build}/kernel.cixpkg"
+            "--into"
+            "${build}/k"
+        }
+
+        run "find" {
+            "${build}/k"
+            "-name"
+            "*bzImage*"
+        }
+
+        run "qemu-system-x86_64" {
+            "-machine"
+            "q35"
+            "-m"
+            "1024"
+            "-nic"
+            "none"
+            "-vga"
+            "none"
+            "-display"
+            "none"
+            "-no-reboot"
+            "-bios"
+            "/usr/share/OVMF/OVMF.fd"
+            "-kernel"
+            "${build}/k/boot/cix-bzImage"
+            "-append"
+            "console=ttyS0 panic=-1"
+            "-serial"
+            "file:${build}/serial.log"
+            timeout 3m
+        }
+
+        run "false" {
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${build}"
+                allow_failure
+            }
+            run "cat" {
+                "${build}/serial.log"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-qemu-kernel" parents
+    }
+}
