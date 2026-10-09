@@ -1,0 +1,154 @@
+#
+# probe-cix-bootest -- does test_boot actually PASS on a Cix host?
+# (cix#584)
+#
+# WHY THIS IS THE POINT OF cix#584. Seven test binaries boot a real
+# image under QEMU with OVMF firmware and not one has ever run on a
+# Cix host, because no Cix host had either. Parts 266-269 built both
+# and proved a guest boots; this is the first attempt at the thing the
+# issue was actually opened for.
+#
+# test_boot IS THE RIGHT FIRST ONE. It uses -kernel, which
+# probe-qemu-kernel@2-1 measured working with OVMF and no SeaBIOS, so
+# nothing firmware-shaped stands in its way -- unlike the with_nic and
+# secure_boot paths, which need an iPXE option ROM and a Secure Boot
+# OVMF build respectively (cix#587).
+#
+# WHAT IT NEEDS, and every one of these is a declared tool rather than
+# something hoped for in the image: mkfs.vfat (dosfstools), mcopy/mmd/
+# mren (mtools), mksquashfs (squashfs-tools), sfdisk (util-linux),
+# qemu, and the OVMF firmware. mkbootroot also stages filesystem
+# tools, hence e2fsprogs and btrfs-progs. There are no loop devices in
+# a build container and the harness does not want any: it writes each
+# piece at its exact partition offset, which is why mtools is here
+# instead of a mount.
+#
+# THE KERNEL IS SUPPLIED, because build-inputs/bzImage is deliberately
+# not reproduced by make and a build container is sealed. It comes
+# from the cache as kernel-7.2.9-2-x86_64.cixpkg and is unpacked
+# in-build by cbs, so it is the kernel this host built and booted --
+# the same route the ADR-0209 test floor uses for its artifacts, and
+# for the same reason. probe-qemu-kernel@1-1 measured that the
+# artifact holds it at its own root, not under boot/.
+#
+# NO DELIBERATE FAILURE HERE, unlike the measurement probes. This one
+# is a question whose answer is an exit status, so the phase is
+# allowed to succeed: `installed` at 1-1 with no error means test_boot
+# PASSED. on_fail carries the diagnostics for when it does not.
+#
+package "probe-cix-bootest" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-480.tar.gz"
+            sha256 "121f48f7282491781ecdc9a7629d0e90e2eb3fbde74ccaabd0d543ae63f0888f"
+        }
+        extra "kernelpkg" {
+            url "http://192.168.15.31:8080/kernel-7.2.9-2-x86_64.cixpkg"
+            sha256 "2cde33d6f432843c7bd1956c105c6ecc14a226d7adf375a024d566d85ee334a2"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            # The set cixd itself links, taken from
+            # probe-cix-compile@0.2.57-513 rather than rediscovered one
+            # build failure at a time: 1-1 omitted them and died on
+            # daemon/src/curlfetch.c:3 not finding curl/curl.h.
+            tool "tar"
+            tool "openssl"
+            tool "libarchive"
+            tool "curl"
+            tool "quickjs"
+            tool "minisign"
+            tool "cbs"
+            tool "gcc"
+            tool "gzip"
+            tool "qemu"
+            tool "ovmf"
+            tool "dosfstools"
+            tool "mtools"
+            tool "squashfs-tools"
+            tool "util-linux"
+            tool "e2fsprogs"
+            tool "btrfs-progs"
+        }
+    }
+
+    metadata {
+        "changelog" "3: builds build/cix-init too. 2-1 compiled everything and test_boot then failed in 12 ms with 'cix-init is not beside build/cixd' -- mkbootroot stages the freestanding container PID 1 (ADR-0260) and names it when absent. The question is unchanged: does test_boot pass on a Cix host? installed with no error means it did (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/cix/cix" {
+            exists
+        }
+        materialize $source.kernelpkg to "${build}/kernel.cixpkg"
+    }
+
+    build {
+        # build-inputs/ is an INPUT, never produced by make, and the
+        # harness says so itself when it is missing.
+        run "cbs" {
+            "extract"
+            "${build}/kernel.cixpkg"
+            "--into"
+            "${build}/k"
+        }
+        mkdir "${src}/cix/cix/build-inputs" parents
+        copy "${build}/k/bzImage" to "${src}/cix/cix/build-inputs/bzImage"
+
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=0.2.57-480"
+                # cix-init must be beside cixd: mkbootroot stages it as the
+                # container PID 1 and says so by name when it is absent,
+                # which is how 2-1 ended in 12 ms (ADR-0260).
+                "build/cix-init"
+                "build/cixd"
+                "build/cixctl"
+                "build/mkbootroot"
+                "build/test_boot"
+                jobs $jobs
+            }
+
+            # The real question. Generous ceiling: this is software
+            # emulation with no KVM anywhere on this host, and the
+            # harness's own timeouts were tuned for exactly that.
+            run "build/test_boot" {
+                timeout 20m
+            }
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${src}/cix/cix/build-inputs"
+                allow_failure
+            }
+            run "ls" {
+                "-la"
+                "${src}/cix/cix/build"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cix-bootest" parents
+    }
+}
