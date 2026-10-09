@@ -1,0 +1,139 @@
+# CPython. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# cix#487).
+#
+# WHAT CHANGES:
+#
+#   usr/share/man  -- no longer deleted (ADR-0306, cix#491).
+#   test, idlelib, tkinter, idle3, idle3.13 -- still deleted. Those
+#                     are this package's own judgement about what it
+#                     ships: a test suite, and an IDE plus the Tk
+#                     bindings it needs, on a platform that packages
+#                     no Tk and has no display.
+#
+# __pycache__ uses `remove tree glob`, which is the find -exec the
+# shell recipe ran:
+#
+#   find … -name "__pycache__" -type d -exec rm -rf {} +
+#
+# `remove` alone takes files, empty directories and symlinks; a
+# non-empty directory needs `tree`, and the glob form applies it
+# across the matches. These directories are always present after a
+# CPython install -- the build byte-compiles the standard library --
+# so the no-match-fails behaviour that makes a defensive `rm -f`
+# untranslatable (cbs#188) is not a risk here.
+package "python" {
+    version "3.13.5"
+    release 12
+    format "cixpkg"
+
+    sources {
+        main "python" {
+            url "https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz"
+            sha256 "e6190f52699b534ee203d9f417bdbca05a92f23e35c19c691a50ed2942835385"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "binutils"
+            tool "linux-headers"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "pkgconf"
+            tool "findutils"
+            tool "m4"
+            tool "zlib"
+            tool "bzip2"
+            tool "xz"
+        }
+        runtime {
+            package "zlib"
+            package "bzip2"
+            # liblzma.so.5, for the _lzma module. Newly needed and
+            # not a new mistake: 3.13.5-5 shipped 64 lib-dynload
+            # modules and _lzma was not among them, because xz was
+            # not in the sandbox then. It is now, so configure finds
+            # it, builds the module, and the #389 gate refuses the
+            # package because the link is recorded and the
+            # dependency is not.
+            #
+            # That is worth noticing beyond this package: what an
+            # autotools build produces depends on what happens to be
+            # in the composed sandbox, so a build dependency added
+            # for one reason can silently add a RUNTIME dependency
+            # somewhere else.
+            package "xz"
+            # libssl.so.3 and libcrypto.so.3, for the _ssl
+            # module -- and the paragraph above repeating
+            # itself, one revision later. openssl is in the
+            # composed sandbox now, so configure found it and
+            # built _ssl, and the #389 gate refused 3.13.5-11
+            # at install naming libssl.so.3 exactly as it once
+            # named liblzma.so.5. Nothing in this recipe asked
+            # for either module; both arrived because the
+            # sandbox changed underneath it.
+            package "openssl"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "carried from 3.13.5-8 and not re-measured against the pinned tcc 0.9.28rc. CPython is a large C codebase with its own configure-driven feature detection, which is the shape most likely to find a compiler gap, but that is a prediction and ADR-0226 asks for a measurement with a date"
+    }
+
+    metadata {
+        "changelog" "3.13.5-12: declares openssl. -11 built fine and was refused at install -- _ssl links libssl.so.3 and nothing declared it, the same shape as -10 and liblzma.so.5 one revision earlier. -11 itself rebuilt python so _multiprocessing gets SemLock: a build container had no /dev/shm until cix 0.2.57-479, so the configure probe for POSIX semaphores failed and every revision through -10 ships a python whose multiprocessing raises at import (cix#584)."
+    }
+
+    build {
+        cd "${src}/python/Python-3.13.5" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--enable-shared"
+                "--with-ensurepip=no"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/python/Python-3.13.5" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        remove tree "${dest}/usr/lib/python3.13/test"
+        remove tree "${dest}/usr/lib/python3.13/idlelib"
+        remove tree "${dest}/usr/lib/python3.13/tkinter"
+        remove "${dest}/usr/bin/idle3"
+        remove "${dest}/usr/bin/idle3.13"
+        remove tree glob "${dest}/usr/lib/python3.13/**/__pycache__"
+        # cix#584: a build container had no /dev/shm before cix
+        # 0.2.57-479, so configure POSIX-semaphore probe failed
+        # and _multiprocessing was compiled WITHOUT SemLock. That
+        # surfaces only at import, and never says shared memory:
+        # "This platform lacks a functioning sem_open
+        # implementation", raised inside whatever tool reached for
+        # a process pool -- edk2 build.py, in the case that found
+        # it. grep exits 1 when the name is absent, so this fails
+        # the build rather than shipping a python that cannot fork
+        # a pool.
+        run "grep" {
+            "-q"
+            "SemLock"
+            "${dest}/usr/lib/python3.13/lib-dynload/_multiprocessing.cpython-313-x86_64-linux-gnu.so"
+        }
+        require file "${dest}/usr/bin/python3.13" {
+            exists
+            nonempty
+        }
+    }
+}
