@@ -1,0 +1,127 @@
+#
+# probe-edk2-build 2 -- does BaseTools build once the brotli submodule
+# is supplied? (cix#584)
+#
+# WHAT REVISION 1 ESTABLISHED, now that cbs v0.1.106 lets the tree
+# extract at all (cix-build-system#283, live on this box since the
+# assembly of 2026-10-09):
+#
+#   - the archive extracts with one CPDL-W6001 skip, as designed;
+#   - python3 is 3.13.5;
+#   - master offers the toolchain tags *_GCC_, *_GCCNOLTO_,
+#     *_CLANGDWARF_ and *_CLANGPDB_. **There is no GCC5**, the tag
+#     every edk2 guide still names -- a recipe naming it would have
+#     failed after a full BaseTools build rather than at parse;
+#   - edksetup.sh exports WORKSPACE=$PWD, EDK_TOOLS_PATH=$DIR/BaseTools,
+#     PYTHON_COMMAND=python3 and PYTHONHASHSEED=1, which is the list
+#     CPDL has to pass explicitly because it cannot source a script;
+#   - and BaseTools FAILED at BrotliCompress.c:21 for
+#     ./brotli/c/common/constants.h -- the brotli submodule, which no
+#     source tarball carries.
+#
+# SO THIS SUPPLIES IT. brotli v1.1.0 is declared as an extra source and
+# extracted to the path .gitmodules maps it to,
+# BaseTools/Source/C/BrotliCompress/brotli, where BrotliCompress.c's
+# own relative include resolves. Declared rather than fetched in-build
+# because a build container is sealed and because a declared source is
+# checksum-verified host-side.
+#
+# A VERSION RISK STATED RATHER THAN HIDDEN: edk2 pins an exact brotli
+# commit and a tarball cannot tell us which, so this takes the current
+# release. brotli's C API has been stable across 1.0.x and 1.1.0, and
+# BrotliCompress uses only the encoder entry points -- but if the pin
+# predates 1.1.0 incompatibly, this fails in BrotliCompress rather than
+# anywhere subtle, and that is the next thing the log would say.
+#
+# NO BUILD OUTPUT. The phase ends on a deliberate failure so the log is
+# kept and nothing is published.
+#
+package "probe-edk2-build" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/heads/master.tar.gz"
+            sha256 "be3f938b7d476a5b72790ba4af16cb698f39ecf5352e07d53544f1309baa7356"
+        }
+        extra "brotli" {
+            url "https://github.com/google/brotli/archive/refs/tags/v1.1.0.tar.gz"
+            sha256 "e720a6ca29428b803f4ad165371771f5398faba397edf6778837a18599ea13ff"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "python"
+            tool "nasm"
+            tool "acpica"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "edk2's BaseTools are gcc C and its firmware toolchain tags are GCC, GCCNOLTO, CLANGDWARF and CLANGPDB -- measured from BaseTools/Conf/tools_def.template by revision 1 of this probe, 2026-10-09. There is no TCC tag."
+    }
+
+    metadata {
+        "changelog" "4: removes the empty brotli submodule mount point the edk2 tarball carries, then extracts brotli v1.1.0 into it. Revision 3 measured that directory as present and 0-sized, which is why extract-as collided with CPDL-E4006 (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/edk2/edk2-master" {
+            exists
+        }
+        run "ls" {
+            "-la"
+            "${src}/edk2/edk2-master/BaseTools/Source/C/BrotliCompress"
+        }
+        # The tarball carries this as an empty submodule mount
+        # point -- measured by revision 3, 0 bytes -- so the
+        # extract below collides with it (CPDL-E4006). Removed
+        # rather than extracted around, because the relative
+        # include in BrotliCompress.c requires exactly this path.
+        remove "${src}/edk2/edk2-master/BaseTools/Source/C/BrotliCompress/brotli"
+        extract $source.brotli into "${src}/edk2/edk2-master/BaseTools/Source/C/BrotliCompress" as "brotli"
+        require file "${src}/edk2/edk2-master/BaseTools/Source/C/BrotliCompress/brotli/c/common/constants.h" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/edk2/edk2-master" {
+            run "make" {
+                "-C"
+                "BaseTools"
+                env "CC" = "/usr/bin/gcc"
+                env "PYTHON_COMMAND" = "/usr/bin/python3"
+                env "PYTHONHASHSEED" = "1"
+            }
+            # What BaseTools actually produced, which the real recipe
+            # has to put on PATH for the firmware build.
+            run "find" {
+                "BaseTools/Source/C/bin"
+                "-type"
+                "f"
+            }
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-build" parents
+    }
+}
