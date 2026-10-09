@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "82c1ae95624de023a301aecc0d4e89b4fb9bba197bd56c1ffc6152a9fefcead7"
         "changelog" "0.2.57-506: compile and selftest probe of cix commit 78b3346b (ADR-0335 step 1; the wire-size pin agrees at 788)."
     }
 
