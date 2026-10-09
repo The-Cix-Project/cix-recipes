@@ -1,0 +1,187 @@
+#
+# probe-isopoff 4 -- with a GPT actually present, does
+# `partition_offset=16` yield a GPT entry that COVERS the ISO9660
+# filesystem? (cix#430)
+#
+# WHY REVISION 3 COULD NOT ANSWER THIS. It built three ISOs with
+# --protective-msdos-label and no appended partition, and none of them
+# had a GPT at all: byte 512 onward was zeros and `EFI PART` appeared
+# nowhere. So the MBR half was answered (partition_offset=16 gives one
+# entry at LBA 64 spanning to the end of the image; iso_mbr_part_type=
+# sets its type byte; part_like_isohybrid=on changes nothing at all,
+# byte for byte) and the GPT half was not observable.
+#
+# Revision 3 also dismissed `appended_part_as=` on the grounds that
+# nothing it built appended a partition. That reasoning was backwards,
+# and it is the whole reason this revision exists: the published
+# installer's GPT holds Gap0, **EFI boot partition**, Gap1 -- and that
+# ESP is grub-mkrescue's own APPENDED efi.img. Appending is what brings
+# a GPT into existence. Without one there is nothing to look at.
+#
+# WHAT THIS DOES. Reproduces grub-mkrescue's shape rather than a
+# reduction of it: a zero-filled efi.img, -append_partition 2 0xef,
+# appended_part_as=gpt, --protective-msdos-label. Two variants, so the
+# difference is attributable to the one setting under test:
+#
+#   u1  without partition_offset   the GPT baseline -- this should
+#                                  reproduce the published layout's
+#                                  shape, with nothing spanning the
+#                                  filesystem
+#   u2  with partition_offset=16   the question
+#
+# The efi.img content is irrelevant: a partition table records where a
+# partition is, not what is in it. 8 MiB of zeros from /dev/zero is
+# enough for xorriso to append and describe, and keeps the probe
+# honest about what it is testing.
+#
+# HOW TO READ IT. Per variant, the first 1536 bytes:
+#   - MBR table at 446; a protective entry is type 0xee spanning the
+#     device, a real one is some other type at its own first LBA
+#   - GPT header at 512, signature "EFI PART" = 45 46 49 20 50 41 52 54
+#   - GPT entries at 1024, 1152, 1280, 1408 -- 128 bytes each, with
+#     first_lba at +32 and last_lba at +40, little-endian
+#
+# A variant ANSWERS #430 only if some entry's first_lba..last_lba spans
+# where the filesystem lives. Gap0 and Gap1 are already partitions and
+# already do not, which is the whole of this issue.
+#
+# NO BUILD OUTPUT. The phase fails deliberately so the log is kept.
+#
+package "probe-isopoff" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-477.tar.gz"
+            sha256 "d6ca04641ac45931c6ff50d19143205083c98224c2ddad11551bd8b262cc5bbe"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "4: with an appended partition so a GPT exists, does partition_offset=16 give a GPT entry covering the ISO9660 filesystem (cix#430). Revision 3 produced no GPT at all and so could not ask this."
+    }
+
+    build {
+        run "dd" {
+            "if=/dev/zero"
+            "of=${build}/efi.img"
+            "bs=1048576"
+            "count=8"
+        }
+
+        # ---------- u1: the GPT baseline, no partition_offset ----------
+        run "xorriso" {
+            "-boot_image"
+            "any"
+            "appended_part_as=gpt"
+            "-boot_image"
+            "any"
+            "gpt_disk_guid=44444444-2222-3333-4444-555555555555"
+            "-as"
+            "mkisofs"
+            "--protective-msdos-label"
+            "-append_partition"
+            "2"
+            "0xef"
+            "${build}/efi.img"
+            "-o"
+            "${build}/u1.iso"
+            "${src}"
+        }
+
+        # ---------- u2: the same, plus partition_offset=16 ----------
+        run "xorriso" {
+            "-boot_image"
+            "any"
+            "partition_offset=16"
+            "-boot_image"
+            "any"
+            "appended_part_as=gpt"
+            "-boot_image"
+            "any"
+            "gpt_disk_guid=55555555-2222-3333-4444-555555555555"
+            "-as"
+            "mkisofs"
+            "--protective-msdos-label"
+            "-append_partition"
+            "2"
+            "0xef"
+            "${build}/efi.img"
+            "-o"
+            "${build}/u2.iso"
+            "${src}"
+        }
+
+        run "ls" {
+            "-la"
+            "${build}/u1.iso"
+            "${build}/u2.iso"
+        }
+
+        run "dd" {
+            "if=${build}/u1.iso"
+            "of=${build}/u1.head"
+            "bs=1"
+            "count=1536"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/u1.head"
+        }
+        run "dd" {
+            "if=${build}/u2.iso"
+            "of=${build}/u2.head"
+            "bs=1"
+            "count=1536"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/u2.head"
+        }
+
+        # The partition-relative volume descriptor, to confirm
+        # partition_offset is in effect in u2 and not in u1.
+        run "dd" {
+            "if=${build}/u1.iso"
+            "of=${build}/u1.off"
+            "bs=1"
+            "skip=65536"
+            "count=6"
+        }
+        run "od" {
+            "-c"
+            "${build}/u1.off"
+        }
+        run "dd" {
+            "if=${build}/u2.iso"
+            "of=${build}/u2.off"
+            "bs=1"
+            "skip=65536"
+            "count=6"
+        }
+        run "od" {
+            "-c"
+            "${build}/u2.off"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isopoff" parents
+        write "${dest}/usr/share/probe-isopoff/probe" "${version}-${release}\n"
+    }
+}
