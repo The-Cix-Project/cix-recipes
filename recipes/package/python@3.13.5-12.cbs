@@ -86,6 +86,7 @@ package "python" {
     }
 
     metadata {
+        "artifact_sha256" "3aa31435610092ea8be945fbb682b0f1163af11ffd958453d3eb01b6be23a13f"
         "changelog" "3.13.5-12: declares openssl. -11 built fine and was refused at install -- _ssl links libssl.so.3 and nothing declared it, the same shape as -10 and liblzma.so.5 one revision earlier. -11 itself rebuilt python so _multiprocessing gets SemLock: a build container had no /dev/shm until cix 0.2.57-479, so the configure probe for POSIX semaphores failed and every revision through -10 ships a python whose multiprocessing raises at import (cix#584)."
     }
 
