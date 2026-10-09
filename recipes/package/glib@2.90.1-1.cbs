@@ -1,0 +1,124 @@
+#
+# glib -- qemu's one hard library dependency. (cix#584)
+#
+# WHY IT IS HERE. qemu will not configure without glib-2.0, so this is
+# the last library in the chain cix#584 needs before qemu itself.
+#
+# gcc, BECAUSE MESON REFUSES TCC. Measured by pixman@0.46.4-1 on this
+# box: meson answers "Unknown compiler(s): [['tcc']]" before reading a
+# source file, since it identifies a compiler from its version output
+# and has no matcher for this one. That is the build system's limit
+# rather than any package's, and it decides the toolchain for every
+# meson-built package here.
+#
+# DELIBERATELY FEW -D OPTIONS. glib declares most of its optional
+# features as meson `auto`, which resolve to disabled when their
+# dependency is absent -- so naming them explicitly adds nothing and
+# every name is a chance to be wrong, and a wrong option name is a
+# hard meson error. Only `tests=false` is passed, because the tests
+# are not what qemu links and building them is the bulk of the work.
+# If an `auto` feature turns out to be required rather than optional,
+# meson says which by name and the next revision carries exactly that
+# one.
+#
+# THE RUNTIME DEPENDENCIES ARE DECLARED UP FRONT. glib links libffi,
+# pcre2 and zlib, and the install-time ELF gate refuses a library that
+# links something nothing declares -- it names the package it wants,
+# so this is cheaper to get right than to be told.
+#
+package "glib" {
+    version "2.90.1"
+    release 1
+    format "cixpkg"
+
+    license "LGPL-2.1-or-later"
+
+    sources {
+        main "glib" {
+            url "https://download.gnome.org/sources/glib/2.90/glib-2.90.1.tar.xz"
+            sha256 "93c941aa17d5eb1d53fe838365f29a8b4e539c222a256d974ec8f30fc413e396"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "meson"
+            tool "ninja"
+            tool "python"
+            tool "pkgconf"
+            tool "libffi"
+            tool "pcre2"
+            tool "zlib"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+        }
+        runtime {
+            package "libffi"
+            package "pcre2"
+            package "zlib"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "meson does not recognise this tcc at all: 'Unknown compiler(s): [[tcc]]', before any source file is read, because it identifies a compiler from its version output and has no matcher for it. The build system's limit rather than glib's. Measured on 192.168.15.95, 2026-10-09 by pixman@0.46.4-1."
+    }
+
+    metadata {
+        "changelog" "2.90.1-1: first revision. qemu will not configure without glib-2.0, so this is the last library in the chain a QEMU boot test on a Cix host needs (cix#584). gcc because meson refuses tcc outright. Few -D options on purpose: glib's optional features are meson auto and resolve to disabled when absent, so naming them adds nothing and a wrong name is a hard error. sha256 measured on this box by probe-glib-tarball@1-1."
+    }
+
+    prepare {
+        require directory "${src}/glib/glib-2.90.1" {
+            exists
+        }
+        require file "${src}/glib/glib-2.90.1/meson.build" {
+            exists
+            nonempty
+        }
+    }
+
+    build {
+        cd "${src}/glib/glib-2.90.1" {
+            run "meson" {
+                "setup"
+                "build"
+                "--prefix=/usr"
+                "--libdir=lib"
+                "--buildtype=release"
+                "-Ddefault_library=shared"
+                "-Dtests=false"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "ninja" {
+                "-C"
+                "build"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/glib/glib-2.90.1" {
+            run "meson" {
+                "install"
+                "-C"
+                "build"
+                "--destdir"
+                "${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/pkgconfig/glib-2.0.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/glib-2.0/glib.h" {
+            exists
+            nonempty
+        }
+    }
+}
