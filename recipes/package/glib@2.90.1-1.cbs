@@ -70,6 +70,7 @@ package "glib" {
     }
 
     metadata {
+        "artifact_sha256" "c7525ece5dfda7ecc19a74608cd4e5d5d694b08aa57f2a41ebb02f5cc9c7da7e"
         "changelog" "2.90.1-1: first revision. qemu will not configure without glib-2.0, so this is the last library in the chain a QEMU boot test on a Cix host needs (cix#584). gcc because meson refuses tcc outright. Few -D options on purpose: glib's optional features are meson auto and resolve to disabled when absent, so naming them adds nothing and a wrong name is a hard error. sha256 measured on this box by probe-glib-tarball@1-1."
     }
 
