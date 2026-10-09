@@ -1,0 +1,88 @@
+#
+# probe-edk2-tools -- how does edk2 locate its own BaseTools, given
+# that CPDL forbids PATH overrides? (cix#584)
+#
+# WHY. probe-edk2-build@19-1 got all the way into compiling firmware
+# modules and died with `make: Trim: No such file or directory`,
+# Error 127, on the first .nasm source. Trim is one of edk2's PYTHON
+# BaseTools wrappers, and the makefiles edk2 generates call it by bare
+# name. edksetup.sh resolves that by prepending
+# $EDK_TOOLS_PATH/BinWrappers/PosixLike to PATH -- which a CPDL recipe
+# may not do (CPDL-E3006), and which is a deliberate CBS property
+# rather than a gap to route around.
+#
+# So the question is what edk2's OWN configuration offers instead.
+# Conf/tools_def.txt is site configuration by design -- edksetup copies
+# it from a template precisely so it can be edited -- so if the tool
+# names in it are bare, absolute paths there are configuration and not
+# a workaround. This reads four things rather than guessing one:
+#
+#   1. every *_*_*_<TOOL>_PATH line in the template, which is the list
+#      of names that would have to become absolute;
+#   2. what edksetup.sh actually does with EDK_TOOLS_BIN, since
+#      build.py reads that variable and I may simply have given it the
+#      wrong directory (Source/C/bin rather than BinWrappers/PosixLike);
+#   3. what is in BinWrappers/PosixLike, i.e. whether one directory
+#      covers both the python tools and the C ones;
+#   4. the Trim wrapper itself, to see whether it exports anything.
+#
+# No submodules and no compile: every file read here is in the tarball,
+# so this is a fetch and four greps. The phase ends on a deliberate
+# failure so the log is kept and nothing is published.
+#
+package "probe-edk2-tools" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/tags/edk2-stable202608.tar.gz"
+            sha256 "bac40812213576c3025cf780c33d882f9e087a44201b1cd28a07f6d1eb54b76a"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: how edk2 locates its own BaseTools when PATH may not be set -- probe-edk2-build@19-1 died on make: Trim: No such file or directory after clearing LTO and every submodule include path (cix#584)."
+    }
+
+    build {
+        cd "${src}/edk2/edk2-edk2-stable202608" {
+            run "grep" {
+                "-nE"
+                "^\\*_\\*_\\*_[A-Z0-9]+_PATH"
+                "BaseTools/Conf/tools_def.template"
+            }
+
+            run "grep" {
+                "-n"
+                "EDK_TOOLS_BIN"
+                "edksetup.sh"
+            }
+
+            run "ls" {
+                "-1"
+                "BaseTools/BinWrappers/PosixLike"
+            }
+
+            run "cat" {
+                "BaseTools/BinWrappers/PosixLike/Trim"
+            }
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-tools" parents
+    }
+}
