@@ -66,6 +66,7 @@ package "libslirp" {
     }
 
     metadata {
+        "artifact_sha256" "fdee4519f6470b11c8367ef9d223f20aec4388279e134bf2e01455b4260ff10c"
         "changelog" "4.9.2-1: first revision. qemu needs libslirp for -netdev user, which test_disk_image.c's with_nic case uses; qemu@11.1.2-2 was built --disable-slirp so the rest could land, and this lifts that gap. The version was measured rather than read: gitlab's tag list is javascript-rendered, so five candidates were probed at once and v4.10.0 answered a real 404 while v4.9.2 existed (cix#584)."
     }
 
