@@ -1,0 +1,48 @@
+#
+# probe-slirp490-tarball -- does libslirp v4.9.0 exist, and what does it
+# hash to? (cix#584)
+#
+# WHY A GUESS AT ALL. libslirp lives on gitlab.freedesktop.org, whose
+# tag listing is rendered by javascript, so WebFetch cannot read it
+# and there is no release API that answered. Three candidate versions
+# are probed at once instead: a 404 says the version does not exist
+# and a checksum mismatch gives both its existence and its sha256, so
+# one round settles which is newest without guessing twice.
+#
+# qemu needs libslirp for -netdev user, which test_disk_image.c's
+# with_nic case uses. qemu@11.1.2-1 is deliberately built
+# --disable-slirp so everything else could land; this is what lifts
+# that stated gap.
+#
+package "probe-slirp490-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "slirp" {
+            url "https://gitlab.freedesktop.org/slirp/libslirp/-/archive/v4.9.0/libslirp-v4.9.0.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: does libslirp v4.9.0 exist and what does it hash to? gitlab's tag list is javascript-rendered, so three candidates are probed at once and the 404s answer (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-slirp490-tarball" parents
+    }
+}
