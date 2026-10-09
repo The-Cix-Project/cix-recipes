@@ -1,0 +1,43 @@
+#
+# probe-brotli-tarball -- the sha256 of the exact tree edk2-stable202608
+# pins, measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# the sha256 of the brotli commit edk2-stable202608 pins at both of its two submodule paths; v1.1.0 was a guess and its objects did not link (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published.
+#
+package "probe-brotli-tarball" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "brotli" {
+            url "https://github.com/google/brotli/archive/e230f474b87134e8c6c85b630084c612057f253e.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the sha256 of the brotli commit edk2-stable202608 pins at both of its two submodule paths; v1.1.0 was a guess and its objects did not link (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-brotli-tarball" parents
+    }
+}
