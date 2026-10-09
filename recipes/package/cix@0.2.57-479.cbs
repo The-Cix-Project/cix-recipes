@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "94fea471732c5de289772628cb6e8c934764cd669f2b09274d83441c864949fa"
         "changelog" "0.2.57-479: every container gets a /dev/shm, so POSIX shared memory and named semaphores work at all (cix#584). glibc implements shm_open and sem_open as files there and there was no such directory -- measured, a build container /dev had no shm entry of any kind. The failure never named shared memory: Python multiprocessing dies at import with lacks a functioning sem_open implementation. Mode 01777 sticky, nosuid and nodev but not noexec."
     }
 
