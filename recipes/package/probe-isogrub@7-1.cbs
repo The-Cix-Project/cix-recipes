@@ -1,0 +1,315 @@
+#
+# probe-isogrub 7 -- can an ISO built by grub-mkrescue carry a GPT entry
+# that SPANS its own ISO9660 filesystem? Three variants in one build.
+# (cix#430)
+#
+# WHAT 6-1 SETTLED AND WHY THAT IS NOT ENOUGH. `-boot_image any
+# partition_offset=16` survives grub-mkrescue's argv and writes the
+# partition-relative volume descriptor: byte 65537 reads CD001. It
+# leaves the GPT untouched -- Gap0 (LBA 64..407), EFI boot partition
+# (408..6167), Gap1 (6168..19807), the published layout exactly. No
+# entry covers the filesystem, so a root=PARTUUID= has nothing to name.
+#
+# WHY. grub-mkrescue puts the EFI boot image INSIDE the ISO filesystem
+# via El Torito, so an entry spanning the filesystem would contain the
+# ESP's own range, and GPT partitions do not overlap -- xorriso
+# describes the same space as three non-overlapping entries instead.
+# probe-isopoff@4-1 did get an ISO-spanning entry, and the reason was
+# its `-append_partition 2 0xef <efi.img>`: an APPENDED ESP sits past
+# the end of the ISO, so nothing overlaps. That is a different medium
+# from what grub-mkrescue builds.
+#
+# WHAT THIS ASKS. Isohybrid media really do carry one entry spanning the
+# whole image with the ESP inside it -- non-conformant to the GPT spec,
+# and tolerated by Linux (the kernel's GPT parser bounds each entry
+# against the disk's last LBA, not against its siblings) and by firmware
+# in practice. xorriso has native settings for exactly that shape, and
+# probe-isoxopt@1-1 listed them in -boot_image's own parameter list. So:
+#
+#   A  appended_part_as=gpt      on its own, with no appended partition
+#   B  part_like_isohybrid=on
+#   C  both
+#
+# each on top of 6-1's partition_offset=16 and gpt_disk_guid=, each
+# through grub-mkrescue's real argv. The answer wanted is an entry whose
+# first LBA is 64 and whose last LBA is the end of the image, with the
+# ESP entry's range inside it.
+#
+# WHY ALL THREE IN ONE BUILD, SEQUENTIALLY. A CPDL run that fails ends
+# the phase, so variant A failing would cost B and C. That risk is low
+# rather than assumed: probe-isopoff@3-1 passed appended_part_as=gpt
+# with no appended partition and xorriso built an ISO anyway (it simply
+# wrote no GPT), so these settings are applied or ignored, not fatal. If
+# one does abort, the log still carries xorriso's own words about it,
+# which is the next thing worth knowing either way.
+#
+# THE ENTRY COUNT IS READ, NOT ASSUMED. The Gap entries may disappear in
+# a variant that works, so the GPT header's entry count (+80) and entry
+# size (+84) are dumped alongside, and five entries are read rather than
+# three. `ls -la` gives each image's size, which is what "to the end"
+# has to be checked against.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-isogrub" {
+    version "7"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grub"
+            tool "mtools"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "7: does any of appended_part_as=gpt, part_like_isohybrid=on, or both give a grub-mkrescue ISO a GPT entry spanning its own filesystem? 6-1 showed partition_offset=16 writes the partition-relative descriptor and leaves the GPT as Gap0/ESP/Gap1 (cix#430)."
+    }
+
+    build {
+        mkdir "${build}/isoroot/boot" parents
+        write "${build}/isoroot/boot/marker" "cix#430 probe-isogrub\n"
+
+        # Three wrappers, identical to 6-1's but for the injected
+        # settings. Shift counts are option+values, from
+        # cix-xorriso.c's own table.
+        write "${build}/xw_a" """
+        #!/usr/bin/bash
+        out=(-boot_image any partition_offset=16)
+        out+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        out+=(-boot_image any appended_part_as=gpt)
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        echo "cix#430 variant A argv: ${out[@]}"
+        exec /usr/bin/xorriso "${out[@]}"
+        """
+        write "${build}/xw_b" """
+        #!/usr/bin/bash
+        out=(-boot_image any partition_offset=16)
+        out+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        out+=(-boot_image any part_like_isohybrid=on)
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        echo "cix#430 variant B argv: ${out[@]}"
+        exec /usr/bin/xorriso "${out[@]}"
+        """
+        write "${build}/xw_c" """
+        #!/usr/bin/bash
+        out=(-boot_image any partition_offset=16)
+        out+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        out+=(-boot_image any appended_part_as=gpt)
+        out+=(-boot_image any part_like_isohybrid=on)
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        echo "cix#430 variant C argv: ${out[@]}"
+        exec /usr/bin/xorriso "${out[@]}"
+        """
+        run "chmod" {
+            "0755"
+            "${build}/xw_a"
+            "${build}/xw_b"
+            "${build}/xw_c"
+        }
+
+        # ---------------- variant A ----------------
+        run "grub-mkrescue" {
+            "--xorriso=${build}/xw_a"
+            "-o"
+            "${build}/ga.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/ga.iso"
+        }
+        # GPT header, LBA 1: "EFI PART" at +0, disk GUID at +56, entry
+        # array LBA at +72, entry count at +80, entry size at +84.
+        run "dd" {
+            "if=${build}/ga.iso"
+            "of=${build}/ha"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ha"
+        }
+        # Five entries from LBA 2. Per entry: type GUID +0, unique GUID
+        # +16, first LBA +32, last LBA +40, attributes +48, name +56.
+        run "dd" {
+            "if=${build}/ga.iso"
+            "of=${build}/ea"
+            "bs=1"
+            "skip=1024"
+            "count=640"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ea"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/ea"
+        }
+        run "dd" {
+            "if=${build}/ga.iso"
+            "of=${build}/oa"
+            "bs=1"
+            "skip=65536"
+            "count=8"
+        }
+        run "od" {
+            "-c"
+            "${build}/oa"
+        }
+
+        # ---------------- variant B ----------------
+        run "grub-mkrescue" {
+            "--xorriso=${build}/xw_b"
+            "-o"
+            "${build}/gb.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/gb.iso"
+        }
+        run "dd" {
+            "if=${build}/gb.iso"
+            "of=${build}/hb"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/hb"
+        }
+        run "dd" {
+            "if=${build}/gb.iso"
+            "of=${build}/eb"
+            "bs=1"
+            "skip=1024"
+            "count=640"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/eb"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/eb"
+        }
+        run "dd" {
+            "if=${build}/gb.iso"
+            "of=${build}/ob"
+            "bs=1"
+            "skip=65536"
+            "count=8"
+        }
+        run "od" {
+            "-c"
+            "${build}/ob"
+        }
+
+        # ---------------- variant C ----------------
+        run "grub-mkrescue" {
+            "--xorriso=${build}/xw_c"
+            "-o"
+            "${build}/gc.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/gc.iso"
+        }
+        run "dd" {
+            "if=${build}/gc.iso"
+            "of=${build}/hc"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/hc"
+        }
+        run "dd" {
+            "if=${build}/gc.iso"
+            "of=${build}/ec"
+            "bs=1"
+            "skip=1024"
+            "count=640"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ec"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/ec"
+        }
+        run "dd" {
+            "if=${build}/gc.iso"
+            "of=${build}/oc"
+            "bs=1"
+            "skip=65536"
+            "count=8"
+        }
+        run "od" {
+            "-c"
+            "${build}/oc"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isogrub" parents
+        write "${dest}/usr/share/probe-isogrub/probe" "${version}-${release}\n"
+    }
+}
