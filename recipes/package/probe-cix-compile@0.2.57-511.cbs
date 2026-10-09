@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "a703defc8e1a9944930409f2c79ecbb6185aa78e952ed6ec4dafcbdc0b6d5d3b"
         "changelog" "0.2.57-511: compile and selftest probe of cix tag 0.2.57-479 -- every container gets a /dev/shm, so POSIX shared memory and named semaphores work (cix#584)."
     }
 
