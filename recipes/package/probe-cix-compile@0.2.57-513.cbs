@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d9d3ff60f0ae75c4d9b44dbcc67e53f648b78ef4e7cb99cf1c51dc16eb22b8fb"
         "changelog" "0.2.57-513: adds build/test_boot to the compiled set, which exists only to compile test/test_disk_image.c -- the QEMU boot harness no gate had ever built, because none of the seven tests linking it is in SELFTESTS. 0.2.57-512 passed and did NOT cover it, so the harness changes for cix#584 went in uncompiled. Same tag 0.2.57-480 (cix#588, cix#584)."
     }
 
