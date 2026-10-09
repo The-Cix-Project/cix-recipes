@@ -1,0 +1,130 @@
+#
+# probe-nicprobe 1 -- do this platform's five NIC drivers register their
+# netdev BEFORE modprobe exits, or after? (cix#442)
+#
+# THE QUESTION AND WHY IT IS STILL OPEN. cix#442's symptom was an
+# installer interface list offering only `lo` on a machine whose
+# Ethernet worked once installed. Its code defects were fixed in
+# v2.57.199 and it was reopened because the close comment rested on a
+# false reading of the artifact cache. The reopening eliminated every
+# hardware-independent candidate on the media it inspected: the module
+# tree is present with all five drivers uncompressed, the release
+# matches so modprobe's /lib/modules/$(uname -r) lookup resolves,
+# modprobe's only NEEDED is libc.so.6 and it is on the media, and
+# /proc and /sys are mounted before the loads run.
+#
+# ONE CANDIDATE FROM THE ORIGINAL REPORT WAS NEVER CHECKED: "the
+# interface had not finished registering when /sys/class/net was read a
+# moment after modprobe returned." That is a race, and nothing in Cix's
+# own code would absorb it -- cix-install.c calls load_nic_modules()
+# and then list_interfaces() on the next line, with no wait of any
+# kind, and kmod_load() waits only for modprobe to EXIT. modprobe exits
+# when the module's init function returns, which is not the same moment
+# the netdev appears IF the driver probes asynchronously.
+#
+# SO THE RACE IS REAL OR NOT ENTIRELY ACCORDING TO THE DRIVERS. A PCI
+# driver whose init calls pci_register_driver() gets probe() called
+# synchronously for devices already present, and register_netdev()
+# inside probe() creates /sys/class/net/<if> before modprobe can exit
+# -- no race. A driver that sets `.probe_type =
+# PROBE_PREFER_ASYNCHRONOUS` hands probing to a worker and returns
+# immediately, so modprobe exits first and the list is read too early.
+#
+# EITHER ANSWER ADVANCES THE ISSUE, which is why this is worth a build:
+# a match means a real defect with a known fix shape (ADR-0335 solved
+# the same "read state before the interface exists" problem this
+# morning with a bounded wait on a sysfs flag), and no match eliminates
+# the last hardware-independent candidate and leaves only "which ISO
+# went onto the stick", which is the owner's to answer.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL -- 7.2.9, per kernel@7.2.9-2.cbs.
+# Note the 2026-09-12 install ran 7.2.3, so a negative here is about
+# today's media rather than about that install; a positive would be
+# about both, since async probing is not something a driver stops doing.
+#
+# GREPS ARE BUNDLED WITH `MODULE_LICENSE`, which cannot miss across
+# these trees, because grep exits 1 on no match and that ends the phase
+# -- and here the EXPECTED answer may well be no match, which is
+# exactly the case that would otherwise abort and tell me nothing.
+#
+# NOTHING IS COMPILED.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-nicprobe" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.9.tar.xz"
+            sha256 "b4c5dfbe51a364a6c7f03869200f88c8e1f77403539005f14b7fc6bc91b8d8ba"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: do the five declared NIC drivers probe asynchronously, so modprobe exits before the netdev registers and the installer reads /sys/class/net too early? The last hardware-independent candidate in cix#442."
+    }
+
+    build {
+        # The five declared drivers, by CIX_NIC_MODULES: e1000e igb
+        # ixgbe r8169 tg3. Asked across the three vendor trees that
+        # hold them rather than by guessing five file names.
+        run "grep" {
+            "-rn"
+            "-e"
+            "PROBE_PREFER_ASYNCHRONOUS"
+            "-e"
+            "probe_type"
+            "-e"
+            "MODULE_LICENSE"
+            "${src}/linux/linux-7.2.9/drivers/net/ethernet/intel/e1000e"
+            "${src}/linux/linux-7.2.9/drivers/net/ethernet/intel/igb"
+            "${src}/linux/linux-7.2.9/drivers/net/ethernet/intel/ixgbe"
+        }
+        run "grep" {
+            "-rn"
+            "-e"
+            "PROBE_PREFER_ASYNCHRONOUS"
+            "-e"
+            "probe_type"
+            "-e"
+            "MODULE_LICENSE"
+            "${src}/linux/linux-7.2.9/drivers/net/ethernet/realtek/r8169_main.c"
+            "${src}/linux/linux-7.2.9/drivers/net/ethernet/broadcom/tg3.c"
+        }
+
+        # What the flag means where it is honoured, so a match is read
+        # correctly rather than assumed to mean "returns immediately".
+        run "grep" {
+            "-n"
+            "-B"
+            "6"
+            "-A"
+            "22"
+            "-e"
+            "PROBE_PREFER_ASYNCHRONOUS"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.9/drivers/base/dd.c"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-nicprobe" parents
+        write "${dest}/usr/share/probe-nicprobe/probe" "${version}-${release}\n"
+    }
+}
