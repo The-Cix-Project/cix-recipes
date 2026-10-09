@@ -58,6 +58,7 @@ package "pixman" {
     }
 
     metadata {
+        "artifact_sha256" "0c2dba3f3b886c39f35262bb7d78f0bbe9e4813825c389349d54264c24aee717"
         "changelog" "0.46.4-2: gcc, because meson refuses tcc outright. 0.46.4-1 declared compiler tcc and meson answered Unknown compiler(s) at meson.build:21 before reading a source file, so this is the build system's limit and not pixman's -- and it decides the toolchain for every meson-built package here. qemu requires pixman for its display paths (cix#584)."
     }
 
