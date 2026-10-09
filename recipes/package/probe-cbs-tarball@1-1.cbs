@@ -1,0 +1,48 @@
+#
+# probe-cbs-tarball -- the sha256 and reachability of the nasm release
+# tarball, measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# WHY. edk2 cannot build OVMF without nasm, and OVMF is half of what
+# cix#584 needs for a boot test to run on a Cix host. A real nasm
+# recipe must declare a sha256, and nothing in this sandbox may fetch
+# the tarball to compute one.
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published. A 404 instead would mean the
+# url is wrong, which is equally worth knowing before a real recipe
+# carries it.
+#
+package "probe-cbs-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.106.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the sha256 of the cbs v0.1.106 release archive, measured by the box -- v0.1.106 is the fix for cix-build-system#283, which is what unblocks edk2 and qemu extraction for cix#584."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cbs-tarball" parents
+    }
+}
