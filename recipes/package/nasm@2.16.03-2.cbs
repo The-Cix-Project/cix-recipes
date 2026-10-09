@@ -62,6 +62,7 @@ package "nasm" {
     }
 
     metadata {
+        "artifact_sha256" "d05fb14ca2ad548b6cf11a4208a3b3a9abfb1918a6a2e9deee7dd463200dbda8"
         "changelog" "2.16.03-2: declares binutils. -1 compiled every object under tcc and then failed at the static-archive step with: make[1]: cq: No such file or directory -- the AR variable was empty because the build image carries no binutils by default, so ARFLAGS became the command. 2.16.03-1: first revision; nasm is needed by edk2 to build OVMF, without which no boot test can run on a Cix host (cix#584)."
     }
 
