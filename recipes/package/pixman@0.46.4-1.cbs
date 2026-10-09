@@ -1,0 +1,109 @@
+#
+# pixman -- low-level pixel manipulation, required by qemu. (cix#584)
+#
+# WHY IT IS HERE. qemu requires pixman for its display paths, so it is
+# a leaf of the chain cix#584 needs for a QEMU boot test to run on a
+# Cix host.
+#
+# MESON, NOT AUTOTOOLS. pixman dropped its autotools build after
+# 0.42, so meson is the only build system this release ships -- not a
+# preference.
+#
+# TCC GETS A FAIR TRY, which ADR-0224 asks for, and here it is a real
+# experiment rather than a formality: pixman's fast paths are written
+# against gcc's SIMD intrinsic headers, which TCC does not ship, BUT
+# meson probes each -m flag with the configured compiler and disables
+# any arm the compiler rejects. So tcc may simply build pixman with
+# the generic C paths, which is correct and merely slower -- and
+# nothing in a boot test is pixel-rate bound. If instead it fails, the
+# log says which header or flag, and that is the dated reason gcc
+# needs under ADR-0226.
+#
+# tests and demos are disabled: they are not what qemu links, and the
+# demos want external toolkits this image does not carry.
+#
+package "pixman" {
+    version "0.46.4"
+    release 1
+    format "cixpkg"
+
+    license "MIT"
+
+    sources {
+        main "pixman" {
+            url "https://www.cairographics.org/releases/pixman-0.46.4.tar.gz"
+            sha256 "d09c44ebc3bd5bee7021c79f922fe8fb2fb57f7320f55e97ff9914d2346a591c"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "meson"
+            tool "ninja"
+            tool "python"
+            tool "pkgconf"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "0.46.4-1: first revision. qemu requires pixman for its display paths, so it is a leaf of the chain a QEMU boot test on a Cix host needs (cix#584). meson is the only build system this release ships -- autotools went after 0.42. Built with tcc: meson probes each SIMD -m flag against the configured compiler and disables the arms it rejects, so a compiler without Intel intrinsic headers gets the generic C paths rather than a failure. sha256 measured on this box by probe-pixman-tarball@1-1."
+    }
+
+    prepare {
+        require directory "${src}/pixman/pixman-0.46.4" {
+            exists
+        }
+        require file "${src}/pixman/pixman-0.46.4/meson.build" {
+            exists
+            nonempty
+        }
+    }
+
+    build {
+        cd "${src}/pixman/pixman-0.46.4" {
+            run "meson" {
+                "setup"
+                "build"
+                "--prefix=/usr"
+                "--libdir=lib"
+                "--buildtype=release"
+                "-Ddefault_library=shared"
+                "-Dtests=disabled"
+                "-Ddemos=disabled"
+                env "CC" = "tcc"
+            }
+            run "ninja" {
+                "-C"
+                "build"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/pixman/pixman-0.46.4" {
+            run "meson" {
+                "install"
+                "-C"
+                "build"
+                "--destdir"
+                "${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/pkgconfig/pixman-1.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/pixman-1/pixman.h" {
+            exists
+            nonempty
+        }
+    }
+}
