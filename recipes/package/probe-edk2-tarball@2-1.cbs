@@ -1,0 +1,43 @@
+#
+# probe-edk2-tarball -- the sha256 of the exact tree edk2-stable202608
+# pins, measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# the sha256 of edk2-stable202608, the tagged release whose submodule pins are fixed -- a master-branch tarball is a moving target no pinned sha256 can track (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published.
+#
+package "probe-edk2-tarball" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/tags/edk2-stable202608.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the sha256 of edk2-stable202608, the tagged release whose submodule pins are fixed -- a master-branch tarball is a moving target no pinned sha256 can track (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-tarball" parents
+    }
+}
