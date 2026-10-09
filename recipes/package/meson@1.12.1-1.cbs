@@ -1,0 +1,84 @@
+#
+# meson -- the build system pixman, glib, libslirp and qemu all use.
+# (cix#584)
+#
+# NOTHING IS COMPILED HERE. meson is pure python, so this package
+# stages its source tree and provides one wrapper. The build phase is
+# a deliberate no-op rather than absent, because a phase that does
+# nothing should say so.
+#
+# NOT `python3 setup.py install`, because CPDL may not run an
+# interpreter as a run executable (CPDL-E3006) -- and that is the
+# right rule: a recipe that shells out to a language runtime's own
+# installer has stopped declaring where its files go.
+#
+# THE TREE GOES IN /usr/lib/meson AND THE WRAPPER SETS PYTHONPATH,
+# rather than into python's site-packages. That avoids depending on
+# the interpreter's version-specific directory name, which this recipe
+# would otherwise have to name correctly (python here is 3.13.5, and a
+# python upgrade would silently strand the files). The same shape
+# edk2-basetools@202608-5 uses for edk2's python tools.
+#
+package "meson" {
+    version "1.12.1"
+    release 1
+    format "cixpkg"
+
+    license "Apache-2.0"
+
+    sources {
+        main "meson" {
+            url "https://github.com/mesonbuild/meson/releases/download/1.12.1/meson-1.12.1.tar.gz"
+            sha256 "ab0a6ca09f8ef70c564c8241fb5a23957886a0b53fb58412b5e07eaf07dba743"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+        runtime {
+            package "python"
+        }
+    }
+
+    metadata {
+        "changelog" "1.12.1-1: first revision. pixman, glib, libslirp and qemu all build with meson, so it is a prerequisite of everything above it in the chain a QEMU boot test on a Cix host needs (cix#584). Nothing is compiled: the tree is staged to /usr/lib/meson and a wrapper sets PYTHONPATH, which avoids naming python's version-specific site-packages directory and surviving a python upgrade. sha256 measured on this box by probe-meson-tarball@1-1."
+    }
+
+    prepare {
+        require directory "${src}/meson/meson-1.12.1/mesonbuild" {
+            exists
+        }
+        require file "${src}/meson/meson-1.12.1/meson.py" {
+            exists
+            nonempty
+        }
+    }
+
+    build {
+        run "true" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib/meson" parents
+        copy tree "${src}/meson/meson-1.12.1/mesonbuild" to "${dest}/usr/lib/meson/mesonbuild"
+        copy "${src}/meson/meson-1.12.1/meson.py" to "${dest}/usr/lib/meson/meson.py"
+
+        mkdir "${dest}/usr/bin" chmod 0755
+        write "${dest}/usr/bin/meson" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/meson
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/meson/meson.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/meson"
+
+        require file "${dest}/usr/lib/meson/mesonbuild/mesonmain.py" {
+            exists
+            nonempty
+        }
+    }
+}
