@@ -61,6 +61,7 @@ package "acpica" {
     }
 
     metadata {
+        "artifact_sha256" "0984025562a223b0afdb3be71fc05a38e173ede17b08d43e9d37cdf8437117aa"
         "changelog" "2026-10-09-2: built with gcc. -1 used tcc and failed in glibc stdlib.h line 619 (identifier expected) as acpi.h reaches it -- the toolchain block records the measurement. 2026-10-09-1: first revision. Intel ACPICA, built for iasl alone, which edk2 needs to compile OvmfPkg ACPI tables (cix#584). A master-branch snapshot pinned by sha256, the shape quickjs and tcc already use (ADR-0223)."
     }
 
