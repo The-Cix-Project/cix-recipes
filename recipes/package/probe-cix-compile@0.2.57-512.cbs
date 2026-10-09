@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "cc1ed45a21a2f43f879bc7c2e25b98ca9319a865f9b44fb85d67e26941daaec2"
         "changelog" "0.2.57-512: compile and selftest probe of cix tag 0.2.57-480 -- the installer's default GRUB entry is chosen by the media rather than frozen at build time, since root=PARTUUID= can never resolve on optical and a DVD boot hung with no error (cix#588). This is also the FIRST compile of test_disk_image.c's new -vga none and edk2-named OVMF paths, which nothing had built because none of the seven boot tests is in SELFTESTS (cix#584)."
     }
 
