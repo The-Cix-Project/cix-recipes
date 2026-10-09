@@ -1,0 +1,123 @@
+#
+# probe-edk2-build 1 -- what does edk2 need before a real OVMF recipe
+# can be written? (cix#584)
+#
+# WHY A DISCOVERY RUN RATHER THAN A RECIPE. edk2 is not an autotools
+# package and several things a real recipe must state are not knowable
+# from here:
+#
+#   - whether BaseTools builds at all on this platform, and with what;
+#   - which TOOLCHAIN TAG master offers. GCC5 was the long-standing
+#     tag and was deprecated in favour of a plain GCC tag; a recipe
+#     naming the wrong one fails late, after BaseTools has been built;
+#   - what edksetup.sh would have set. CPDL has no shell and cannot
+#     source it, so every variable has to be passed explicitly, and
+#     guessing the list is how this fails three revisions in a row;
+#   - whether python3 is callable as python3 and what version.
+#
+# So this builds BaseTools and then PRINTS the answers. Every reading
+# is a command that cannot fail on a readable tree, and the phase ends
+# on a deliberate failure so the log is kept and nothing is published.
+#
+# nasm and acpica are declared because the real build needs them and
+# because this is also the cheapest test of whether a tool installed
+# only in `base` can compose a build environment at all -- the daemon
+# refuses a tool "not installed anywhere", and whether `base` counts
+# as anywhere is worth learning now rather than inside a 20-minute
+# firmware build.
+#
+package "probe-edk2-build" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/heads/master.tar.gz"
+            sha256 "be3f938b7d476a5b72790ba4af16cb698f39ecf5352e07d53544f1309baa7356"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "python"
+            tool "nasm"
+            tool "acpica"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "edk2 builds its firmware with a GCC or CLANG toolchain tag and its BaseTools are gcc C; there is no TCC tag in tools_def. Discovery run, so this records the premise rather than a measurement -- ADR-0226 makes gcc an ordinary choice for a third-party build this project neither owns nor wrote."
+    }
+
+    metadata {
+        "changelog" "1: what edk2 needs before a real OVMF recipe can be written -- does BaseTools build, which toolchain tags does master offer, what does edksetup.sh set, and is python3 callable (cix#584)."
+    }
+
+    build {
+        cd "${src}/edk2/edk2-master" {
+            # What we are working with.
+            run "python3" {
+                "--version"
+            }
+            run "ls" {
+                "-la"
+                "BaseTools/Conf"
+            }
+
+            # The toolchain tags master actually defines. The real
+            # recipe names one of these, and naming a retired one is a
+            # late failure.
+            run "grep" {
+                "-c"
+                "DEFINE"
+                "BaseTools/Conf/tools_def.template"
+            }
+            run "grep" {
+                "-oE"
+                "^\\*_(GCC[0-9A-Z]*|CLANG[0-9A-Z]*)_"
+                "BaseTools/Conf/tools_def.template"
+            }
+
+            # What edksetup.sh exports, read from the script this
+            # recipe cannot run.
+            run "grep" {
+                "-nE"
+                "export |WORKSPACE|EDK_TOOLS_PATH|CONF_PATH|PYTHON_COMMAND"
+                "edksetup.sh"
+            }
+
+            # And the one that decides the shape of everything: does
+            # BaseTools build here.
+            run "make" {
+                "-C"
+                "BaseTools"
+                env "CC" = "/usr/bin/gcc"
+                env "PYTHON_COMMAND" = "/usr/bin/python3"
+            }
+            run "find" {
+                "BaseTools/Source/C/bin"
+                "-type"
+                "f"
+            }
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-build" parents
+    }
+}
