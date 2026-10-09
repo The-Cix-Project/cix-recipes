@@ -1,0 +1,43 @@
+#
+# probe-mbedtls-tarball -- the sha256 of the exact tree edk2-stable202608
+# pins, measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# the sha256 of the mbedtls commit edk2-stable202608 pins; CryptoPkg.dec declares three mbedtls include paths and edk2 validates declared include paths at parse (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published.
+#
+package "probe-mbedtls-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "mbedtls" {
+            url "https://github.com/Mbed-TLS/mbedtls/archive/0bebf8b8c7f07abe3571ded48a11aa907a1ffb20.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the sha256 of the mbedtls commit edk2-stable202608 pins; CryptoPkg.dec declares three mbedtls include paths and edk2 validates declared include paths at parse (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-mbedtls-tarball" parents
+    }
+}
