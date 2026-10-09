@@ -106,6 +106,7 @@ package "ovmf" {
     }
 
     metadata {
+        "artifact_sha256" "378ee8df0745d0b60a5f6d94eabcdf294f35c61caf8ada709a8a7446a78a58d2"
         "changelog" "202608-1: OVMF firmware built from edk2-stable202608 on a Cix host, with all six OVMF-reachable submodules at edk2's own gitlink pins. Installs OVMF.fd, OVMF_CODE.fd and OVMF_VARS.fd under /usr/share/OVMF. Built -t GCCNOLTO because Cix gcc has no LTO, with BaseTools from edk2-basetools@202608-5 since CPDL forbids the PATH override edk2 relies on (cix#584)."
     }
 
