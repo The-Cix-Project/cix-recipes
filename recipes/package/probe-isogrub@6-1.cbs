@@ -1,0 +1,186 @@
+#
+# probe-isogrub 6 -- the one fact cix#430's fix still rests on: with
+# grub-mkrescue's OWN arguments in play, does `-boot_image any
+# partition_offset=16` give the ISO9660 filesystem a GPT partition, and
+# is a partition's unique GUID derived from `gpt_disk_guid=` by the rule
+# probe-isopoff@4-1 measured?
+#
+# WHY A SIXTH REVISION OF THIS PROBE. Revision 2 ran this exact
+# experiment and its log has rotated away; what was recorded from it was
+# the wrapper's echoed argv, not the GPT its ISO ended up with. Reading
+# that echo as grub-mkrescue's own argv is what put a false statement in
+# the issue -- the two -boot_image commands at the front of that line
+# were the wrapper's own injection, which the wrapper prepends before it
+# appends anything grub-mkrescue passed. So nothing is wrong with
+# revision 2's method and this is a re-run of it, byte for byte, that
+# reads the OUTPUT instead of the command line. Revisions 3 to 5 changed
+# the wrapper and failed; this changes nothing about it.
+#
+# WHAT probe-isopoff@4-1 ALREADY SETTLED, so this does not re-ask it:
+# partition_offset=16 yields a GPT entry named ISO9660 spanning the
+# filesystem from LBA 64, gpt_disk_guid= is honoured, and entry n's GUID
+# is the disk GUID with byte 8 raised by n. That probe called xorriso
+# directly and had to add appended_part_as=gpt to get a GPT at all.
+# grub-mkrescue's argv produces one by itself -- the published ISO has a
+# GPT with three entries -- so this probe adds no such option, and the
+# question is only whether the injection survives alongside the ESP,
+# the protective MBR label and the El Torito catalogue.
+#
+# WHY THE TEST GUID IS ALL REPEATED NIBBLES. 11111111-2222-3333-4444-
+# 555555555555 makes GPT's mixed-endian storage self-evident in a raw
+# dump: whichever way xorriso writes the first three fields, each byte
+# of the result says which field it came from. Byte 8 is 0x44, so entry
+# 1 under the measured rule reads 0x45 -- one byte, unambiguously.
+#
+# WHY A WRAPPER IS UNAVOIDABLE. Native -boot_image commands must precede
+# `-as mkisofs`, which consumes its own argument list to the end
+# (probe-isoxopt@1-1: both settings are parameters of the native
+# -boot_image command, and `xorriso -as mkisofs -help` prints nothing at
+# all). Arguments after grub-mkrescue's own `--` land INSIDE the
+# emulation. grub-mkrescue does support --xorriso=PATH, which is the
+# hook image/src/cix-xorriso.c already occupies.
+#
+# The wrapper also STRIPS the HFS+ arguments, because that is why
+# cix-xorriso exists: grub-mkrescue asks for HFS+ metadata
+# unconditionally, libisofs converts filenames to UTF-16 for it, and no
+# Cix image has gconv modules, so the build dies at its last step with
+# "libisofs: FAILURE : Charset conversion error". A probe that did not
+# strip them would fail for that reason and prove nothing about
+# partitions. So the wrapper is deliberately the shape the real fix
+# takes: strip the four HFS+ options, inject the two native commands,
+# exec the real xorriso.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-isogrub" {
+    version "6"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-472.tar.gz"
+            sha256 "5b89135b1976289b050a1b73d6d5724606b3a96d54f0ed042a749ad548d0597e"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grub"
+            tool "mtools"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "6: re-runs revision 2's experiment unchanged and reads the resulting GPT instead of the wrapper's echoed argv -- entry 1's name, first/last LBA and unique GUID, the disk GUID, and byte 65537 (cix#430)."
+    }
+
+    build {
+        # A tiny content directory. The extracted cix tree would work
+        # but is far larger than this question needs.
+        mkdir "${build}/isoroot/boot" parents
+        write "${build}/isoroot/boot/marker" "cix#430 probe-isogrub\n"
+
+        # The wrapper: strip HFS+, inject the two native commands
+        # BEFORE whatever grub-mkrescue passes (its own argv begins
+        # with -as mkisofs), then exec the real xorriso. Shift counts
+        # are option+values, taken from cix-xorriso.c's own table.
+        write "${build}/xw" """
+        #!/usr/bin/bash
+        out=(-boot_image any partition_offset=16)
+        out+=(-boot_image any gpt_disk_guid=11111111-2222-3333-4444-555555555555)
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -hfsplus) shift ;;
+            -apm-block-size) shift 2 ;;
+            -hfsplus-file-creator-type) shift 4 ;;
+            -hfs-bless-by) shift 3 ;;
+            *) out+=("$1"); shift ;;
+          esac
+        done
+        echo "cix#430 wrapper argv: ${out[@]}"
+        exec /usr/bin/xorriso "${out[@]}"
+        """
+        run "chmod" {
+            "0755"
+            "${build}/xw"
+        }
+
+        run "grub-mkrescue" {
+            "--xorriso=${build}/xw"
+            "-o"
+            "${build}/g1.iso"
+            "${build}/isoroot"
+        }
+        run "ls" {
+            "-la"
+            "${build}/g1.iso"
+        }
+
+        # The GPT header, LBA 1. "EFI PART" at +0, disk GUID at +56,
+        # the partition entry array's own LBA at +72 (so the entry
+        # offsets below are checked rather than assumed), entry count
+        # at +80, entry size at +84.
+        run "dd" {
+            "if=${build}/g1.iso"
+            "of=${build}/hdr"
+            "bs=1"
+            "skip=512"
+            "count=96"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/hdr"
+        }
+
+        # Entries 1, 2 and 3, 128 bytes each from LBA 2. Within an
+        # entry: type GUID at +0, unique GUID at +16, first LBA at
+        # +32, last LBA at +40, attributes at +48, UTF-16LE name at
+        # +56. Each is read twice -- hex for the GUIDs and the LBAs,
+        # characters for the name.
+        run "dd" {
+            "if=${build}/g1.iso"
+            "of=${build}/ent"
+            "bs=1"
+            "skip=1024"
+            "count=384"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/ent"
+        }
+        run "od" {
+            "-Ad"
+            "-c"
+            "${build}/ent"
+        }
+
+        # Byte 65537 is the partition-relative volume descriptor that
+        # exists only when partition_offset is in effect.
+        run "dd" {
+            "if=${build}/g1.iso"
+            "of=${build}/off"
+            "bs=1"
+            "skip=65536"
+            "count=8"
+        }
+        run "od" {
+            "-c"
+            "${build}/off"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isogrub" parents
+        write "${dest}/usr/share/probe-isogrub/probe" "${version}-${release}\n"
+    }
+}
