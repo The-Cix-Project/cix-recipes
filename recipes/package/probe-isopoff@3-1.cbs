@@ -1,0 +1,230 @@
+#
+# probe-isopoff 3 -- which of xorriso's remaining -boot_image settings
+# produces a GPT partition that COVERS the ISO9660 filesystem? (cix#430)
+#
+# WHAT IS ALREADY MEASURED, so this does not re-ask it:
+#
+#   gpt_disk_guid=<v>   works. The GPT header carries exactly the value
+#                       passed and the partition GUIDs derive from it,
+#                       so the determinism half of #430 is answered.
+#   partition_offset=16 PARTIAL. Byte 65537 gains the partition-relative
+#                       volume descriptor and Gap0 moves -- but no entry
+#                       spans the filesystem, which is the only thing
+#                       root=PARTUUID= needs.
+#   gpt_iso_bootable    REJECTED by xorriso 1.5.8.pl02, which aborted
+#                       revision 2 of this probe outright, even though
+#                       the same binary's -help lists it.
+#
+# WHAT THIS ASKS. #430's own closing comment names the three candidates
+# left in that same list -- part_like_isohybrid=, appended_part_as= and
+# iso_mbr_part_type= -- and the method that worked: xorriso directly
+# with --protective-msdos-label, no wrapper and no grub-mkrescue, since
+# that flag is the only part of grub-mkrescue's argv this question turns
+# on. Three variants in one build, because a build container costs the
+# same whether it writes one ISO or four and the comparison is the
+# answer:
+#
+#   t1  partition_offset=16                        the baseline, re-read
+#                                                  precisely so t2/t3
+#                                                  have something exact
+#                                                  to differ from
+#   t2  t1 + part_like_isohybrid=on                the most promising:
+#                                                  isohybrid layout is
+#                                                  the one that covers
+#                                                  the filesystem
+#   t3  t2 + iso_mbr_part_type=0x83                whether naming the
+#                                                  type changes what
+#                                                  lands in the GPT
+#
+# appended_part_as= is deliberately NOT tried: it governs how an
+# APPENDED partition is represented, and nothing here appends one, so a
+# reading from it would mean nothing either way.
+#
+# HOW TO READ THE OUTPUT. For each variant:
+#   - MBR partition table, bytes 446..510
+#   - GPT header, byte 512; the disk GUID is at 568
+#   - the first four GPT entries at 1024, each 128 bytes, with
+#     first_lba at +32 and last_lba at +40, little-endian
+#   - byte 32769 is the real primary volume descriptor (CD001 always)
+#   - byte 65537 is the partition-relative one, which exists only when
+#     partition_offset is in effect
+#
+# A variant ANSWERS #430 if one GPT entry's first_lba..last_lba spans
+# the bytes where the filesystem actually lives -- not merely that a
+# partition exists, which is what Gap0/Gap1 already are.
+#
+# The source is the cix release tarball, extracted by cbs into ${src};
+# it is the ISO content only because it is a real directory that is
+# already present. Nothing reads it.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log
+# is kept and nothing is published.
+#
+package "probe-isopoff" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "anchor" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-477.tar.gz"
+            sha256 "d6ca04641ac45931c6ff50d19143205083c98224c2ddad11551bd8b262cc5bbe"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "xorriso"
+        }
+    }
+
+    metadata {
+        "changelog" "3: which of part_like_isohybrid=, iso_mbr_part_type= yields a GPT partition covering the ISO9660 filesystem (cix#430). gpt_iso_bootable is dropped -- xorriso 1.5.8.pl02 rejects it and that aborted revision 2."
+    }
+
+    build {
+        # ---------- t1: the baseline ----------
+        run "xorriso" {
+            "-boot_image"
+            "any"
+            "partition_offset=16"
+            "-boot_image"
+            "any"
+            "gpt_disk_guid=11111111-2222-3333-4444-555555555555"
+            "-as"
+            "mkisofs"
+            "--protective-msdos-label"
+            "-o"
+            "${build}/t1.iso"
+            "${src}"
+        }
+
+        # ---------- t2: + part_like_isohybrid ----------
+        run "xorriso" {
+            "-boot_image"
+            "any"
+            "partition_offset=16"
+            "-boot_image"
+            "any"
+            "part_like_isohybrid=on"
+            "-boot_image"
+            "any"
+            "gpt_disk_guid=22222222-2222-3333-4444-555555555555"
+            "-as"
+            "mkisofs"
+            "--protective-msdos-label"
+            "-o"
+            "${build}/t2.iso"
+            "${src}"
+        }
+
+        # ---------- t3: + iso_mbr_part_type ----------
+        run "xorriso" {
+            "-boot_image"
+            "any"
+            "partition_offset=16"
+            "-boot_image"
+            "any"
+            "part_like_isohybrid=on"
+            "-boot_image"
+            "any"
+            "iso_mbr_part_type=0x83"
+            "-boot_image"
+            "any"
+            "gpt_disk_guid=33333333-2222-3333-4444-555555555555"
+            "-as"
+            "mkisofs"
+            "--protective-msdos-label"
+            "-o"
+            "${build}/t3.iso"
+            "${src}"
+        }
+
+        run "ls" {
+            "-la"
+            "${build}/t1.iso"
+            "${build}/t2.iso"
+            "${build}/t3.iso"
+        }
+
+        # ---------- the tables ----------
+        run "dd" {
+            "if=${build}/t1.iso"
+            "of=${build}/t1.head"
+            "bs=1"
+            "count=1536"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/t1.head"
+        }
+        run "dd" {
+            "if=${build}/t2.iso"
+            "of=${build}/t2.head"
+            "bs=1"
+            "count=1536"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/t2.head"
+        }
+        run "dd" {
+            "if=${build}/t3.iso"
+            "of=${build}/t3.head"
+            "bs=1"
+            "count=1536"
+        }
+        run "od" {
+            "-Ad"
+            "-tx1"
+            "${build}/t3.head"
+        }
+
+        # ---------- the two volume descriptors, per variant ----------
+        run "dd" {
+            "if=${build}/t2.iso"
+            "of=${build}/t2.pvd"
+            "bs=1"
+            "skip=32768"
+            "count=6"
+        }
+        run "od" {
+            "-c"
+            "${build}/t2.pvd"
+        }
+        run "dd" {
+            "if=${build}/t2.iso"
+            "of=${build}/t2.off"
+            "bs=1"
+            "skip=65536"
+            "count=6"
+        }
+        run "od" {
+            "-c"
+            "${build}/t2.off"
+        }
+        run "dd" {
+            "if=${build}/t3.iso"
+            "of=${build}/t3.off"
+            "bs=1"
+            "skip=65536"
+            "count=6"
+        }
+        run "od" {
+            "-c"
+            "${build}/t3.off"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-isopoff" parents
+        write "${dest}/usr/share/probe-isopoff/probe" "${version}-${release}\n"
+    }
+}
