@@ -1,0 +1,296 @@
+#
+# probe-cix-compile -- does a cix commit compile, and pass the release
+# selftest, on a Cix host, before any release names it?
+#
+# A copy of the cix release recipe's sources, requirements, prepare and
+# build phases, pointed at the one pushed commit its main source url
+# names, rather than at a tag. (The commit lives in that url and in the
+# changelog below, and nowhere else in this prose: a header that repeats
+# it goes stale the first time this file is copied forward, and has.)
+# The daemon can only be compiled on a Cix host (THE SANDBOX RULE),
+# and without this the first compile of that commit would be the nightly
+# roll, where a failure costs a night. A green build here means the
+# commit compiles -Wall -Werror and `make selftest` passes, which since
+# cix#485 includes the three FLOOR_SELFTESTS and mkbootroot's root-closure
+# check in test_mkbootroot_firmware. The install phase writes a marker
+# only, so no second copy of cix's binaries is published.
+#
+package "probe-cix-compile" {
+    version "0.2.57"
+    release 507
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/8c42ee1c.tar.gz"
+            sha256 "d6ca04641ac45931c6ff50d19143205083c98224c2ddad11551bd8b262cc5bbe"
+        }
+        # The ADR-0209 build floor, for the three FLOOR_SELFTESTS the
+        # selftest below now runs (cix#485). Real published artifacts,
+        # each verified against the checksum its own recipe approves by
+        # test_image_fixture_seed_floor_packages(), which refuses to
+        # fabricate one -- so these are a precondition of the selftest
+        # passing, not an optimisation.
+        extra "bash" {
+            url "http://192.168.15.31:8080/bash-5.2.37-6-x86_64.cixpkg"
+            sha256 "822bd9af49c83a7b0034bcbbcc78935d0f8739712f302d95a85cb3806103d5f9"
+        }
+        extra "coreutils" {
+            url "http://192.168.15.31:8080/coreutils-9.11-8-x86_64.cixpkg"
+            sha256 "a8bb48400d2e60f20278989dbf2e7546e3a0b9558c2cc3ddd0bd3517f1e2da9f"
+        }
+        extra "tcc" {
+            url "http://192.168.15.31:8080/tcc-0.9.28rc-31-x86_64.cixpkg"
+            sha256 "661b10f4c5800ead2083ef9e74ae6b2e55c6da344c42fe9faec2112d3626ce8c"
+        }
+        extra "glibc" {
+            url "http://192.168.15.31:8080/glibc-2.44-19-x86_64.cixpkg"
+            sha256 "220c11019bf7cc729befca2b0cdf7ddd77399de2b436a50000299d52bd4d954d"
+        }
+        extra "linuxheaders" {
+            url "http://192.168.15.31:8080/linux-headers-6.18.40-10-x86_64.cixpkg"
+            sha256 "6368d291848982a8ee77332957c2baf92f8fd0b0330be8f01400d8eb140d80b3"
+        }
+        extra "zlib" {
+            url "http://192.168.15.31:8080/zlib-1.3.2-15-x86_64.cixpkg"
+            sha256 "66dbad62eb06e3fd34163eb005376ac69a3aefae7da846bf1e57672971877eef"
+        }
+        extra "flex" {
+            url "http://192.168.15.31:8080/flex-2.6.4-6-x86_64.cixpkg"
+            sha256 "dd6a3080ee146f27b27f4fd01624c1bfb1b5dff200b0d748f522964303599f2a"
+        }
+        extra "binutils" {
+            url "http://192.168.15.31:8080/binutils-2.42-15-x86_64.cixpkg"
+            sha256 "5c97891f75de193f2c13656cbb4603a98f744548c4ab3c98590c2c18fce43480"
+        }
+        extra "xz" {
+            url "http://192.168.15.31:8080/xz-5.8.3-11-x86_64.cixpkg"
+            sha256 "ac6ffbab1ee2e42c57b165ffcd8a4f528eafcb7cb1cd5265373e28d221aa43a3"
+        }
+        # m4: flex@2.6.4-6 declares it as a runtime dependency and
+        # the shell flex this floor used to pin did not (cix#529).
+        extra "m4" {
+            url "http://192.168.15.31:8080/m4-1.4.20-6-x86_64.cixpkg"
+            sha256 "b1bd2405d8d15fd70d3f455a317ae18a79d7bb3c572397275f8e894d81587e3d"
+        }
+        extra "zstd" {
+            url "http://192.168.15.31:8080/zstd-1.5.7-5-x86_64.cixpkg"
+            sha256 "75e78994a5f46bab071a93ae83a88f095d4a98aba79e39316e5a860763bde05c"
+        }
+        extra "libarchive" {
+            url "http://192.168.15.31:8080/libarchive-3.8.1-5-x86_64.cixpkg"
+            sha256 "80c911806cb2892392d58cdd2910c7f0b1504093ea9ea57c24e733ff1f93f720"
+        }
+        # The cbs the TEST FLOOR runs, which is not the one this host
+        # runs and is easy to forget is a separate decision.
+        #
+        # Bumped v0.1.55 -> v0.1.63 for cix#516. test_pkg's builddeps
+        # fixtures declare a version-pinned build tool, which needs
+        # cix-build-system#235 (v0.1.58). Publishing such a recipe
+        # succeeded -- `cbs explain` runs host-side, where v0.1.63 is
+        # installed -- and then the floor's own build container
+        # rejected it with `CPDL-E3004: invalid dependency name`,
+        # because the container was running v0.1.55. Measured on
+        # 192.168.15.95, 2026-09-26, log usesstamped-1.0-1-1790401666.
+        #
+        # So the floor's cbs and the CPDL features test_pkg uses move
+        # together, the same coupling ADR-0209's floor artifacts have
+        # with FLOOR_SELFTESTS. A fixture cannot use a shape the
+        # floor's engine predates, and nothing says so until a build
+        # fails inside the test rather than at publish.
+        extra "cbs" {
+            url "http://192.168.15.31:8080/cbs-v0.1.104-1-x86_64.cixpkg"
+            sha256 "39b61f2f39d884915ec823e5d1c1c7dbaf05b0c95e4017c3d11a7d9ac0d59a3e"
+        }
+        # The corpus the floor reads each package's own recipe from, so
+        # it can verify the artifact against the checksum that recipe
+        # approves. Pinned, because a release has to build the same way
+        # tomorrow; 84ccc91 carries cbs@v0.1.104-1 with
+        # its artifact approval, which the floor seeds cbs against.
+        # test_recipe_docs (cix#491) also judges this tree, so it moves
+        # whenever a recipe it must see lands. It moved to 8cf5b8d for
+        # the floor's cbs v0.1.100-1 (cix#558), then to 2edc4ae for
+        # v0.1.102-1 (ADR-0323's author stage), then to 84ccc91 for
+        # v0.1.104-1 (cix-build-system#279, #280); the scan is unchanged.
+        extra "recipes" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/84ccc916ee1880a7708f2f32e7b86213da9100ca.tar.gz"
+            sha256 "746908486fcdba369d372e8099e1ea3dd0abd8401c15074003040d5ee200cc1a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "tar"
+            tool "gzip"
+            tool "binutils"
+            tool "openssl"
+            tool "libarchive"
+            tool "curl"
+            tool "quickjs"
+            tool "minisign"
+            tool "cbs"
+            # cix-boot.efi is built with gcc: a PE/COFF EFI image needs
+            # the MS ABI, which TCC does not emit.
+            tool "gcc"
+        }
+        runtime {
+            package "openssl"
+            package "libarchive"
+            package "curl"
+        }
+    }
+
+    metadata {
+        "changelog" "0.2.57-507: compile and selftest probe of cix commit 8c42ee1c (ADR-0335 step 2: the reactor stops waiting for the interface bring-up)."
+    }
+
+    # The selftest creates real containers, so the build container
+    # needs cgroup2 mounted and the right to clone namespaces. cixd
+    # grants both only for CAP_SYS_ADMIN (src/container.c's
+    # mount_cgroup2 derivation). The shell recipe carried this as
+    # pkg_build_caps="CAP_SYS_ADMIN"; -2 to -4 dropped it, and the
+    # suite failed with 258 cgroup_create errors, 33 missing
+    # cgroup.controllers and ns_clone3 EPERM (cix#515).
+    capability "CAP_SYS_ADMIN"
+
+    prepare {
+        # The floor where test_image_fixture_seed_floor_packages() looks
+        # for it, under the source tree, with the UNSTAMPED names its own
+        # table asks for -- the published artifacts are arch-stamped and
+        # the fixture is not (cix#485).
+        mkdir "${src}/cix/cix/build-inputs"
+        mkdir "${src}/cix/cix/build-inputs/floor-artifacts"
+        materialize $source.bash to "${src}/cix/cix/build-inputs/floor-artifacts/bash-5.2.37-6.cixpkg"
+        materialize $source.coreutils to "${src}/cix/cix/build-inputs/floor-artifacts/coreutils-9.11-8.cixpkg"
+        materialize $source.tcc to "${src}/cix/cix/build-inputs/floor-artifacts/tcc-0.9.28rc-31.cixpkg"
+        materialize $source.glibc to "${src}/cix/cix/build-inputs/floor-artifacts/glibc-2.44-19.cixpkg"
+        materialize $source.linuxheaders to "${src}/cix/cix/build-inputs/floor-artifacts/linux-headers-6.18.40-10.cixpkg"
+        materialize $source.zlib to "${src}/cix/cix/build-inputs/floor-artifacts/zlib-1.3.2-15.cixpkg"
+        materialize $source.flex to "${src}/cix/cix/build-inputs/floor-artifacts/flex-2.6.4-6.cixpkg"
+        materialize $source.binutils to "${src}/cix/cix/build-inputs/floor-artifacts/binutils-2.42-15.cixpkg"
+        materialize $source.xz to "${src}/cix/cix/build-inputs/floor-artifacts/xz-5.8.3-11.cixpkg"
+        materialize $source.m4 to "${src}/cix/cix/build-inputs/floor-artifacts/m4-1.4.20-6.cixpkg"
+        materialize $source.zstd to "${src}/cix/cix/build-inputs/floor-artifacts/zstd-1.5.7-5.cixpkg"
+        materialize $source.libarchive to "${src}/cix/cix/build-inputs/floor-artifacts/libarchive-3.8.1-5.cixpkg"
+        materialize $source.cbs to "${src}/cix/cix/build-inputs/floor-artifacts/cbs-v0.1.104-1.cixpkg"
+
+        extract $source.recipes into "${src}" as "cix-recipes"
+        require directory "${src}/cix-recipes/recipes/package" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "build/cix-init"
+                "build/cixd"
+                "build/cixctl"
+                "build/mkbootroot"
+                "build/cix-install"
+                "build/cix-recover"
+                "build/mkinstalleriso"
+                "build/cix-boot.efi"
+                "build/cix-xorriso"
+            }
+
+            #
+            # COMPILED BUT NOT RUN (cix#524).
+            #
+            # test_pkg_build_log is not in SELFTESTS -- it tails a
+            # live build, which is a poor thing to do from inside
+            # one -- so `make selftest` never compiles it, and a
+            # release never found out whether it still builds. That
+            # is how a test rots: it is correct on the day it is
+            # written and nothing ever touches it again.
+            #
+            # Found by moving its websocket reader into test_ws.c and
+            # realising the release had no opinion about whether the
+            # result compiled. Building it here costs one tcc
+            # invocation and closes that specific gap; running it is
+            # a separate question (cix#480 is the general one).
+            #
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "build/test_pkg_build_log"
+            }
+
+            # Serial, like every make in this recipe, because the
+            # shell recipe was serial and a conversion's job is to be
+            # equivalent. Parallelism did NOT cause the -2 to -4
+            # selftest failures -- -4 had none and failed worse. The
+            # cause was the missing capability declared above.
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "selftest"
+                # The floor reads each package's own recipe for the
+                # checksum it verifies the artifact against; the
+                # default is a sibling of the source tree, and this
+                # says so rather than relying on the layout.
+                env "CIX_RECIPES_DIR" = "${src}/cix-recipes/recipes"
+            }
+        }
+
+        # cix#296: poison the console session struct. See the header --
+        # this is what makes the selftest above mean something.
+        replace "${src}/cix/cix/daemon/src/main.c" {
+            from "\tmemset(sess, 0, sizeof(*sess));"
+            to "\tmemset(sess, 0xff, sizeof(*sess)); /* #296 proof */"
+            exactly 1
+        }
+
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "build/cixd"
+            }
+
+            # It must now detect the bug. Exactly 1 -- the code
+            # test_console_exec returns on a real detection.
+            run "build/test_console_exec" {
+                expect exit 1
+            }
+        }
+
+        # Restore, and assert the restore. A build that shipped the
+        # poisoned memset would be shipping cix#296 deliberately.
+        replace "${src}/cix/cix/daemon/src/main.c" {
+            from "\tmemset(sess, 0xff, sizeof(*sess)); /* #296 proof */"
+            to "\tmemset(sess, 0, sizeof(*sess));"
+            exactly 1
+        }
+
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "build/cixd"
+            }
+        }
+    }
+
+    install {
+        #
+        # A marker file, because an install that stages nothing is
+        # refused (cix#486) and this probe deliberately publishes none of
+        # the binaries it just built.
+        #
+        # Its content is the PROBE revision, not the commit. It used to
+        # be the commit and went stale the first time this recipe was
+        # copied forward -- 469 through 472 all shipped "55073d02", which
+        # was true of 468 alone. The commit is in the main source url and
+        # in the changelog, which are the two things a revision cannot
+        # avoid editing; a third copy is one nobody has to touch and so
+        # nobody does.
+        #
+        mkdir "${dest}/usr/share/probe-cix-compile" parents
+        write "${dest}/usr/share/probe-cix-compile/probe" "${version}-${release}\n"
+    }
+}
