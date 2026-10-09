@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7a6ba910aeff2421b32c459bc1e66024ace78836b5e6639750001115d30b3354"
         "changelog" "0.2.57-478: the installer ISO carries a partition over its own filesystem, so the USB boot entries say root=PARTUUID= instead of /dev/sda (cix#430, ADR-0336). cix-xorriso appends the ESP past the end of the image instead of letting grub-mkrescue describe the in-filesystem copy as a partition, libisofs having REFUSED the overlapping layout; --efi-boot stays, so optical boot is untouched. cixd derives the disk GUID from the release, and mkinstalleriso re-reads the finished ISO."
     }
 
