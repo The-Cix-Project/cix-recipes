@@ -1,0 +1,52 @@
+#
+# probe-edk2-zip -- the sha256 and reachability of the nasm release
+# tarball, measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# WHY. edk2 cannot build OVMF without nasm, and OVMF is half of what
+# cix#584 needs for a boot test to run on a Cix host. A real nasm
+# recipe must declare a sha256, and nothing in this sandbox may fetch
+# the tarball to compute one.
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published. A 404 instead would mean the
+# url is wrong, which is equally worth knowing before a real recipe
+# carries it.
+#
+package "probe-edk2-zip" {
+    version "1"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/heads/master.zip"
+            sha256 "1ad3eab40ca7f4c8cfaee19a97697a2314fd0aae4ede0645bad81307954ab78f"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: with the real sha256, so extraction is actually attempted -- can CBS extract edk2 as a ZIP, where the tar.gz is refused whole for an absolute symlink leaving the archive root (cix#584)?"
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}/edk2"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-edk2-zip" parents
+    }
+}
