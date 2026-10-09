@@ -1,0 +1,97 @@
+# acpica -- Intel's ACPI Component Architecture, for one tool: iasl,
+# the ASL compiler.
+#
+# WHY THIS PLATFORM WANTS IT (cix#584). edk2's OvmfPkg builds its ACPI
+# tables from .asl sources and invokes iasl to do it, so OVMF cannot be
+# built without this. OVMF plus qemu is what cix#584 needs before any
+# of the seven boot-test binaries can run on a Cix host -- today none
+# can, which is why "does this installer actually boot" (cix#430) has
+# to be answered by a person holding a USB stick.
+#
+# A PINNED SNAPSHOT, NOT A RELEASE, and the version says so: upstream
+# publishes releases as GitHub tags whose naming this recipe does not
+# depend on, so the source is the master branch tarball pinned by the
+# sha256 measured on the date in the version. That is the pattern
+# quickjs (2026-06-04-9) and the compiler itself already use --
+# ADR-0223 calls tcc "a pinned upstream snapshot" for the same reason.
+# The sha256 is the real pin: by ADR-0323, different bytes under the
+# same version halt the package and say so rather than building
+# something else quietly. Measured on 192.168.15.95, 2026-10-09:
+# 7,313,478 bytes.
+#
+# bison and flex are load-bearing rather than incidental: iasl's
+# parser and lexer are generated from .y and .l sources at build time.
+#
+# WHERE iasl LANDS is read rather than assumed. The build phase runs
+# `find` for it before anything copies it, so if upstream's output
+# directory is not what this recipe expects, the log says where the
+# binary actually is instead of only that a path was missing.
+package "acpica" {
+    version "2026-10-09"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "acpica" {
+            url "https://github.com/acpica/acpica/archive/refs/heads/master.tar.gz"
+            sha256 "96ad9229026df05d9fa7a0cb0a0bafbe4f6126e8788e4131af9df34be874249e"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "bison"
+            tool "flex"
+        }
+    }
+
+    metadata {
+        "changelog" "2026-10-09-1: first revision. Intel's ACPICA, built for iasl alone -- edk2 compiles OvmfPkg's ACPI tables with it, and OVMF is half of what a boot test on a Cix host needs (cix#584). A master-branch snapshot pinned by sha256, the same shape as quickjs and tcc (ADR-0223), because upstream's release tags are not a naming this recipe should depend on."
+    }
+
+    prepare {
+        require directory "${src}/acpica/acpica-master" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/acpica/acpica-master" {
+            run "make" {
+                "iasl"
+                env "CC" = "tcc"
+                jobs $jobs
+            }
+            # Read, not assumed -- see the header. find exits 0 with no
+            # matches, so this reports the truth either way instead of
+            # ending the phase.
+            run "find" {
+                "."
+                "-name"
+                "iasl"
+                "-type"
+                "f"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/acpica/acpica-master/generate/unix/bin/iasl" to "${dest}/usr/bin/iasl"
+        require file "${dest}/usr/bin/iasl" {
+            exists
+            nonempty
+        }
+    }
+}
