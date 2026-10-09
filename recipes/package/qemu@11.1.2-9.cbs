@@ -197,6 +197,7 @@ package "qemu" {
     }
 
     metadata {
+        "artifact_sha256" "997ebbe564513867b7277f67f00870f47b74a7d08c4a0186fabc665ef011f82d"
         "changelog" "11.1.2-9: declares zstd and bzip2 at runtime. 11.1.2-8 built, installed and removed the foreign firmware, then the ELF gate named libzstd.so.1; rather than add one per cycle, meson's own dependency report gave the complete external set -- glib, pixman-1, slirp, zlib, libzstd, bz2, and m/util/threads from glibc -- so bz2 is declared in the same revision (cix#584)."
     }
 
