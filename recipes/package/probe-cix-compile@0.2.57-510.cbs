@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "0ef0d05e4ef9f73435c6a384d62ee6d91f52d9bdd960ae65d537e134aa49d07d"
         "changelog" "0.2.57-510: compile and selftest probe of cix commit ab23cb1d (#430, ADR-0336). 509 passed on c3ada276; this adds the ambiguous-efi.img refusal and the ESP type gate."
     }
 
