@@ -1,0 +1,113 @@
+#
+# pixman -- low-level pixel manipulation, required by qemu. (cix#584)
+#
+# WHY IT IS HERE. qemu requires pixman for its display paths, so it is
+# a leaf of the chain cix#584 needs for a QEMU boot test to run on a
+# Cix host.
+#
+# MESON, NOT AUTOTOOLS. pixman dropped its autotools build after
+# 0.42, so meson is the only build system this release ships -- not a
+# preference.
+#
+# TCC WAS TRIED AND MESON ITSELF REFUSED IT, which is a wider finding
+# than this package: 0.46.4-1 declared compiler "tcc" and meson answered
+#   meson.build:21:0: ERROR: Unknown compiler(s): [[.tcc.]]
+# -- it never reached a source file. meson identifies a compiler from
+# its own version output and has no matcher for this tcc, so EVERY
+# meson-built package here is gcc: pixman, glib, libslirp and qemu
+# alike. That is a property of the build system rather than of any one
+# package, and ADR-0226 is explicit that gcc is the ordinary next step
+# when TCC is difficult.
+#
+# tests and demos are disabled: they are not what qemu links, and the
+# demos want external toolkits this image does not carry.
+#
+package "pixman" {
+    version "0.46.4"
+    release 2
+    format "cixpkg"
+
+    license "MIT"
+
+    sources {
+        main "pixman" {
+            url "https://www.cairographics.org/releases/pixman-0.46.4.tar.gz"
+            sha256 "d09c44ebc3bd5bee7021c79f922fe8fb2fb57f7320f55e97ff9914d2346a591c"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "meson"
+            tool "ninja"
+            tool "python"
+            tool "pkgconf"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "meson does not recognise this tcc at all: 'meson.build:21:0: ERROR: Unknown compiler(s): [[tcc]]', before any source file is read. meson identifies a compiler from its version output and has no matcher for it, so this is the build system's limit rather than pixman's. Measured on 192.168.15.95, 2026-10-09 by pixman@0.46.4-1."
+    }
+
+    metadata {
+        "changelog" "0.46.4-2: gcc, because meson refuses tcc outright. 0.46.4-1 declared compiler tcc and meson answered Unknown compiler(s) at meson.build:21 before reading a source file, so this is the build system's limit and not pixman's -- and it decides the toolchain for every meson-built package here. qemu requires pixman for its display paths (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/pixman/pixman-0.46.4" {
+            exists
+        }
+        require file "${src}/pixman/pixman-0.46.4/meson.build" {
+            exists
+            nonempty
+        }
+    }
+
+    build {
+        cd "${src}/pixman/pixman-0.46.4" {
+            run "meson" {
+                "setup"
+                "build"
+                "--prefix=/usr"
+                "--libdir=lib"
+                "--buildtype=release"
+                "-Ddefault_library=shared"
+                "-Dtests=disabled"
+                "-Ddemos=disabled"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "ninja" {
+                "-C"
+                "build"
+            }
+        }
+    }
+
+    install {
+        cd "${src}/pixman/pixman-0.46.4" {
+            run "meson" {
+                "install"
+                "-C"
+                "build"
+                "--destdir"
+                "${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/pkgconfig/pixman-1.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/pixman-1/pixman.h" {
+            exists
+            nonempty
+        }
+    }
+}
