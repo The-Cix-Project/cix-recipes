@@ -1,0 +1,266 @@
+#
+# edk2-basetools -- edk2's build tools, as a package, so that a
+# firmware build can reach them the way CBS intends. (cix#584)
+#
+# WHY THIS PACKAGE EXISTS, measured rather than assumed.
+#
+# edk2's generated makefiles invoke the BaseTools by BARE NAME, and
+# upstream resolves that with PATH. It says so declaratively, in
+# BaseTools/BinWrappers/PosixLike/posix_path_env.yaml:
+#
+#     ## Set this folder on the path for all linux builds
+#     { "id": "binwrappers", "scope": "global-nix",
+#       "flags": ["set_path"] }
+#
+# A CPDL recipe may not set PATH (CPDL-E3006), which is a deliberate
+# CBS property: a composed build environment contains exactly the
+# declared tools (ADR-0199). Four probes closed every other door, on
+# 192.168.15.95, 2026-10-09:
+#
+#   - EDK_TOOLS_BIN is WINDOWS-ONLY. toolsetup.bat prepends it to
+#     PATH; on POSIX build.py:795 only prints it. A recipe setting it
+#     has no effect at all, and mine did.
+#   - "BinWrappers" appears NOWHERE in BaseTools/Source/Python, so
+#     nothing in edk2's own python locates that directory for itself.
+#   - Conf/tools_def.txt cannot name them. It holds exactly 17
+#     *_*_*_<TOOL>_PATH lines, and Trim, GenSec, GenFfs, GenFv, Split,
+#     GenDepex and AmlToC are NOT among them -- they are invoked from
+#     edk2's python, where no configuration file reaches. So rewriting
+#     that file with absolute paths would fix some tools and silently
+#     leave others, which is worse than not trying.
+#   - GenMake.py's `CmdName == 'Trim'` at line 784 is not tool
+#     resolution at all; it is dependency-list construction inside
+#     ParseSecCmd.
+#
+# So the tools must be ON PATH, and the one sanctioned way anything
+# reaches PATH here is to be a declared tool -- a package. That is
+# CLAUDE.md's named case: adapting to a constraint another component
+# deliberately imposes is not a workaround. bind-utils@9.18.30-10 is
+# the precedent in the other direction: its `cc` shim disappeared the
+# moment `compiler "gcc"` put that name in the environment.
+#
+# WHAT IS A C TOOL AND WHAT IS PYTHON. BinWrappers/PosixLike holds 31
+# entries and they are two different scripts wearing the same naming
+# convention: a python one execs Source/Python/<X>/<X>.py, a C one
+# execs Source/C/bin/<X>. The C half is installed here by globbing
+# Source/C/bin after the build, so no list of names can go stale. The
+# python half needs a wrapper each, because edk2's own wrapper locates
+# its payload with `dirname $BASH_SOURCE` -- correct in the build tree
+# and wrong from /usr/bin, where it would resolve to /Source/Python.
+# So the wrappers below are ours, three lines each, with the payload
+# named absolutely. That is the toolwrap pattern chrony and procps
+# already established.
+#
+# EACH PYTHON NAME IS GATED by a `require file` on its .py, so a name
+# that does not follow the convention fails HERE rather than shipping
+# a wrapper that dies at execve. prepare's on_fail lists
+# Source/Python, so one failure names every real tool at once.
+#
+# PINNED TO A TAG, with brotli at edk2's own gitlink: BaseTools builds
+# BrotliCompress from the brotli submodule, and a tarball carries no
+# submodule. cix#584 records every pin and every sha256, each measured
+# by a fetch-only probe on the box.
+#
+package "edk2-basetools" {
+    version "202608"
+# GenDepex IS NOT A TOOL, and 202608-1's own gate is what established
+# that. Its `require file` on Source/Python/GenDepex/GenDepex.py
+# failed, and prepare's on_fail printed every real entry: the python
+# TOOLS are the directories carrying a same-named .py -- AmlToC, BPDG,
+# Ecc, FMMT, GenFds, GenPatchPcdTable, PatchPcdValue, Pkcs7Sign,
+# Rsa2048Sha256Sign, Split, TargetTool, Trim, UPT, build -- while
+# AutoGen, Common, CommonDataClass, Capsule, Eot,
+# FirmwareStorageFormat, Table and Workspace are libraries. GenDepex
+# lives inside AutoGen and is imported in-process, so edk2's own
+# BinWrapper of that name could never have worked either. The gate
+# cost one cheap cycle and bought the authoritative list; wrapping it
+# unchecked would have shipped a /usr/bin entry that dies at execve,
+# which nothing downstream would have explained.
+#
+# Split is deliberately NOT wrapped: it appears both in Source/Python
+# and potentially in Source/C/bin, and a wrapper written over a C
+# binary the glob installs would silently replace it. If a firmware
+# build wants it, it will say so by name.
+#
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "edk2" {
+            url "https://github.com/tianocore/edk2/archive/refs/tags/edk2-stable202608.tar.gz"
+            sha256 "bac40812213576c3025cf780c33d882f9e087a44201b1cd28a07f6d1eb54b76a"
+        }
+        extra "brotli" {
+            url "https://github.com/google/brotli/archive/e230f474b87134e8c6c85b630084c612057f253e.tar.gz"
+            sha256 "a9ba3940267de5dd73581a47c2e81b3eb1e1df6a704138c599020d66f3677a92"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "python"
+            tool "libuuid"
+        }
+        runtime {
+            package "python"
+            # DevicePath links libuuid.so.1 and the install gate
+            # refused 202608-2 for it: a build-sandbox tool is not a
+            # runtime dependency, so the link was recorded and the
+            # dependency was not.
+            package "libuuid"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "BaseTools' C sources are built with -Wall -Werror against GCC and edk2 offers no TCC toolchain tag; GenFv additionally needs uuid/uuid.h. Measured on 192.168.15.95, 2026-10-09."
+    }
+
+    metadata {
+        "changelog" "202608-3: declares libuuid at runtime, which the install gate asked for by name: DevicePath links libuuid.so.1, and a package in requires build only reaches the build sandbox. BaseTools as a package is the one sanctioned route onto PATH, since CPDL forbids PATH overrides and edk2 declares the requirement itself in posix_path_env.yaml. GenDepex is not wrapped: it has no .py of its own and is imported in-process (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/edk2/edk2-edk2-stable202608" {
+            exists
+        }
+
+        remove "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/C/BrotliCompress/brotli" allow_failure
+        extract $source.brotli into "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/C/BrotliCompress" as "brotli"
+        require directory "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/C/BrotliCompress/brotli/c/include" {
+            exists
+        }
+
+        # The python tools a firmware build invokes, each gated on the
+        # payload its wrapper will name. A name off the convention
+        # fails here, and on_fail prints every real one.
+        require file "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/Trim/Trim.py" {
+            exists
+        }
+        require file "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/GenFds/GenFds.py" {
+            exists
+        }
+        require file "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/BPDG/BPDG.py" {
+            exists
+        }
+        require file "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/PatchPcdValue/PatchPcdValue.py" {
+            exists
+        }
+        require file "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/GenPatchPcdTable/GenPatchPcdTable.py" {
+            exists
+        }
+        require file "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python/AmlToC/AmlToC.py" {
+            exists
+        }
+
+        on_fail {
+            run "ls" {
+                "-1"
+                "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python"
+                allow_failure
+            }
+        }
+    }
+
+    build {
+        cd "${src}/edk2/edk2-edk2-stable202608" {
+            run "make" {
+                "-C"
+                "BaseTools/Source/C"
+                env "CC" = "/usr/bin/gcc"
+                env "PYTHON_COMMAND" = "/usr/bin/python3"
+                env "PYTHONHASHSEED" = "1"
+            }
+
+            # What the C half actually produced, in the log, so the
+            # glob install below is never a claim about names.
+            run "ls" {
+                "-1"
+                "BaseTools/Source/C/bin"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" chmod 0755
+        copy glob "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/C/bin/*" to "${dest}/usr/bin"
+
+        # copy tree preserves modes and does not dereference symlinks,
+        # and it creates the LEAF only -- hence the parent mkdir
+        # (linux-headers@6.18.40-9 paid for that lesson).
+        mkdir "${dest}/usr/lib/edk2/BaseTools/Source" parents
+        copy tree "${src}/edk2/edk2-edk2-stable202608/BaseTools/Source/Python" to "${dest}/usr/lib/edk2/BaseTools/Source/Python"
+
+        write "${dest}/usr/bin/Trim" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/edk2/BaseTools/Source/Python
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/edk2/BaseTools/Source/Python/Trim/Trim.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/Trim"
+
+        write "${dest}/usr/bin/GenFds" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/edk2/BaseTools/Source/Python
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/edk2/BaseTools/Source/Python/GenFds/GenFds.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/GenFds"
+
+
+        write "${dest}/usr/bin/BPDG" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/edk2/BaseTools/Source/Python
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/edk2/BaseTools/Source/Python/BPDG/BPDG.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/BPDG"
+
+        write "${dest}/usr/bin/PatchPcdValue" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/edk2/BaseTools/Source/Python
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/edk2/BaseTools/Source/Python/PatchPcdValue/PatchPcdValue.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/PatchPcdValue"
+
+        write "${dest}/usr/bin/GenPatchPcdTable" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/edk2/BaseTools/Source/Python
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/edk2/BaseTools/Source/Python/GenPatchPcdTable/GenPatchPcdTable.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/GenPatchPcdTable"
+
+        write "${dest}/usr/bin/AmlToC" """
+            #!/bin/sh
+            PYTHONPATH=/usr/lib/edk2/BaseTools/Source/Python
+            export PYTHONPATH
+            exec /usr/bin/python3 /usr/lib/edk2/BaseTools/Source/Python/AmlToC/AmlToC.py "$@"
+            """
+        chmod 0755 "${dest}/usr/bin/AmlToC"
+
+        require file "${dest}/usr/bin/GenFw" {
+            exists
+        }
+        require file "${dest}/usr/bin/GenSec" {
+            exists
+        }
+        require file "${dest}/usr/bin/GenFv" {
+            exists
+        }
+        require file "${dest}/usr/bin/VfrCompile" {
+            exists
+        }
+    }
+}
