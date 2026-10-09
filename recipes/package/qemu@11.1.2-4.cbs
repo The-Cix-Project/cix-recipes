@@ -1,0 +1,183 @@
+#
+# qemu -- the machine emulator Cix's own boot tests need. (cix#584)
+#
+# WHY IT IS HERE. Seven of this project's tests boot a real kernel or
+# a real installer ISO under QEMU, and none has ever run on a Cix host
+# because no Cix host had QEMU. With ovmf@202608-1 for the EFI half,
+# this is the other half of cix#584.
+#
+# ONE TARGET. --target-list=x86_64-softmmu, because that is the
+# machine Cix runs on and every other target is build time spent on
+# something nothing here boots.
+#
+# TCG ONLY, AND THAT IS NOT A LIMITATION HERE. This kernel has no KVM
+# at all -- CONFIG_KVM appears nowhere in
+# image/kernel/qemu-part1.config, which is built allnoconfig plus a
+# merge, so there is no /dev/kvm and no module to load. The seven boot
+# tests were developed in an environment that also had none, so their
+# timeouts are already tuned for software emulation.
+#
+# --disable-slirp DELIBERATELY, AND IT IS A STATED GAP rather than an
+# oversight: qemu needs libslirp for -netdev user, and
+# test_disk_image.c's with_nic case uses exactly that. libslirp@4.9.2-1
+# is published and builds after this one; the qemu revision that
+# follows re-enables slirp. Holding qemu back entirely until one more
+# library landed would deliver nothing in the meantime.
+#
+# gcc, BECAUSE MESON REFUSES TCC. Measured by pixman@0.46.4-1 on this
+# box: meson answers "Unknown compiler(s): [['tcc']]" before reading a
+# source file, since it identifies a compiler from its version output
+# and has no matcher for this one. qemu's ./configure is a shell
+# wrapper that hands the real work to meson, so the same limit holds.
+#
+# --meson IS NOT AN OPTION AND --ninja IS. 11.1.2-1 passed both and
+# configure answered `unknown option --meson=`: qemu dropped that one
+# when it began vendoring meson wheels, and uses the vendored meson
+# regardless of what is installed. --ninja survives and is passed
+# absolutely, for the same reason CLAUDE.md requires gcc by absolute
+# path -- what the build resolved is recorded in the recipe rather
+# than left to a search order.
+#
+# THE qemu.qmp WHEEL IS SUPPLIED LOCALLY, which is upstream's own
+# offline mechanism rather than a way around one. configure builds a
+# python venv and needs qemu.qmp in it; a build container is sealed by
+# design, so pip's PyPI attempt retried five times and failed. The
+# error named the fix itself:
+#
+#   No suitable version found in, or failed to install from
+#   '/build/cbsws/src/qemu/qemu-11.1.2/python/wheels'
+#
+# That directory is where qemu looks FIRST, and it is how qemu is
+# built offline -- meson==1.11.1 and pycotap==1.3.1 both installed
+# from it in the same run, which is the proof the mechanism works.
+# Only qemu.qmp is not vendored, so this declares it as a source and
+# materializes it there. Its sha256 came from PyPI's own JSON
+# metadata, which publishes it, so no probe was needed.
+#
+# AND THERE IS NO FLAG THAT DECLINES IT: 11.1.2-2 printed
+# `configure --help` into its log, and of the options this recipe
+# cares about only --python and --ninja exist. No --disable-pypi, no
+# --disable-download, no --disable-tests.
+#
+package "qemu" {
+    version "11.1.2"
+    release 4
+    format "cixpkg"
+
+    license "GPL-2.0-only"
+
+    sources {
+        main "qemu" {
+            url "https://download.qemu.org/qemu-11.1.2.tar.xz"
+            sha256 "731b5681e4bb18be313231579b8efd0296c5b015fa36dc533874b639ba838016"
+        }
+        # The one build dependency qemu does not vendor. Placed into
+        # python/wheels, where qemu's own mkvenv looks first.
+        extra "qmpwheel" {
+            url "https://files.pythonhosted.org/packages/47/8e/0d41329b82879ee1d4b522566c6d06368119650f8143168f3c3edf2a8afe/qemu_qmp-0.0.6-py3-none-any.whl"
+            sha256 "5d7c5af0e9de427696e3bf72e333965c3a697929f77f6b7ddc30c989fc7b539b"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "meson"
+            tool "ninja"
+            tool "python"
+            tool "pkgconf"
+            tool "glib"
+            tool "pixman"
+            tool "zlib"
+            tool "libffi"
+            tool "pcre2"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+        }
+        runtime {
+            package "glib"
+            package "pixman"
+            package "zlib"
+            package "libffi"
+            package "pcre2"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "qemu's ./configure hands the real work to meson, and meson does not recognise this tcc at all: 'Unknown compiler(s): [[tcc]]', before any source file is read. The build system's limit rather than qemu's. Measured on 192.168.15.95, 2026-10-09 by pixman@0.46.4-1."
+    }
+
+    metadata {
+        "changelog" "11.1.2-4: same build as 11.1.2-3, which was published and never built because its header had collapsed to one line and carried a comment asserting --ninja is not an option while the recipe passed it -- a comment contradicting the code is a bug to fix, not prose to skim. The build: supplies the qemu.qmp wheel into python/wheels, qemu's own offline mechanism, since a build container is sealed and 11.1.2-1 died on unknown option --meson= (cix#584)."
+    }
+
+    prepare {
+        require directory "${src}/qemu/qemu-11.1.2" {
+            exists
+        }
+        materialize $source.qmpwheel to "${src}/qemu/qemu-11.1.2/python/wheels/qemu_qmp-0.0.6-py3-none-any.whl"
+
+        require file "${src}/qemu/qemu-11.1.2/configure" {
+            exists
+            nonempty
+        }
+    }
+
+    build {
+        cd "${src}/qemu/qemu-11.1.2" {
+            # The full option list, in the log, every run. 11.1.2-1 died
+            # on `unknown option --meson=`: qemu dropped it when it began
+            # vendoring meson wheels, and a configure that rejects one
+            # option at a time costs a build cycle per stale flag. This
+            # exits 0 and takes a second.
+            run "./configure" {
+                "--help"
+            }
+
+            run "./configure" {
+                "--prefix=/usr"
+                "--target-list=x86_64-softmmu"
+                "--disable-docs"
+                "--disable-gtk"
+                "--disable-sdl"
+                "--disable-vnc"
+                "--disable-curses"
+                "--disable-slirp"
+                "--disable-user"
+                "--disable-werror"
+                "--audio-drv-list="
+                "--python=/usr/bin/python3"
+                "--ninja=/usr/bin/ninja"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/qemu/qemu-11.1.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/qemu-system-x86_64" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/qemu-img" {
+            exists
+            nonempty
+        }
+    }
+}
