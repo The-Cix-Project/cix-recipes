@@ -1,0 +1,130 @@
+#
+# probe-qemu-boot -- does a guest actually boot on Cix's own qemu and
+# Cix's own firmware? (cix#584)
+#
+# WHY THIS EXISTS. qemu@11.1.2-7 and ovmf@202608-1 both install
+# cleanly, and that proves nothing about booting. #584 exists so that
+# seven boot tests can run on a Cix host, so the verification that
+# matters is a guest executing -- our emulator, our firmware, our
+# installer ISO, nothing from anywhere else.
+#
+# WHAT IS UNDER TEST, and all three were built here:
+#
+#   - qemu-system-x86_64 from qemu@11.1.2-7 (x86_64-softmmu, TCG,
+#     slirp on, and carrying NONE of qemu's prebuilt firmware);
+#   - /usr/share/OVMF/OVMF.fd from ovmf@202608-1, built from
+#     edk2-stable202608 with every submodule at edk2's own pin;
+#   - cix-installer-0.2.57-478-x86_64.iso, the release whose ISO
+#     carries the partition-over-its-own-filesystem work (cix#430,
+#     ADR-0336). Its sha256 came from the cache's own artifact
+#     listing, which publishes one per format, so no probe was needed
+#     to learn it.
+#
+# HOW IT ENDS. A firmware that finds no operating system to run waits
+# forever, which is correct behaviour and useless to a build, so the
+# qemu run carries `timeout 2m` and the phase is EXPECTED to fail.
+# Everything that matters is read in on_fail: the serial log, which is
+# where OVMF's console goes, and a listing of what the run produced.
+# A probe publishes nothing either way.
+#
+# THE MAIN SOURCE IS NOT READ. cbs requires exactly one main source
+# and extracts it, so the ninja tarball stands in -- small, already
+# measured on this box by probe-ninja-tarball@1-1, and nothing in this
+# recipe touches it. The ISO is an extra source, materialized, because
+# an extra is not extracted and an ISO is not a tar.
+#
+package "probe-qemu-boot" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-478-x86_64.iso"
+            sha256 "318fd5c59baf5cb8d1f62323cc09d88be07e148cd40a5474bd53613221a09863"
+        }
+    }
+
+    requires {
+        build {
+            tool "qemu"
+            tool "ovmf"
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "3: adds -vga none. Revision 2 proved our OVMF is 4 MiB exactly and that qemu 11.1.2 runs, then failed wanting two prebuilt ROMs qemu@11.1.2-9 deliberately does not ship: kvmvapic.bin and vgabios-stdvga.bin. -vga none removes the VGA device and so the need for its option ROM; this establishes whether the kvmvapic line was fatal or only a warning, which decides whether an x86 machine can start at all with no prebuilt firmware (cix#584, cix#587)."
+    }
+
+    prepare {
+        materialize $source.iso to "${build}/cix.iso"
+    }
+
+    build {
+        # That both halves are IN the composed build environment, and
+        # which build each is. `require file` cannot be used for this:
+        # it is confined to ${src}/${build}/${dest} and refuses an
+        # absolute system path outright -- "resolves outside the
+        # confined build roots", which is 1-1's whole failure. A run
+        # argument carries no such confinement.
+        run "ls" {
+            "-la"
+            "/usr/share/OVMF"
+        }
+
+        # That the emulator runs at all, and which build it is.
+        run "qemu-system-x86_64" {
+            "--version"
+        }
+
+        # The real thing. -display none because there is no graphics
+        # here; -no-reboot so a reset ends the run rather than looping;
+        # serial to a file rather than stdio, which needs no terminal
+        # and is readable afterwards whatever happened.
+        run "qemu-system-x86_64" {
+            "-machine"
+            "q35"
+            "-m"
+            "1024"
+            "-vga"
+            "none"
+            "-display"
+            "none"
+            "-no-reboot"
+            "-bios"
+            "/usr/share/OVMF/OVMF.fd"
+            "-cdrom"
+            "${build}/cix.iso"
+            "-serial"
+            "file:${build}/serial.log"
+            timeout 2m
+        }
+
+        # Reached only if qemu exited by itself inside the window.
+        # Either way the phase must fail, so nothing is published.
+        run "false" {
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${build}"
+                allow_failure
+            }
+            run "cat" {
+                "${build}/serial.log"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-qemu-boot" parents
+    }
+}
