@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2fa30beed00ee2935ac3fc15dbc4e164b1a42677b3b021f5a65aab20b434a5e5"
         "changelog" "0.2.57-475: the bring-up helper reports its own split (cix#344). 1613 ms of a 1633 ms radio attach was attributed to rtnl_link_set_up() by inference, fork() and setns() being assumed microseconds. The competing hypothesis has an incompatible fix: if the kernel is still settling the PHY migration dev_change_net_namespace() just performed, the answer is sequencing and the cost disappears; if it is the driver's ndo_open, it can only be moved off the reactor. setns/rtnl_open/set_up now report up a pipe."
     }
 

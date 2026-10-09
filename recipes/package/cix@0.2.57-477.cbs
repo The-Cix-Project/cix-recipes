@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9c24dbe103738d27078f53df7003b355da55fd7a1e1ceda64754e20f323433e8"
         "changelog" "0.2.57-477: the reactor stops waiting for the interface bring-up (cix#344, ADR-0335 step 2 of 2). A radio create held cixd's single-threaded reactor for 1658 ms of one rtnl_link_set_up(); the library now hands the helper's pid and timing pipe back and the daemon adopts both through ADR-0278's existing CONN_HELPER, so the create returns after the 16 ms move. helper_attach() is factored out of helper_run() rather than a second registration written. cix-init's IFF_UP wait, live since 476, makes it safe."
     }
 
