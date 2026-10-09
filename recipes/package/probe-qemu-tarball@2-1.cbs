@@ -1,0 +1,45 @@
+#
+# probe-qemu-tarball -- the sha256 and reachability of this source,
+# measured by the box (THE SANDBOX RULE). (cix#584)
+#
+# qemu 11.1.2. The earlier probe measured 9.2.0, whose tar.xz CBS refused whole for edk2's X11IncludeHack symlink -- cbs v0.1.106 now skips that member and names it, so this is the first version this box could actually extract (cix#584).
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to -- on the pkg ls row itself. The fetch IS
+# the probe: no build container is composed and nothing is published.
+# A 404 instead would mean the url or the version is wrong, which is
+# equally worth knowing before a real recipe carries it.
+#
+package "probe-qemu-tarball" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "qemu" {
+            url "https://download.qemu.org/qemu-11.1.2.tar.xz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2: qemu 11.1.2. The earlier probe measured 9.2.0, whose tar.xz CBS refused whole for edk2's X11IncludeHack symlink -- cbs v0.1.106 now skips that member and names it, so this is the first version this box could actually extract (cix#584)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-qemu-tarball" parents
+    }
+}
