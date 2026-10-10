@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "0f5f019c2037686e88dc248740a3e59ec59801a21b4ce0a2043c08fc90305e92"
         "changelog" "0.2.57-519: a RE-RUN of 518, byte-identical source and sha256, to tell a flake from a defect. 518 failed test_pkg at \"hbtest hostbuild ended in state failed\" while 516 -- which differs only by an ADR, two guides, one error-message string and one comment -- passed the same test. Nothing in that diff can reach a hostbuild fixture, so this re-run is the measurement rather than the argument (cix#350)."
     }
 
