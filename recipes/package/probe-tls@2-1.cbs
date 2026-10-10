@@ -1,0 +1,58 @@
+#
+# probe-tls -- does the control-plane root verify a TLS certificate,
+# both when it WRITES to the forge and when it READS from it? (cix#350)
+#
+# Revision 2 asks the same question of 0.2.57-483, which moves
+# usr/lib/ssl/openssl.cnf out of the build host and into the
+# cix-hosttools image. That file is read by the libcrypto cixd links --
+# in-process since cix#351, and Cix's own from usr/lib since ADR-0337
+# -- at init, so it is upstream of every certificate verification this
+# host performs. A wrong or mismatched openssl.cnf is therefore exactly
+# the shape of failure 0.2.57-481 had: a root that boots, reports
+# health ok, runs every container, and cannot verify a certificate.
+#
+# TWO DIRECTIONS, ONE RECIPE:
+#
+#   WRITE -- publishing this recipe at all. `pkg recipe commit` is
+#     git-first (ADR-0323), so cixd commits these bytes to
+#     https://git.home.arpa over TLS before publishing. If that fails,
+#     the file never reaches the store and the probe has answered.
+#
+#   READ -- the main source below is an HTTPS fetch from that same
+#     host with a DELIBERATELY WRONG sha256. A checksum mismatch is
+#     the SUCCESS condition: only a completed fetch can report one, so
+#     it proves the certificate verified and the bytes arrived, at no
+#     build-container cost.
+#
+package "probe-tls" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "forge" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-483.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "coreutils"
+            tool "bash"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the same TLS question asked of 0.2.57-483, which moves usr/lib/ssl/openssl.cnf from the build host into the cix-hosttools image. libcrypto reads that config at init and it is upstream of every certificate verification, so this is the property the change could break. Publishing this is the write half; the deliberately wrong sha256 makes a checksum mismatch the proof the read half completed (cix#350)."
+    }
+
+    build {
+        run "true" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tls" parents
+    }
+}
