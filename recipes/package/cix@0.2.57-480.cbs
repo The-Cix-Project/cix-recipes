@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "046662e0b56437f4a1f086c20fef3193b5644fc0bb95b5f9a64f33956882b334"
         "changelog" "0.2.57-480: the installer's default GRUB entry is chosen by the media rather than frozen at build time. A DVD boot hung at Waiting for root device with no error, because default=0 is the USB entry and root=PARTUUID= can never resolve on optical (GENHD_FL_NO_PART, which is why there are four entries). GRUB now picks it from the root variable: cd0 on optical, hd0,gptN on USB since #430 made the ISO9660 filesystem a partition (cix#588)."
     }
 
