@@ -1,0 +1,107 @@
+#
+# probe-apigen -- what does apigen actually emit into api.js? (cix#594)
+#
+# probe-cix-compile@0.2.57-523 reported `web/api.js does not parse:
+# SyntaxError: expecting '}'` from test_web_syntax, while test_apigen
+# PASSED -- so the emitter produces 340 shapes, a FIELDS table,
+# prefix_len's bounds and no bare enum, and the file still will not
+# parse. Presence was asserted; parseability was not.
+#
+# Guessing from here is the expensive way: a full selftest cycle is
+# eleven minutes per theory. This builds ONLY build/apigen, runs it,
+# and prints the regions where spec-derived strings reach the file --
+# every `pattern:` and `options:` it wrote, the FIELDS block's start,
+# and the file's tail, since "expecting '}'" at the end is what an
+# unterminated string looks like after it has swallowed the rest.
+#
+package "probe-apigen" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/f87f607fd37b80802b4b858179619d6b5f047ece.tar.gz"
+            sha256 "edc1dde092425e36e9b028d5c6c1fcd717bf2d9b720befa93bc964a739a6b567"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "1: reads what apigen emits rather than guessing why it does not parse. test_apigen passed and test_web_syntax failed on the same output, so presence was asserted and parseability was not. Builds only build/apigen and prints every pattern and options line it wrote, the FIELDS block, and the tail (cix#594)."
+    }
+
+    build {
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=${version}-${release}"
+                "build/apigen"
+            }
+
+            run "./build/apigen" {
+                "docs/api/openapi.yaml"
+                "--emit-web"
+                "${build}/api.js"
+            }
+
+            run "wc" {
+                "-l"
+                "${build}/api.js"
+            }
+
+            # Where the new block starts, so the line numbers below mean
+            # something.
+            run "grep" {
+                "-n"
+                "FIELDS: {"
+                "${build}/api.js"
+            }
+
+            # Every spec-derived STRING this emitter writes. If one is
+            # unterminated, it is here.
+            run "grep" {
+                "-n"
+                "pattern:"
+                "${build}/api.js"
+            }
+
+            run "grep" {
+                "-n"
+                "-m"
+                "25"
+                "options:"
+                "${build}/api.js"
+            }
+
+            # The first fields emitted, to see the shape of a record.
+            run "sed" {
+                "-n"
+                "2,6p"
+                "${build}/api.js"
+            }
+
+            # And the tail: an unterminated string swallows everything
+            # after it, so the end is where the damage shows.
+            run "tail" {
+                "-n"
+                "25"
+                "${build}/api.js"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-apigen" parents
+    }
+}
