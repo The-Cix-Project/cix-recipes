@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "05a4a45d1cf0f98a0bf2ee5f0231ca56477be030721513579da2d4cdbe3de1ef"
         "changelog" "0.2.57-485: the lock screen as it actually renders (cix#597). Six defects the first browser render of 484 found with every gate green -- the shell hard-coded dark surfaces while inheriting a foreground that is carbon in light mode, so the wordmark and both facts were invisible; the seam painted under the panels; the fields had no gap; and every child of the form was shrink-to-fit against the global grid rule. The shell carries the theme now, and a first load no longer claims the session expired."
     }
 
