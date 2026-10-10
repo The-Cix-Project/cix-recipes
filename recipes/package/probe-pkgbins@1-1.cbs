@@ -1,0 +1,123 @@
+#
+# probe-pkgbins -- what do Cix's OWN staged-binary candidates link?
+# (cix#589)
+#
+# THE QUESTION THE FIX DEPENDS ON. mkbootroot stages e2fsck,
+# mkfs.ext4, resize2fs, sfdisk and unsquashfs from the BUILD HOST, and
+# probe-rootlibs@2-1 showed the copies in a real control-plane root
+# need libcom_err and libext2fs dynamically. Cix's e2fsprogs recipe
+# configures with only --prefix=/usr --disable-nls -- no
+# --enable-elf-shlibs -- so ITS binaries should link those statically
+# and name neither. If that holds, the root's copies are a dev host's,
+# and moving these binaries to the host_tools_dir path (which
+# mkbootroot's own comment already says is the correct one) does not
+# merely change their provenance: it removes libcom_err, libext2fs,
+# libe2p and libblkid from the library list rather than requiring them
+# to be packaged.
+#
+# So this reads the packages themselves, out of the cache, with
+# readelf. Nothing is inferred from a recipe's configure flags when the
+# artifact is right there and its sha256 is published.
+#
+# NO BUILD, NO STAGING, NO ROOT. Three .cixpkg artifacts extracted by
+# cbs and one readelf per binary. The phase ends on a deliberate
+# failure so the log is kept and nothing is published.
+#
+package "probe-pkgbins" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "e2fsprogs" {
+            url "http://192.168.15.31:8080/e2fsprogs-1.47.4-9-x86_64.cixpkg"
+            sha256 "883348390857373a501d610d7bbb9ff1a1983e22df3e5396363591eafe124959"
+        }
+        extra "utillinux" {
+            url "http://192.168.15.31:8080/util-linux-2.42.2-3-x86_64.cixpkg"
+            sha256 "344472717715183745880c962708f3172ec73430841b1cbaf95183b8e5b4e5f0"
+        }
+        extra "squashfstools" {
+            url "http://192.168.15.31:8080/squashfs-tools-4.7.5-13-x86_64.cixpkg"
+            sha256 "da660085128be638dc171d6e6b5f0dc4e1c6556a6fdc2416cf70ee33d68e3814"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: what do Cix's own e2fsprogs, util-linux and squashfs-tools binaries link? The root's copies need libcom_err and libext2fs dynamically, and Cix's e2fsprogs is configured without --enable-elf-shlibs, so its own should link them statically -- which would mean the root's copies are a dev host's and that moving these binaries to the host_tools_dir path also deletes four libraries from the list. Measured from the artifacts rather than inferred from flags (cix#589)."
+    }
+
+    prepare {
+        materialize $source.e2fsprogs to "${build}/e2fsprogs.cixpkg"
+        materialize $source.utillinux to "${build}/util-linux.cixpkg"
+        materialize $source.squashfstools to "${build}/squashfs-tools.cixpkg"
+    }
+
+    build {
+        run "cbs" {
+            "extract"
+            "${build}/e2fsprogs.cixpkg"
+            "--into"
+            "${build}/e2fsprogs"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/util-linux.cixpkg"
+            "--into"
+            "${build}/util-linux"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/squashfs-tools.cixpkg"
+            "--into"
+            "${build}/squashfs-tools"
+        }
+
+        run "false" {
+        }
+
+        on_fail {
+            # What each package actually ships, then what each binary
+            # names. readelf objects to non-ELF files find hands it, so
+            # this lives here where one objection cannot truncate it.
+            run "find" {
+                "${build}/e2fsprogs"
+                "${build}/util-linux"
+                "${build}/squashfs-tools"
+                "-type"
+                "f"
+                allow_failure
+            }
+            run "find" {
+                "${build}/e2fsprogs"
+                "${build}/util-linux"
+                "${build}/squashfs-tools"
+                "-type"
+                "f"
+                "-exec"
+                "readelf"
+                "-d"
+                "{}"
+                "+"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-pkgbins" parents
+    }
+}
