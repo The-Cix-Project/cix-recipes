@@ -1,0 +1,66 @@
+#
+# probe-tls -- does the control-plane root verify a TLS certificate,
+# both when it WRITES to the forge and when it READS from it? (cix#350)
+#
+# WHY THIS EXISTS AS ITS OWN PROBE. 0.2.57-481 built, self-assembled,
+# booted, reported health ok and ran every container -- and had no
+# working TLS at all: cixd had started resolving Cix's own libcurl,
+# whose compiled-in CA path was whatever ./configure detected in a
+# build container rather than the bundle mkbootroot stages, so the next
+# `pkg recipe commit` failed with "unable to get local issuer
+# certificate (20)" and every HTTPS pkg_source fetch with it. The box
+# could not build its own fix. CLAUDE.md records the lesson: verify the
+# property the change could plausibly break, not that the system
+# starts.
+#
+# 0.2.57-482 removes six MORE libraries from the directory the loader
+# searches first, libssl and libcrypto among them, so cixd now resolves
+# OpenSSL out of usr/lib as well. Same class of change, same question,
+# so the same check -- deliberately, rather than trusting that the one
+# before it was the only one of its kind.
+#
+# TWO DIRECTIONS, ONE RECIPE:
+#
+#   WRITE -- publishing this recipe at all. `pkg recipe commit` is
+#     git-first (ADR-0323): cixd commits the bytes to
+#     https://git.home.arpa over TLS before publishing. If that fails,
+#     this file never reaches the store and the probe has answered.
+#
+#   READ -- the main source below is an HTTPS fetch from that same
+#     host, with a DELIBERATELY WRONG sha256. A checksum mismatch is
+#     the SUCCESS condition here: it can only be reported by a fetch
+#     that completed, so it proves the certificate verified and the
+#     bytes arrived, while costing no build container at all.
+#
+package "probe-tls" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "forge" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-482.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "coreutils"
+            tool "bash"
+        }
+    }
+
+    metadata {
+        "changelog" "1: does the root verify a TLS certificate, writing to the forge and reading from it? Publishing this recipe is the write half (pkg recipe commit is git-first over HTTPS); the main source is an HTTPS fetch from the same host with a deliberately wrong sha256, so a checksum mismatch proves the fetch completed. 0.2.57-481 booted healthy with TLS broken, which is why this is checked rather than assumed (cix#350)."
+    }
+
+    build {
+        run "true" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tls" parents
+    }
+}
