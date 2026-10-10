@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1791745651967bbc3d858374e2890486f9675e32925a75ed0e54fd74ce833134"
         "changelog" "0.2.57-539: compile and selftest probe of commit 36821059 -- the session shell (cix#597). Login stops being a modal: two panels over the dashboard part on unlock and converge on lock, the right one carrying fields generated from postLogin own request schema so the password is obscured because the contract says format: password. test_web_tree gates the swap, failing if openModal login-form appears on a non-comment line or index.html has no lock-shell."
     }
 
