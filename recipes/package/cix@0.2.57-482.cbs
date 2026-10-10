@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "bf51363c923dc1f1faea507053b450182b26e2cb42c53f738a0a2a336def4604"
         "changelog" "0.2.57-482: the root's programs and libraries are derived from one list, with no build-host fallback (cix#350, ADR-0337). mkbootroot's five hand-maintained staging mechanisms become include/controlplane_programs.h, which now supplies the root as well as gating it. shelled_bin_libs[] is deleted: all nine sonames were in cix-hosttools already, five only at usr/lib while the list wrote build-host copies into lib/x86_64-linux-gnu, which glibc searches FIRST -- six sat twice in 481's root, different bytes."
     }
 
