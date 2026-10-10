@@ -1,0 +1,154 @@
+#
+# --with-ca-bundle IS EXPLICIT NOW, and the release that taught us why
+# is 0.2.57-481. curl's ./configure AUTO-DETECTS a CA bundle path from
+# whatever machine builds it and compiles that path in as its default.
+# That makes the path a property of the build container's filesystem
+# rather than a decision, and 8.21.0-6 therefore has a default nobody
+# chose and nobody recorded.
+#
+# It did not matter while the control-plane root also carried a DEBIAN
+# libcurl in /lib/x86_64-linux-gnu, which is earlier on the search
+# path than /usr/lib, so cixd linked that one and used ITS compiled-in
+# path -- the one mkbootroot stages, /etc/ssl/certs/ca-certificates.crt.
+# cix 0.2.57-481 stopped staging the Debian copy (cix#589), cixd began
+# linking THIS package's libcurl, and TLS verification broke on the
+# live box within a minute of booting:
+#
+#   the commit request to git.home.arpa failed: SSL certificate
+#   OpenSSL verify result: unable to get local issuer certificate (20)
+#
+# which also breaks every HTTPS pkg_source fetch. Measured on
+# 192.168.15.95, 2026-10-10; the release was rolled back with
+# boot-next b.
+#
+# So the flag names the path mkbootroot actually stages. This changes
+# WHICH FILE libcurl reads, not which roots are trusted: the bundle is
+# the same one the root has always carried. That the bundle itself is
+# a dev host's, with no Cix package providing a root store, is a
+# separate and still-open question on cix#589 -- it is not made better
+# or worse by pinning the path, and pinning the path is what stops the
+# default being an accident of the build environment.
+#
+# curl, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/curl/8.21.0-4/build.sh: same tarball
+# at the same digest, the same fourteen configure switches, the same
+# `make install`.
+#
+# The shell recipe's removals are split three ways here, and the split
+# is the point:
+#
+#   usr/share                 -- gone. ADR-0306 (#491). Note curl also
+#                                passes --disable-manual --disable-docs,
+#                                so little was being deleted anyway.
+#   libcurl.a, libcurl.la     -- gone. ADR-0251's finalize phase already
+#                                drops a static archive superseded by a
+#                                shared object beside it, and every .la.
+#   pkgconfig, curl-config,   -- KEPT. These are not documentation and
+#   wcurl                        not platform policy; they are this
+#                                package deciding it ships a runtime
+#                                curl and not a development kit.
+package "curl" {
+    version "8.21.0"
+    release 7
+    format "cixpkg"
+
+    license "curl"
+
+    sources {
+        main "curl" {
+            url "https://curl.se/download/curl-8.21.0.tar.gz"
+            sha256 "d9b327997999045a24cda50f3983e69e51c516bd8be6ef9842fc7f99135e33bb"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "openssl"
+            tool "zlib"
+        }
+        runtime {
+            package "openssl"
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "changelog" "8.21.0-7: --with-ca-bundle is explicit. configure auto-detects a CA path from whatever machine builds it, so 8.21.0-6 had a default nobody chose. It did not matter while the control-plane root also carried a Debian libcurl earlier on the search path; cix 0.2.57-481 stopped staging that copy, cixd began linking this package's libcurl, and TLS broke on the live box with unable to get local issuer certificate. Same roots, chosen path (cix#589)."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/curl"
+        }
+        require directory "${src}/curl/curl-8.21.0" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/curl/curl-8.21.0" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--with-openssl"
+                "--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt"
+                "--without-libpsl"
+                "--disable-ldap"
+                "--disable-ldaps"
+                "--without-libidn2"
+                "--without-nghttp2"
+                "--without-librtmp"
+                "--without-libssh2"
+                "--without-brotli"
+                "--without-zstd"
+                "--without-gssapi"
+                "--disable-manual"
+                "--disable-docs"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/curl/curl-8.21.0" {
+            run "make" {
+                "DESTDIR=${dest}"
+                "install"
+            }
+        }
+        remove tree "${dest}/usr/lib/pkgconfig"
+        remove "${dest}/usr/bin/curl-config"
+        remove "${dest}/usr/bin/wcurl"
+        # The shell recipe asserted all three of libcurl.so.4.8.0, .so.4
+        # and .so. Only the first is a regular file; the other two are
+        # symlinks, which `require file` rejects with "does not exist"
+        # (cix-build-system#175). So the soname link is no longer
+        # checked here -- the assertion is strictly weaker than the
+        # shell form's, and that is a real loss, recorded rather than
+        # papered over.
+        require file "${dest}/usr/lib/libcurl.so.4.8.0" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/curl" {
+            exists
+            nonempty
+        }
+    }
+}
