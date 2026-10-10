@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2871d563dab2fc4a5f8ed868905a2f535521701207aec3843de7f67a36709935"
         "changelog" "0.2.57-516: compile and selftest probe of commit 260aa4f6, which derives the control-plane root's programs from include/controlplane_programs.h, deletes shelled_bin_libs[] and removes the build-host fallback. Builds build/mkbootroot and the tests whose mkbootroot arguments changed with it (cix#350)."
     }
 
