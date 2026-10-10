@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0f8c75936ce322fa3f7d9d06efd21eafb8e717c476416f7aff4c6803f283bb07"
         "changelog" "0.2.57-483: openssl.cnf comes from the cix-hosttools image rather than the build host, because the config has to match the libcrypto that reads it -- since cix#351 and ADR-0337 that is Cix's own from usr/lib. The CA bundle stays on the build host with the measurement beside it: git.home.arpa's certificate is issued by a private CA no package can ship, and cixd sets no CURLOPT_CAINFO, so that one file is the whole trust store -- public roots alone would have broken the forge (cix#591)."
     }
 

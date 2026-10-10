@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "da9cf493a1129384f81afed73d5c82b08c35c56285fb6135b0795b21d042268c"
         "changelog" "0.2.57-484: the dashboard renders from the contract (ADR-0338). apigen emits <opId>_SHAPE and a FIELDS table, and reads what it used to skip -- an enum value with spaces, a nullable type as a flow list, descriptions in both YAML forms, flow lists spanning lines, and 82 inline request bodies (cix#594, #602, #603). openForm builds a modal from that schema, fieldText ends eleven spellings of two facts, and login stops being a modal: the session shell parts on unlock (cix#595, #597)."
     }
 
