@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "fa033ee95edb5e542923ec386838ba1204e9dc0a58186fed082a4f72fc28c121"
         "changelog" "0.2.57-481: mkbootroot stages its tools from cix-hosttools rather than from the build host's own filesystem, which on an installed host is the control-plane root -- so every assembly used to copy the previous root's copy forward. The staged library list drops from 43 to 9: the removals were the dependency closure of a dev host's dynamically-linked e2fsprogs, util-linux and squashfs-tools, whose Cix equivalents are static. Measured, not judged (cix#589)."
     }
 
