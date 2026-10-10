@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b9002a512df100f6c99c54568ea61a693686bdff6ba1b131427effc5599d738a"
         "changelog" "0.2.57-488: the pattern gate 487 only claimed is wired, and the two LDAP forms are generated (cix#596, cix#604). Converting the user form fixed a real bug: the hand-written PUT body omitted can_search, which the daemon reads as false and writes unconditionally, so every edit of an LDAP user through the dashboard silently revoked its search grant. An array item type now rides on the control, because secondary_groups was being sent as strings and read as zeroes."
     }
 

@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "104727089a782b034319eab01dda6464555b5df0bfee36e202b10d6657b77cda"
         "changelog" "0.2.57-489: the generated form is built to the design canvas at last (cix#592, cix#596). A field is a head row carrying the operator label, a required marker and a monospace constraint chip, then the control, then ONE SENTENCE of hint -- not the clamped reference paragraph. The label is JSON Schema title, so Sn reads as Surname; the hint is the description first sentence, measured at 89 percent usable across 684 of them. Both gates self-scope."
     }
 
