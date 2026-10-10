@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "fa34480c4fa49aca671bd27f238a564fe3a76eda8db918c260f1f8bb97e99008"
         "changelog" "0.2.57-529: compile and selftest probe of commit 83186082 -- apigen reads an inline request body into a synthesized schema named after its operation, so 121 of 340 operations name a request schema where 41 did, and the three bodies no generated form can be made from stay null on purpose (cix#603, ADR-0338). Gates the new test_apigen assertions: no request name without a FIELDS entry, no odd unescaped quote on a line, no type outside JSON Schema six, and a read buffer that refuses a line it cannot hold."
     }
 
