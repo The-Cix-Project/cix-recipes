@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "482ddb84bd263660eb791515d7b946c6650df5fa5b70a5d34613d8d01d04d8be"
         "changelog" "0.2.57-541: compile and selftest probe of commit 488c18ac -- the six lock-screen defects a browser render found and no gate could (cix#597). The shell now carries the theme (--bg/--panel/--text) instead of hard-coding dark surfaces while inheriting a light foreground, the seam has a stacking order, the generated fields have a gap, the form stretches against the global grid rule, and a first load no longer claims the session expired."
     }
 
