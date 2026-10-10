@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "29b4db15bd5669e12369b7fc3234c4a991c01990a37f4ad8b44346e2a39a9b8a"
         "changelog" "0.2.57-514: compile and selftest probe of commit abedf252, which trims mkbootroot's staged library set from 43 to 19. A commit rather than a tag: this is verified by building it, not by a release. Builds build/mkbootroot and build/test_boot, so both edited files are compiled (cix#589, cix#584)."
     }
 
