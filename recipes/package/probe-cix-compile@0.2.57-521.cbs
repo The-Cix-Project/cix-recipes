@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b6c71ecd83e4e639053ab69683f43536d4df3ea9e26b3f989bcd313347c7d8a1"
         "changelog" "0.2.57-521: compile and selftest probe of tag 0.2.57-483 (commit 82d82435), which moves openssl.cnf to the host-tools image, records in code why the CA bundle cannot follow it, and adds the test_pkg diagnostics that make cix#580's next occurrence readable (cix#350, cix#580, cix#591)."
     }
 
