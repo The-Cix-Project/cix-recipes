@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f01169c7a49a5e85c009ef420f16dee027a34346cc6e26b1a1eeaf49bac4e0ba"
         "changelog" "0.2.57-527: compile and selftest probe of commit 0279500c -- apigen reads a nullable type (a two-member flow list naming a type and null) as that type with nullable: true, rather than as a truncated string literal that made web/api.js unparseable, and captures field descriptions in both the single-line and folded-block YAML forms (cix#594, ADR-0338). The gate is test_web_syntax, which refused api.js on both 523 and 525, plus test_apigen new closed-set type assertion."
     }
 
