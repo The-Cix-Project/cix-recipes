@@ -1,0 +1,152 @@
+#
+# probe-rootlibs -- is the control-plane root carrying TWO builds of
+# the same library, with the foreign one found first? (cix#350)
+#
+# THE QUESTION. mkbootroot stages libraries twice from two sources.
+# shelled_bin_libs[] names nine by hand and copies each from the BUILD
+# HOST into lib/x86_64-linux-gnu; the platform block then copies every
+# .so in the cix-hosttools image, preserving ITS directory. Measured
+# host-side from the daemon's own file lists on 2026-10-10, every one
+# of the nine is in cix-hosttools -- five of them (libssl, libcrypto,
+# libz, libzstd, liblzma) only at usr/lib, which the loader searches
+# AFTER lib/x86_64-linux-gnu.
+#
+# So the root should hold two copies of each of those five, with the
+# build host's winning. That is the libcurl finding of 2026-10-09
+# (probe-rootlibs@2-1) five times over, and it is an INFERENCE from two
+# measurements, which CLAUDE.md says is a new claim needing its own
+# check. This is that check.
+#
+# ONE ANSWER, TWO WAYS: every lib*.so* in the root is hashed, so a
+# duplicate pair shows as two paths with two different hashes; and
+# openssl's own published artifact is extracted beside it, so "not the
+# package's bytes" is shown against the package rather than argued.
+#
+# WHY THE ISO. The host is shell-less and no endpoint reads a host
+# file, but `cixctl iso build` runs the same mkbootroot from the same
+# artifacts, so cix-installer-0.2.57-481's payload/cix-root.squashfs is
+# a root THIS release's mkbootroot produced on this host.
+#
+package "probe-rootlibs" {
+    version "5"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-481-x86_64.iso"
+            sha256 "3135b6bbb224a18e703403f0c90bc90bfd05a0050ef6459093c5c5c17d1b2e62"
+        }
+        extra "openssl" {
+            url "http://192.168.15.31:8080/openssl-3.0.20-7-x86_64.cixpkg"
+            sha256 "12a038104f0e89f3c4fc179a667b8166e64e6c41ec8c84b69602fcf3ed3ff6f5"
+        }
+    }
+
+    requires {
+        build {
+            tool "xorriso"
+            tool "squashfs-tools"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+            tool "binutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "5: two builds of one library in one root (cix#350). The nine hand-staged libraries are all in cix-hosttools already, five only at usr/lib -- so the root should carry a build-host copy of each at lib/x86_64-linux-gnu, which the loader finds first. Hashes every lib*.so* in 481's real root, with openssl's own artifact extracted beside it."
+    }
+
+    prepare {
+        materialize $source.iso to "${build}/cix.iso"
+        materialize $source.openssl to "${build}/openssl.cixpkg"
+    }
+
+    build {
+        # mkinstalleriso puts the control-plane root at
+        # payload/cix-root.squashfs (image/src/mkinstalleriso.c).
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/cix.iso"
+            "-extract"
+            "/payload/cix-root.squashfs"
+            "${build}/cix-root.squashfs"
+        }
+
+        run "unsquashfs" {
+            "-d"
+            "${build}/root"
+            "${build}/cix-root.squashfs"
+        }
+
+        # Every library in the root, hashed. A duplicate basename in two
+        # directories with two different hashes is the finding.
+        run "find" {
+            "${build}/root"
+            "-name"
+            "lib*.so*"
+            "-type"
+            "f"
+            "-exec"
+            "sha256sum"
+            "{}"
+            "+"
+        }
+
+        # And the package's own bytes, to compare against rather than
+        # argue about. cbs extract refuses an existing destination.
+        run "cbs" {
+            "extract"
+            "${build}/openssl.cixpkg"
+            "--into"
+            "${build}/openssl"
+        }
+
+        run "find" {
+            "${build}/openssl"
+            "-name"
+            "lib*.so*"
+            "-type"
+            "f"
+            "-exec"
+            "sha256sum"
+            "{}"
+            "+"
+        }
+
+        # The whole point of the directory order: what bin/cixd and the
+        # staged tools actually name.
+        run "readelf" {
+            "-d"
+            "${build}/root/bin/cixd"
+        }
+
+        run "false" {
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${build}/root/lib/x86_64-linux-gnu"
+                allow_failure
+            }
+            run "ls" {
+                "-la"
+                "${build}/root/usr/lib"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rootlibs" parents
+    }
+}
