@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8147f0c9d661cb9410d7e20fb2c6df716ccd88bad02efe668428564bfbe88ac7"
         "changelog" "0.2.57-537: compile and selftest probe of commit e8dd665d -- fieldText ends eleven spellings of two facts (a boolean read three ways and an absent value five), renderTableRows and renderDetailRows join it over the generated FIELDS table, and fieldBlock and simpleTableRows move into web/form.js so all of it is executed by test_web_form rather than only parsed (cix#595, ADR-0338)."
     }
 
