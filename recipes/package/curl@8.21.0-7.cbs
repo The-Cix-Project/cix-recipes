@@ -86,6 +86,7 @@ package "curl" {
     }
 
     metadata {
+        "artifact_sha256" "f3ebf375cc5cc768cfda7689761010d1d8c21541341987f36e3723bf74daa63c"
         "changelog" "8.21.0-7: --with-ca-bundle is explicit. configure auto-detects a CA path from whatever machine builds it, so 8.21.0-6 had a default nobody chose. It did not matter while the control-plane root also carried a Debian libcurl earlier on the search path; cix 0.2.57-481 stopped staging that copy, cixd began linking this package's libcurl, and TLS broke on the live box with unable to get local issuer certificate. Same roots, chosen path (cix#589)."
     }
 
