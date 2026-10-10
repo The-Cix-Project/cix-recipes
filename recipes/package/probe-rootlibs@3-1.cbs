@@ -1,0 +1,160 @@
+#
+# probe-rootlibs -- what libraries does a Cix control-plane root
+# actually carry? (cix#589)
+#
+# THE QUESTION, and it is cix#589's own first action rather than a
+# guess. mkbootroot's shelled_bin_libs[] stages 43 libraries from the
+# BUILD HOST's /lib/x86_64-linux-gnu, unconditionally, under the
+# comment "/* curl */" -- and Cix's own curl is built --without-nghttp2
+# --without-libidn2 --without-librtmp --without-libssh2 --without-libpsl
+# --without-gssapi --disable-ldap, with none of those packaged at all.
+# So that list is Debian's dependency closure.
+#
+# Real assembly on 192.168.15.95 SUCCEEDS, and that loop is not gated
+# on anything, and on .95 mkbootroot runs on the control-plane root
+# itself. Those three joined say the running root already carries
+# Debian-built libraries, perpetuated because each assembly stages from
+# the root the previous one made -- the mechanism mkbootroot's own
+# btrfs comment describes for mkfs.btrfs. That is an INFERENCE, so this
+# probe replaces it with a measurement.
+#
+# WHY THE ISO IS A FAIR PROXY, and a better one than it first looks.
+# The host is shell-less and no REST endpoint reads a host file, so the
+# booted root cannot be listed directly. But `cixctl iso build` runs
+# the SAME mkbootroot from the same hostbuild artifacts, and
+# cix-installer-0.2.57-480 was built on .95 after booting 0.2.57-480 --
+# so its payload/cix-root.squashfs is a control-plane root this
+# release's mkbootroot produced on this host. If Debian libraries are
+# in there, they are in the booted root for the same reason.
+#
+# ONE ANSWER, TWO WAYS: the lib directory is listed, and the specific
+# names cix#589 names are searched for by name, so a quiet absence and
+# a quiet presence look different in the log.
+#
+package "probe-rootlibs" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-481-x86_64.iso"
+            sha256 "3135b6bbb224a18e703403f0c90bc90bfd05a0050ef6459093c5c5c17d1b2e62"
+        }
+    }
+
+    requires {
+        build {
+            tool "xorriso"
+            tool "squashfs-tools"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+            tool "grep"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "3: did cix#589's fix work? 2-1 measured the 0.2.57-480 root: 65 shared objects, 23 with no Cix package, two libcurls, and cixd linking the foreign one. 0.2.57-481 stages its tools from cix-hosttools and 9 libraries instead of 43, and its root squashfs is 16,277,504 bytes against 19,787,776. This reads the new root the same way (cix#589)."
+    }
+
+    prepare {
+        materialize $source.iso to "${build}/cix.iso"
+    }
+
+    build {
+        # mkinstalleriso puts the control-plane root at
+        # payload/cix-root.squashfs (image/src/mkinstalleriso.c:1412).
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/cix.iso"
+            "-extract"
+            "/payload/cix-root.squashfs"
+            "${build}/cix-root.squashfs"
+        }
+
+        run "ls" {
+            "-la"
+            "${build}/cix-root.squashfs"
+        }
+
+        # Only the library directory, not the whole root.
+        run "unsquashfs" {
+            "-d"
+            "${build}/root"
+            "${build}/cix-root.squashfs"
+        }
+
+        run "ls" {
+            "-la"
+            "${build}/root/lib/x86_64-linux-gnu"
+        }
+
+        # And the names cix#589 names, by name, so an absence reads as
+        # an absence rather than as something missed in a long listing.
+        run "find" {
+            "${build}/root"
+            "-name"
+            "libnghttp2.so.*"
+            "-o"
+            "-name"
+            "libgnutls.so.*"
+            "-o"
+            "-name"
+            "libkrb5.so.*"
+            "-o"
+            "-name"
+            "libldap*"
+            "-o"
+            "-name"
+            "libcurl.so.*"
+        }
+
+        # Every DT_NEEDED in the whole root, which is the fact cix#589's
+        # fix needs: a library present but named by nothing is an
+        # orphan, and the orphan set is what can be removed with
+        # evidence rather than judgement. In on_fail because readelf
+        # objects to the non-ELF files find also hands it, and one
+        # objection must not truncate the sweep.
+
+        run "false" {
+        }
+
+        on_fail {
+            run "find" {
+                "${build}/root"
+                "-type"
+                "f"
+                "-exec"
+                "readelf"
+                "-d"
+                "{}"
+                "+"
+                allow_failure
+            }
+
+            run "ls" {
+                "-la"
+                "${build}"
+                allow_failure
+            }
+            run "find" {
+                "${build}/root"
+                "-maxdepth"
+                "3"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rootlibs" parents
+    }
+}
