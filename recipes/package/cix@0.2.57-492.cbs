@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a0653a335669eb923f33b094ab196576150e0a536f16f44c4170853fad1eb5c5"
         "changelog" "0.2.57-492: story 6, the dg-* private namespace (cix#598). The gate came first, because nothing counted those classes at all: test_web_tree now fails any class app.js sets which neither style.css defines nor app.js selects on. It found four controls wearing classes that style nothing -- a volume Delete button with no danger styling among them. Then the collapse, 48 classes to 19: three re-inventions of existing widgets, three sizes of one idiom, and two real widgets promoted with vocabulary rows."
     }
 

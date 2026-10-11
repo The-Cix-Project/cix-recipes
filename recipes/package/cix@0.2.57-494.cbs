@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ef2404678d80abe8358cf391ea4c5c9a2a19e2185bb3dc181693083ee9b66cd3"
         "changelog" "0.2.57-494: three dg- rules survived the collapse (cix#598) -- .dg-row and .dg-row-header in one narrow-viewport media query, .dg-lane in another, styling a grid of divs that had become a table. Two instruments reported clean: the orphan gate only looks for a class app.js SETS, and the count was a ^\\.dg- grep, which an indented rule does not match. One min-width replaces them so the existing scroll engages, the duplicated .delivery-graph rule is collapsed, and test_web_tree gates the spelling."
     }
 

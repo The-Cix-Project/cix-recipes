@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8df19e92cf90e1adeb9e521eaa606b7d3a5f8962591a610a15631df6cc0a7f3c"
         "changelog" "0.2.57-495: nine hand-written <input pattern> attributes validated nothing (cix#596). A browser compiles them with the regex v flag, where a bare -] is a SyntaxError, and SKIPS a pattern it cannot compile -- so the container, network, volume, LDAP group, package and four other name fields accepted anything. Measured in Chromium before and after. test_web_tree gates the spelling in markup as test_apigen does in the contract, and gates every data-modal target. createNetwork becomes the generated form."
     }
 

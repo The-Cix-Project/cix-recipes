@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "02cd474112345c087b509728ed8367bb546bf1d79bb8c284bb143845d4a88d15"
         "changelog" "0.2.57-496: createDeviceMap and createVolume are generated from the contract (cix#596). DeviceMapCreateRequest.name described its charset in prose and carried no pattern, so converting would have lost it -- the pattern moves into the contract, where test_apigen gates it. VolumeCreateRequest.name is the other way round: the contract had one all along and the markup never carried it, so the generated field is stricter. The form-level hint paragraphs move into the fields they were about."
     }
 
