@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "04ae25bc2c9ce789102b59050f13367a13d554253a889647fd3b3e89e6edd3c4"
         "changelog" "0.2.57-499: a table that does not fit scrolls in its own box (cix#600). Below 720px #content-scroll goes overflow: visible and the document does not scroll sideways either, so a table wider than the viewport left its right-hand columns unreachable by any gesture. Measured across twenty views at 500px: one did it, Storage, by 22px. Every table is now display: block with overflow-x: auto there, which is what the Pipeline page already did. The width rules are written into web-ux-guidelines.md."
     }
 
