@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1c9bfdf41973f116d0c1286c258ec8c296006a6d465210d6d8788a33a50bb787"
         "changelog" "0.2.57-491: the accepted IA board, all four defects (cix#592). The three tree groups were also links, each landing on a subject underneath it wearing the group name -- they expand only now. The nine-tab Host page is three: Health, Identity and Configuration. LDAP moves into Identity, because the directory is where a user actually exists. Factory Reset stops being a peer tab of Stats and becomes a danger zone last on Configuration, and its button finally has danger styling."
     }
 
