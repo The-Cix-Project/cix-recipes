@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1f2ebbbe011390e641c00a3144c461c47ac00eb83aed0df0987a1b2fa3968cc1"
         "changelog" "0.2.57-493: the rest of story 6, dg-* (cix#598). The Pipeline row grid was a table drawn with divs -- a four-column grid, a header row that was another div, no <th> anywhere -- so becoming a real table gave it the NAME / VERSION / WHY headings it never had. Drift is a table too, the runs box is .log-output with .log-entry rows, and the drawer becomes the detail panel, not a modal, because it sits beside the grid. dg- is now zero classes."
     }
 
