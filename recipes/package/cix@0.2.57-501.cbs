@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d28e569c77fc5873ee040b00804b223d794035a33a005d536b6b798904024964"
         "changelog" "0.2.57-501: the generated table renderer has callers (cix#592 story 3). It had none for a release, because only five of thirty hand-written tables are pure text -- the rest have a link, a badge or a button, which it could not express. A column may now be a link, a badge or an authored actions cell, and the renderer owns the header, the four empty states and the repaint guard. Four tables converted. It also found an exited container rendering a grey badge while the tree showed it red."
     }
 
