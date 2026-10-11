@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8292f110f13510571a959de6b89ee2898a7ac7043c604de7928675046247841f"
         "changelog" "0.2.57-502: ten more tables are generated (cix#592), taking the renderer from 4 callers to 14 -- the four DHCP tables, DNS, LDAP, leases, sysctls, loader entries, networks and certificates. Driving them in a browser found what this also fixes: all three of a list's states rendered muted, where the Primitives board colours a refusal at full --text, so the sentence naming the permission that would lift it read as quietly as 'none'. listState() is the one decider now."
     }
 

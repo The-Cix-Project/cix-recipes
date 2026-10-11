@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "585c3d126df391dd67a08537427ee0ca2d549f38c006a3378df1963f2263f328"
         "changelog" "0.2.57-503: an integer that is a moment says so in the contract -- format: unix-seconds on 36 properties, replacing twenty hand-rolled new Date(x * 1000) call sites, two of which printed a bare clock for a block that may lift tomorrow. Five more tables are generated (21 callers). And the schema name and op id every generated table is given are now gated, which found five wrong ones, four live in 502 -- a missing schema renders a string column right and every boolean, array and instant wrong (cix#592)."
     }
 
