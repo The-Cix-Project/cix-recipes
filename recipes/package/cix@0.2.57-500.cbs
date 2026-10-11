@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "6b9b04b7a727a3f5c6551ea0546b332e4566d6df9dcdc70b0a9f99d0c9c83f01"
         "changelog" "0.2.57-500: the dashboard's width tiers (cix#600). Reading state is supported at 360px and up -- Health, Containers, Pipeline and the log are what an operator opens when paged, and they open it on a phone. Writing is supported at 720px and up, and below that wherever the generated form fits. The previous release's 500px floor was headless Chromium's minimum window width mistaken for the dashboard's. The toast covered the header at phone width, where the tree button lives; a bottom bar there now."
     }
 
