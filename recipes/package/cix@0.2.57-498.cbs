@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a0f60f2d2cec0d32a11e35d798abb101fd9d64cabc90d056f3071a514b101103"
         "changelog" "0.2.57-498: every list that is its own read has a loading state (cix#592). A list with no rows now says which of four is true -- the read has not happened (Reading), was refused, failed, or returned none -- where the data is [] in all four and it used to say \"No things\" regardless. One answeredReads set does it for 37 panels. refusedReads becomes failedReads and records a 500, a timeout and an unreachable host, which it never did."
     }
 

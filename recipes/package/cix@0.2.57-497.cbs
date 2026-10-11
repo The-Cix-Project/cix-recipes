@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d2ba0aa5b9dc269e14a7de998aec5b7fcb361019de0b9fb2fd9b0d2f13b6aa80"
         "changelog" "0.2.57-497: three more forms generated (cix#596). The DHCP reservation's MAC and hostname rules lived in dhcp.c and nowhere else -- its request body had no descriptions, patterns or formats -- so they are patterns in the contract now, read from the validators rather than from the 400's wording. The daemon understated its own rule in three places: hostname is lower-case only. pkgBootstrap and pkgInstall gain five contract fields the UI never offered. The package drift count moves out of the install modal."
     }
 
