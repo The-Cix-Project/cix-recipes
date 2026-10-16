@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f723de741dcc878a8f8526ae74b7e69c4966a1bc8ddd5c47785473d9893a4f85"
         "changelog" "0.2.57-507: the build pipeline is reachable again. Its stage board had no tree entry and no tab for a week; it is the Build page's first two tabs now, Pipeline and Errors, and the tree's Build lands there. Services' Health is Server Health, since Host had a child of the same name. test_web_tree fails a page nothing reaches and a tree label used twice. A container's packages tab is generated (52 renderTable calls) (cix#592)."
     }
 
