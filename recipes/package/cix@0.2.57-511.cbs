@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "6ee9aa0c15ef9657860c7357fee5239ee556e33db8f4dd7d1f707defad57de17"
         "changelog" "0.2.57-511: Issue Certificate is a generated form whose one-time key opens in a modal of its own; the ten hand-built forms left are named with what each needs. test_web_tree fails a CIX_API call with the wrong number of arguments. The disk allocation chart colours partitions by class from theme tokens instead of eight computed hues, and the resize cursor is a class (cix#592)."
     }
 

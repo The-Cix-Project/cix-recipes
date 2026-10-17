@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ce86985309cbc3c60a0278c447074f512c99bd2360ea0ed31b668e65399cf4b2"
         "changelog" "0.2.57-509: LDAP the service is under Services again, as its own page with the registered servers and the Directory settings; Host > Identity keeps sessions, permissions, users and groups, and the header menu follows. A container links to its image. The guidelines state the tree's rule: Containers, Networks and Storage list resources, the three groups list pages, and a subject sits under the group that names it (cix#592)."
     }
 
