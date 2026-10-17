@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "24fb0ebbdd46f7810fd767cc46b0852d8f77131343cc10d67e3dcf73f2a39af9"
         "changelog" "0.2.57-533: ADR-0339 phase 2 release B -- a change re-runs only the refreshers that read what moved, learned from their own requests; a page's own reads are refreshers, not renderer side effects. A site change costs 0 requests on every page measured, a container change 1 (cix#599)."
     }
 

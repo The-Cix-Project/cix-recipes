@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5bf92c9b2cdd5720676683d0e00947e7c2171e1e318c8389a002f8f5acd65529"
         "changelog" "0.2.57-532: ADR-0339 phase 2 -- stream reads are subscribed on GET /v1/events and pushed when they change, one run per path per period; the log panel, stats, ports, stalls and kernel log are live reads, and an idle signed-in minute is 2 requests on every page (cix#599). 531 failed only test_apigen counting the new stream table as changes."
     }
 

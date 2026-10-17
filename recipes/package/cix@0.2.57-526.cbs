@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3a3931d0252491d0f16f4fefb32eacdc824e054004dac2a8111f1fbd0ba2587a"
         "changelog" "0.2.57-526: ADR-0339 step four -- the box re-runs its own reads, announces samples when they change, and reports any state read that changed without an announcement (drift); POST /v1/events/verify and cixctl events verify. getConfig is derived; bulk changes invalidate every read (cix#599)."
     }
 

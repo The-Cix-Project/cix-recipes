@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8151c47294e76a6b82257b710b26f252cea6bd1faca0ea0b9e71cf354526089c"
         "changelog" "0.2.57-528: ADR-0339 step five -- the dashboard holds GET /v1/events open and re-reads only when the box says something changed; heartbeats cost no request, a lost stream says so and reconnects without signing anyone out. An idle minute is 32 requests against 181 (cix#599)."
     }
 
