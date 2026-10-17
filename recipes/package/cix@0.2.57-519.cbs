@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1e0632312ccfab0fe018978595ed6b79fea7943b6c59436f7a37cdf61ef44ad9"
         "changelog" "0.2.57-519: ADR-0339 accepted, step one -- every read in the contract declares its kind (state, sample, session, stream, derived) and every change the reads it makes stale; apigen refuses an operation without its annotation. No runtime change yet (cix#599)."
     }
 
