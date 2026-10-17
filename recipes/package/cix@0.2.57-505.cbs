@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "05ff1630ea9192326c83e94343c26c5c382cfd2e7a33bda8a334eeb1b94044c1"
         "changelog" "0.2.57-505: 504's work, whose own gate refused a half-titled Network schema. The network page renders from the contract and found its allocation pool missing from it. apigen refuses a property written as a YAML flow mapping -- fifteen in the service schemas were read as untyped strings, so pid and restarts reached the dashboard as strings and on_exit lost its enum. The container page's tables are generated; 40 of 62 list tables now are (cix#592)."
     }
 

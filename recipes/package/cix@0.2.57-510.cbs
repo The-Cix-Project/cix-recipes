@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2bb30f4dbfc907e7f8394c45ff5dae224cfa723548324032deb8d2acfbb6aa2a"
         "changelog" "0.2.57-510: every destructive dashboard action asks first -- 28 ran on the first click, removing a container, image or package among them -- and reports success; removing or viewing one recipe version works again (a literal ?version=%s since August). A container's page and menu decide its actions in one function. test_web_tree fails an unconfirmed DELETE, and test_docindex fails a guide naming a dashboard path that does not exist (cix#592)."
     }
 

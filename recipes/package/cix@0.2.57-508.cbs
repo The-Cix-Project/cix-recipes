@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b3659bee8ba1040b32cd75c7c106dec2c32e5f1971ab3ec39759047a59bb7219"
         "changelog" "0.2.57-508: the last eight hand-built list tables are generated -- server health, volumes, the four device lists, app passwords and the pipeline Errors list (58 renderTable calls, 61 tables). The contract declares server health's warnings and gives Volume.created_at the Unix seconds the daemon sends. test_web_tree fails a <thead> written in markup outside the four stated exceptions. A volume never guesses who mounts it when the containers read fails (cix#592)."
     }
 

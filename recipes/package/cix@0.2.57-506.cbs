@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e37984d7fab622c6da077a96fb80224e999296504524933e0b0ec6b51fe261d0"
         "changelog" "0.2.57-506: apigen reads allOf. Eight schemas that compose another -- Schedule, the three pipeline rows, PkiCertIssued and the recipe details -- had generated no fields at all, so nothing could render them from the contract and the shape gate checked none of the pipeline's item keys. Fifteen more tables are generated (51 renderTable calls), and a contract field that is a count, not a time, lost the instant format it had been given by mistake (cix#592)."
     }
 
