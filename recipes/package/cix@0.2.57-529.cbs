@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "568023bfbfd044ff72c8b9d724918fa032036a4e1202f991a7979e493a6f4b40"
         "changelog" "0.2.57-529: every change the daemon makes by itself is announced -- the ten reads 528s self-check caught changing silently are fixed at their source: build slots, memory, logs, recipes, cache, sync, kernel refresh, bad marks; clock-derived fields are volatile; sessions expire by a timer that announces (ADR-0339, cix#599, cix#607)."
     }
 

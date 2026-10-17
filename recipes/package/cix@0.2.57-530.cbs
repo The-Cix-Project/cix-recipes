@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "99061acf41ef1954fb38bdd9dabff8e3485cd3e0630943f05ee0b27e2489af1c"
         "changelog" "0.2.57-530: below 720px the header menu bar takes a row of its own -- at 360px it had 32px and showed only the mark and a sliver; web-ux-guidelines now answers all four width questions and states the login screens 60rem switch as its own (cix#600)."
     }
 

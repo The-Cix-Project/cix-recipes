@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "74efdd5efbe14d5428ca9714f66d01e08e3a5704a4bec7be1d71c5dfaa6d418d"
         "changelog" "0.2.57-527: ADR-0339 -- a view is announced with its inputs (x-cix-composed-of; the pipeline joins packages, images, the ESP, deployments, containers and the source catalogue), and boot confirmation is announced. The status bar shows build, slot, uptime and load together, including after a restart (cix#599)."
     }
 
