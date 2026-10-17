@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2ea0eb515c0c11adabed00596cfc9d35587533aa52c13462a4d33eb115ea14c6"
         "changelog" "0.2.57-514: New Container renders from the contract in sections -- services, networks, routes, devices, files, volumes and consoles as rows, server roles as groups, an argv one argument per line, userns with a host-default choice -- so every create form is generated; ldap_client and ldap_allow_groups are declared (cix#592)."
     }
 

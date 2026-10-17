@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "04a4b774a69d5ad1365a89e44f10a5b816a9dafe7f9c93fca9236bc4d52fa0b1"
         "changelog" "0.2.57-512: nine more create forms render from the contract -- path parameters as fields, choices read from the box, kept or removed secrets, KEY=VALUE maps and a file picker for documents -- and the daemon refuses a route dest with no prefix, which used to act on the default route (cix#592)."
     }
 
