@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ec7394a72e21bfc6b9bd7c8ef711b557e24d96bdd4f18357a4ca501a4fdd2ef5"
         "changelog" "0.2.57-518: the dashboard stores its session again -- since d566f879 its three storage helpers called themselves, the guard swallowed the stack overflow, and nothing was ever stored, so every reload signed the operator out and every remembered view and layout was lost. test_web_tree now gates it."
     }
 

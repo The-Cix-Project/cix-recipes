@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4fec4b5589124b14756e093c6b53d79756fec32353108ddfb01d493f474024a3"
         "changelog" "0.2.57-523: ADR-0339 step three -- GET /v1/events, a WebSocket naming the reads that changed at their new generations, masked to what the session may read, with a 10 s heartbeat that closes an ended session with 4401; cixctl events --follow (cix#599)."
     }
 

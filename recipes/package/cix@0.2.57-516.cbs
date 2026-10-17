@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2850a57ce97350d9a92fdb2f8b114ae5152b67fb9f368cdb4d7f58b77740d332"
         "changelog" "0.2.57-516: the dashboard page forms render from the contract -- 43 settings forms, page actions and modals, bound once and rebuilt only when the values they write change; four stay hand-built. Fixes six live-page defects (kmod symbols, swap disk, quota rounding, attach choice, LDAP floors, LDAP clear) and refuses a half-null volume owner (cix#592)."
     }
 
