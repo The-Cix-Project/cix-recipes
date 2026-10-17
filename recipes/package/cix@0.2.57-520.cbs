@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "671c7f3c4527ae9136d1da8469ee1c9276d39eeea2bbb2047a5019dacf2bbf1b"
         "changelog" "0.2.57-520: ADR-0339 step two -- every announced read has a generation under a boot epoch; a successful change raises what it invalidates, and the daemon raises its own changes (containers, services, package jobs, assembly, hotplug, schedules, migrations); X-Cix-Generation on every announced read and cixctl events status (cix#599)."
     }
 

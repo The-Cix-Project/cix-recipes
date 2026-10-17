@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d892988b616be400797bd90f594eea55142440dca1e9964c08a4eef191a29eaa"
         "changelog" "0.2.57-517: a page's explanatory hint is spaced from the generated form below it -- the hand-built forms took that space from their grid gap, and the generated ones put the first label flush under the prose (cix#592)."
     }
 
