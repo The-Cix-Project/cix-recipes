@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5abca87c3dd7b5dbc81bb559808dfcf8cdffcc70b86efe466a2108250149976c"
         "changelog" "0.2.57-540: a container's rootfs is a snapshot of its image, beside the image store (cix#608, ADR-0341). Rolling a container onto a new image no longer copies the whole image on the event loop: the rootfs lives on the images' filesystem, so a roll is one btrfs snapshot. Each container is seeded once at the new location at its first start on this release."
     }
 
