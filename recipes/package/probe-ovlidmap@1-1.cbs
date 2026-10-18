@@ -1,0 +1,127 @@
+#
+# probe-ovlidmap 1 -- can this kernel's overlayfs present a userns
+# container's rootfs through an id-mapping, so that rolling it onto a
+# new image needs no copy? (cix#608)
+#
+# WHY IT DECIDES SOMETHING. A userns container whose image lives on a
+# different filesystem cannot get a btrfs snapshot (EXDEV), and today
+# falls back to copying the whole image and chowning it, inside the
+# event loop: 4-5 s on every roll of `jump` on 192.168.15.95. A
+# non-userns container answers the same EXDEV with overlay at no cost.
+# If overlayfs here can either be id-mapped itself, or take id-mapped
+# layers, the userns fallback can be overlay too and the copy goes
+# away rather than moving. If it can do neither, the fix is to move the
+# copy off the loop instead.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL. `cixctl boot` reports kernel
+# 7.2.11, and kernel@7.2.11-1.cbs declares exactly this tarball and
+# sha256, so this reads the code that is running.
+#
+# TWO QUESTIONS, read in the code and in the kernel's own document:
+#
+#   fs/overlayfs/super.c   -- the file_system_type's fs_flags: is
+#                             FS_ALLOW_IDMAP set (the overlay mount
+#                             itself can be id-mapped)?
+#   fs/overlayfs/*.c       -- does it handle id-mapped LAYERS
+#                             (mnt_idmap of the lower/upper mounts)?
+#   Documentation/filesystems/overlayfs.rst -- what it says about both.
+#
+# EVERY GREP IS BUNDLED WITH A PATTERN THAT CANNOT MISS (`#include` in
+# C, `=` in the .rst title underline), because grep exits 1 on no match
+# and that would end the phase and hide which grep found nothing.
+#
+# NOTHING IS COMPILED. The tarball is extracted and read.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-ovlidmap" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.11.tar.xz"
+            sha256 "fd0fc479f983a8c05313f13e9c36330fe6651cf725396748c40d5cd93fa1e6a4"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: can overlayfs on kernel 7.2.11 be id-mapped, or take id-mapped layers? Decides whether a userns container's cross-filesystem roll can be overlay instead of a copy (cix#608)."
+    }
+
+    build {
+        run "ls" {
+            "-la"
+            "${src}/linux/linux-7.2.11/fs/overlayfs"
+        }
+
+        # 1. Can the overlay mount itself be id-mapped?
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "10"
+            "-e"
+            "struct file_system_type ovl_fs_type"
+            "-e"
+            "#include <linux/fs.h>"
+            "${src}/linux/linux-7.2.11/fs/overlayfs/super.c"
+        }
+        run "grep" {
+            "-rn"
+            "-e"
+            "FS_ALLOW_IDMAP"
+            "-e"
+            "#include <linux/fs.h>"
+            "${src}/linux/linux-7.2.11/fs/overlayfs"
+        }
+
+        # 2. Does it take id-mapped layers, and with what limits?
+        run "grep" {
+            "-rn"
+            "-e"
+            "is_idmapped_mnt"
+            "-e"
+            "mnt_idmap(.*upper"
+            "-e"
+            "idmapped"
+            "-e"
+            "#include <linux/fs.h>"
+            "${src}/linux/linux-7.2.11/fs/overlayfs"
+        }
+
+        # 3. What the kernel's own document says.
+        run "grep" {
+            "-n"
+            "-i"
+            "-B"
+            "3"
+            "-A"
+            "25"
+            "-e"
+            "idmap"
+            "-e"
+            "^=====*$"
+            "${src}/linux/linux-7.2.11/Documentation/filesystems/overlayfs.rst"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-ovlidmap" parents
+        write "${dest}/usr/share/probe-ovlidmap/probe" "${version}-${release}\n"
+    }
+}
