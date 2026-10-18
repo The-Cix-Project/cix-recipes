@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9e027d74c29a87290977b233f07257b4fa7bf1731c1fd73cd7a1642f88805c05"
         "changelog" "0.2.57-537: an in-flight build's card charts its build container's CPU and memory, from the stats read subscribed on the event stream while the card is shown (cix#431)."
     }
 

@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9b7ee73d17de761b45e2f66d8aacf189c911e7a8b4d78d04550feb46c96b28df"
         "changelog" "0.2.57-536: a slow event-loop pass is named by the request it served, not event client -- the first #608 instrument read a label the request path had already cleared (cix#608)."
     }
 
