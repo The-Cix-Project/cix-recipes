@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "737991854da47183e9e1fe723f9f965ee9cb380d91edb396b2e1aadf4b29d7da"
         "changelog" "0.2.57-542: compile and selftest probe of commit 73a92862 -- a credential is checked off the event loop and the request waits for it (cix#609, ADR-0340): credcheck_work() in a helper child, the request parked and served again, 503 with Retry-After beyond half the CPUs and 32 waiting."
     }
 
