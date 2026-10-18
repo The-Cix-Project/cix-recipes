@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "eb4a674f861ab07d195c2adb8887d21481eb505705a8301a645f57ef4665cf74"
         "changelog" "0.2.57-543: compile and selftest probe of commit fff783b4 -- a password being set is hashed off the event loop too (cix#610, ADR-0340 phase 2): CREDCHECK_HASH and CREDCHECK_NEW_SECRET in the helper child, ldap_user_create/update take a hash, 503 with Retry-After on the four hashing operations."
     }
 
