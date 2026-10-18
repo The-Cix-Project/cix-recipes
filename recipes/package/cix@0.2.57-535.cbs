@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1a4e3b5b36323447bea654d8db74c75d4940d430508390f58147c259ed262b90"
         "changelog" "0.2.57-535: a capturing container's output tail is declared volatile in listContainers and announces getContainer on each line -- the eleventh unannounced read the self-check found (ADR-0339, cix#607)."
     }
 

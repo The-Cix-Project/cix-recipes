@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "170210b1f11456ef7c68cf2573eaafd2c76a58cf94180fb4391e3347672cf8c2"
         "changelog" "0.2.57-534: ADR-0339 phase 2 release B -- a change re-runs only the refreshers that read what moved, learned from their own requests (cix#599); and a slow event-loop pass names the event that took it, by request or connection kind (cix#608)."
     }
 
