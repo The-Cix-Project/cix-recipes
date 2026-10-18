@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "34b38fddf11b0a71cb864a910327bfe778147bc5fd36da574e33f8e3d0d7419e"
         "changelog" "0.2.57-544: compile and selftest probe of commit 33d69331 -- a container's rootfs is a snapshot of its image, beside the image store (cix#608, ADR-0341): container_rootfs_dir(), discards in helper children, the cut-over from the old location, and test_blocking_waits' tree-copy set."
     }
 
