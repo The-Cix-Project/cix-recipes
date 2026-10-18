@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0f9077b15c0d0d66063cf1a7609cbf285c17f804204bb56c438f98184c921b1a"
         "changelog" "0.2.57-538: a credential is checked off the event loop, and the request waits for it (cix#609, ADR-0340). A login or a first-use app password no longer holds every other request for its ~350 ms bcrypt check or its LDAP timeouts; beyond half the CPUs checking and 32 waiting, 503 with Retry-After."
     }
 
