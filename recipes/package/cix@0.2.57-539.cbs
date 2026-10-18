@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f54efc6879c0ef4d2b2575070dc01c289fb784fbda60ae6beb1a405dc7e33609"
         "changelog" "0.2.57-539: a password being set is hashed off the event loop too (cix#610, ADR-0340 phase 2). Setting a user's password or creating an app password no longer holds every other request for its ~350 ms bcrypt hash; beyond half the CPUs and 32 waiting, 503 with Retry-After."
     }
 
