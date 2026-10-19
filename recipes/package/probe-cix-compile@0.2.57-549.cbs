@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "287029120691f81ce846eacb3dd09968016851f8fd757527b11f633c555c8998"
         "changelog" "0.2.57-549: compile and selftest probe of commit 8bad4a4a -- a filtered log read skips the segments that cannot hold a match (cix#616)."
     }
 
