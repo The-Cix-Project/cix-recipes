@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f150b6fc793fc786f994b14a9b7592575e81822ba1f05c74c6ccd9abb3ae3f7d"
         "changelog" "0.2.57-547: every daemon-linked test proves its changes were announced, and the five reads that changed silently now are (cix#607, ADR-0339 point 8)."
     }
 

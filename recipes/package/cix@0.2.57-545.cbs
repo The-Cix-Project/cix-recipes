@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b8a6a131cdb3c2989aec9b9cbe417aedbc98c6baf3d7bd4bbc9974743468598f"
         "changelog" "0.2.57-545: a regex-only log read reads no line head, which a field filter needs and a regex cannot use (cix#616)."
     }
 
