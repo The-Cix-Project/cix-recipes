@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "a2d91344fe2240831c9e70108b6392fddb53becdef7d4521ffbf1ca776a67a12"
         "changelog" "0.2.57-556: compile and selftest probe of commit 89087fe4 -- two installs needing one build environment compose it once (cix#618)."
     }
 
