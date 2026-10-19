@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "095688e99d7d70c018443612f33a6fcf19681a1a422059af00a362e942330fbd"
         "changelog" "0.2.57-554: compile and selftest probe of commit 431692ff -- every daemon-linked test proves its changes were announced, and the five reads it found are (cix#607)."
     }
 
