@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ec201b5175266f76f1e29262b39b82da4b00fb6209cfb4f6a403a4d99eb2407a"
         "changelog" "0.2.57-548: two installs needing one build environment compose it once, and a failed composition no longer deletes it from under another (cix#618)."
     }
 

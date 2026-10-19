@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8b7c69b1068556034bc2300e93d72a5f00358101d6a2785cf0ee63b7d7943468"
         "changelog" "0.2.57-544: a filtered log read skips the segments that cannot hold a match, and filters a line before parsing it (cix#616, ADR-0342 phase 2)."
     }
 

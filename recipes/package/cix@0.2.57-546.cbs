@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e7e95c092b279833ca1235763d667cde22cd76b54b63faf21c57a4e88a222e94"
         "changelog" "0.2.57-546: a build environment that cannot be composed says why (cix#606), and a log segment another process also wrote gets no summary at rotation (cix#616)."
     }
 
