@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "483c8d4248f6a0bc7ac808b5dab6aaac4e88301f5c8ca834becfb9db0ee6b38e"
         "changelog" "0.2.57-546: compile and selftest probe of commit 50aeffbc -- a filtered log read no longer holds the event loop (cix#612, ADR-0342): the backward reader, the generalized park, the log-read child and its memfd, test_logread and test_logread_live; and a parked request authorized once, which 545 caught."
     }
 
