@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a2ff3c9f63b61f16fb2e414b352b134d050d7d38bf5dac6da30b117abfdddf7b"
         "changelog" "0.2.57-543: an array's item that declares required keys is a named schema, so the contract-vs-daemon gate checks it, and apigen refuses one written inline (cix#605)."
     }
 
