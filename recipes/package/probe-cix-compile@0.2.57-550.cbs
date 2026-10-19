@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "88805945ecab91a66fd9239fb88757ae3baabfa0d986b26a4fba9f7643bf91bc"
         "changelog" "0.2.57-550: compile and selftest probe of commit 64a3dfc1 -- a regex-only log read reads no line head (cix#616)."
     }
 
