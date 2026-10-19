@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ba7165a767345b17e61cdbe0c5c955e4a7b5a539c0949b69d160e467999df149"
         "changelog" "0.2.57-558: compile and selftest probe of commit e651693f -- the steps inside producing an image version, named only in the daemon (cix#619)."
     }
 

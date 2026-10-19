@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2502b3d0566f9633dda4fa36db9a1458d9edf84fb9bb4e3addde015e5bd45261"
         "changelog" "0.2.57-549: a slow handler names its slowest step, through a build container's exit and a build's preparation (cix#619, cix#617)."
     }
 
