@@ -1,0 +1,157 @@
+#
+# probe-squota 1 -- does the booted kernel support btrfs simple quotas,
+# and how does each quota mode account for a deleted snapshot and
+# enforce an exclusive limit? (cix#613)
+#
+# WHY IT DECIDES SOMETHING. ADR-0341 makes every container rootfs a
+# snapshot of its image, so a roll is a snapshot create and a snapshot
+# delete per container. Cix enables FULL qgroups the first time a
+# container has disk_quota_bytes (cix_btrfs_qgroup_limit_excl(), with
+# BTRFS_QUOTA_CTL_ENABLE), and that limit is an exclusive-bytes limit
+# on the snapshot. Whether simple quotas exist here, what turns them on,
+# and whether max_excl means the same under them are the facts the
+# owner's full-or-simple decision needs.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL. `cixctl boot` reports kernel
+# 7.2.11, and kernel@7.2.11-1.cbs declares exactly this tarball and
+# sha256, so this reads the code that is running.
+#
+# EVERY GREP IS BUNDLED WITH `#include`, which cannot miss in a C file,
+# so a pattern that does not occur is reported as absent rather than
+# ending the phase (probe-srpart's convention). Nothing is compiled.
+# The phase fails deliberately at the end so the log is kept and no
+# artifact is published.
+#
+package "probe-squota" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.11.tar.xz"
+            sha256 "fd0fc479f983a8c05313f13e9c36330fe6651cf725396748c40d5cd93fa1e6a4"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: does kernel 7.2.11 support btrfs simple quotas, how does each mode account a deleted snapshot, and is max_excl enforced the same under both? Feeds the full-or-simple decision (cix#613)."
+    }
+
+    build {
+        # 1. The user-visible switch: the quota-ctl command and the
+        #    incompat feature flag simple quotas need.
+        run "grep" {
+            "-n"
+            "-e"
+            "QUOTA_CTL"
+            "-e"
+            "SIMPLE_QUOTA"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.11/include/uapi/linux/btrfs.h"
+        }
+
+        # 2. The ioctl that turns quotas on: what it does with each
+        #    command, including the simple one.
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "30"
+            "-e"
+            "static long btrfs_ioctl_quota_ctl"
+            "-e"
+            "#include <linux/kernel.h>"
+            "${src}/linux/linux-7.2.11/fs/btrfs/ioctl.c"
+        }
+
+        # 3. The mode itself, and where qgroup.c branches on it.
+        run "grep" {
+            "-n"
+            "-e"
+            "BTRFS_QGROUP_MODE"
+            "-e"
+            "simple"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.11/fs/btrfs/qgroup.c"
+        }
+        run "grep" {
+            "-n"
+            "-e"
+            "BTRFS_QGROUP_MODE"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.11/fs/btrfs/qgroup.h"
+        }
+
+        # 4. What a snapshot delete costs in each mode: the subtree
+        #    tracing a full-mode drop does, and whether simple mode
+        #    skips it.
+        run "grep" {
+            "-n"
+            "-B"
+            "6"
+            "-A"
+            "40"
+            "-e"
+            "^int btrfs_qgroup_trace_subtree("
+            "-e"
+            "#include <linux/pagemap.h>"
+            "${src}/linux/linux-7.2.11/fs/btrfs/qgroup.c"
+        }
+        run "grep" {
+            "-n"
+            "-e"
+            "qgroup"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.11/fs/btrfs/extent-tree.c"
+        }
+
+        # 5. How an exclusive limit is checked, and whether the check
+        #    differs by mode.
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "40"
+            "-e"
+            "qgroup_check_limits("
+            "-e"
+            "#include <linux/pagemap.h>"
+            "${src}/linux/linux-7.2.11/fs/btrfs/qgroup.c"
+        }
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "40"
+            "-e"
+            "^int btrfs_record_squota_delta("
+            "-e"
+            "#include <linux/pagemap.h>"
+            "${src}/linux/linux-7.2.11/fs/btrfs/qgroup.c"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-squota" parents
+        write "${dest}/usr/share/probe-squota/probe" "${version}-${release}\n"
+    }
+}
