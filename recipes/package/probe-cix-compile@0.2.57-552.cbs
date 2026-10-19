@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b6d62b030d183f33d41df35301406e52b135f76b5322346aaf29372ceccb04b9"
         "changelog" "0.2.57-552: compile and selftest probe of commit 7a2f4b4e -- a build environment that cannot be composed says why (cix#606), and a log segment another process also wrote gets no summary (cix#616)."
     }
 
