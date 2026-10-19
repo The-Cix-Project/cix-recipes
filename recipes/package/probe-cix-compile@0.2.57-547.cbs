@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "158dcf16e399a7e49c8d8dad68660ef9d3c0ed0c6afeb328e6fb5c33f2067e16"
         "changelog" "0.2.57-547: compile and selftest probe of commit 814bd938 -- a slow announcement check names the read that took the time (cix#617), and the backward log reader finds newlines with memrchr (cix#612)."
     }
 
