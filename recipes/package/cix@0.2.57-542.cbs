@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "79c0c09c49881065b83410175fb5dbe0fcd0144651a0dcd60b0d35491f335122"
         "changelog" "0.2.57-542: a slow pass of the announcement check is recorded with the read that took the time (cix#617), and the backward log reader finds newlines with memrchr (cix#612)."
     }
 

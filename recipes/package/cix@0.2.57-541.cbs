@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b028fe545831505bcd71e571f2bcc8df30c58ddd9a288eeccef8758ab91d96b0"
         "changelog" "0.2.57-541: a filtered log read no longer holds the event loop (cix#612, ADR-0342). A log read with no filter reads the store backwards and costs only what it returns; one with a filter runs in a helper child while the request waits, 2 at a time with 16 waiting, and 503 beyond that. Measured before it: a regex matching nothing held the whole daemon for 1533 ms in a 100 MB store."
     }
 
