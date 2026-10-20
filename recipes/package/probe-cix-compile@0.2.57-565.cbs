@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "dee2d41a81f2a9e01dd329c87555a234bbbc48447197ead69eb98b22c6a116a1"
         "changelog" "0.2.57-565: compile and selftest probe of commit f80dbd77 -- phases read every 2 s in file order, and a failed command is its argv (cix#388, cix#489)."
     }
 
