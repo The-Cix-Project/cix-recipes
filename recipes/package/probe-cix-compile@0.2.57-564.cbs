@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2b7bd015debdd9178d424f07d1e8aa99c98c83211d4ae2c88ca4a8c6b9a89da7"
         "changelog" "0.2.57-564: compile and selftest probe of commit ca79f17b -- a build reports its phases and failing command from cbs events (cix#388, cix#489); the floor moves to cbs v0.1.107-1."
     }
 
