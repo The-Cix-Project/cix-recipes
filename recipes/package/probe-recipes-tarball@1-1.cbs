@@ -1,0 +1,48 @@
+#
+# probe-recipes-tarball -- the sha256 of a cix-recipes archive at one commit,
+# measured by the box (THE SANDBOX RULE), for the test floor's corpus pin. (cix#388)
+#
+# WHY. The cix release recipe pins the corpus the ADR-0209 test floor
+# reads its packages' approvals from, as an `extra` with a sha256, and
+# nothing in this sandbox may fetch the archive to compute one. The pin
+# moves when the floor's cbs does.
+#
+# HOW. The declared sha256 is all zeroes, which no real artifact has,
+# so the fetch fails its checksum gate and the daemon reports what the
+# bytes actually hashed to. The fetch IS the probe: no build container
+# is composed and nothing is published. A 404 instead would mean the
+# url is wrong, which is equally worth knowing before a real recipe
+# carries it.
+#
+package "probe-recipes-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "recipes" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/f454b9a61a120e66912eea6b95a980c41cbbb90f.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the sha256 of the cix-recipes archive at f454b9a6, the first commit carrying cbs@v0.1.107-1 with its artifact approval -- the corpus the test floor seeds cbs v0.1.107 against (cix#388, cix#489)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-recipes-tarball" parents
+    }
+}
