@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "19036154a61e444ad233ea343c780a14df97a32eaad109172398d31b872b4b61"
         "changelog" "0.2.57-569: compile and selftest probe of commit 293630d6 -- device records carry serial, wwid, mac and mac_permanent (ADR-0345 step 1, cix#349)."
     }
 
