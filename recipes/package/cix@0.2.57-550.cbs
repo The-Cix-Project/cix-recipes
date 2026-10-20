@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3bf50d536ed93878d6d00b30ab94b653463c15374e32cd71e63f032a1963e8d0"
         "changelog" "0.2.57-550: the steps inside producing an image version are named, and only the daemon names steps (cix#619)."
     }
 
