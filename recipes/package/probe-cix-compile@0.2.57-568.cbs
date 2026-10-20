@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e60f9c867355ace65a8ba8d46275e6302e45cbff8ff40836b0a97fbf844fd297"
         "changelog" "0.2.57-568: compile and selftest probe of commit bd54df99 -- a device granted to a userns container is made by the parent (cix#621)."
     }
 
