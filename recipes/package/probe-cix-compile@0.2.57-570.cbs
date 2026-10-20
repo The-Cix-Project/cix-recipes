@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "a34399cc54c3e81605b295edac8e604f090a4c9698d4de1e15ce4f844fe573c1"
         "changelog" "0.2.57-570: compile and selftest probe of commit e824850d -- device mappings name identity, a USB id names a location (ADR-0345 step 2a, cix#349)."
     }
 
