@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "03987ed915a70552386cd3db09a561a3cf2fcc0a29f5c4c9c4663d72f8dc4263"
         "changelog" "0.2.57-573: compile and selftest probe of commit 3a3a0d95 -- an unplugged device is given back when it returns (ADR-0345 step 4, cix#349)."
     }
 
