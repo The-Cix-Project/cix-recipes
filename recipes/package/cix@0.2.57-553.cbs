@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e4615680f57aeca5e69e6718f4b11df237748bfdeb0165a54cc3c77ca56bb7a2"
         "changelog" "0.2.57-553: an image keeps a bounded history, and a version leaves it off the event loop (ADR-0343, cix#619)."
     }
 
