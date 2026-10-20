@@ -1,0 +1,57 @@
+#
+# probe-phases -- does a CPDL build report its phases and the command it
+# failed in, live and afterwards (cix#388, cix#489, ADR-0275)?
+#
+# prepare and build succeed, build sleeping long enough to be watched
+# with `cixctl pkg ls` (state `building:build`); check then fails on
+# purpose, so GET /v1/pkg/probe-phases should report phase "check" and
+# failed_command "false", and its run should carry the six-phase plan:
+# prepare ok, configure not-implemented, build ok, check failed,
+# install ok (cbs runs check after install), finalize blocked.
+#
+# The main source is the cix release archive, already fetched for
+# 0.2.57-554 and named by its sha256; nothing reads it.
+#
+package "probe-phases" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-554.tar.gz"
+            sha256 "d80f845f948468fd040cddeb15b38b6985957dde9226c4c083ebe66e2de6d901"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: a build that runs prepare and a 30 s build, then fails in check, to watch cix#388's phases live and read cix#489's failed command."
+    }
+
+    prepare {
+        run "true" {
+        }
+    }
+
+    build {
+        run "sleep" {
+            "30"
+        }
+    }
+
+    check {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-phases" parents
+    }
+}
