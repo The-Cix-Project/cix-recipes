@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "3d9d3a9eb825d12473f919106269a2000f8da56645bf3d58322aee859a0c4755"
         "changelog" "v0.1.107-1: --events-fd N and --events-file FILE give the JSONL build event stream a destination of its own while stderr keeps the human reporter (cbs#282). One commit on v0.1.106. Taken for cix#388 and cix#489: cixd reads phase and command events from the file rather than scraping the human log."
     }
 
