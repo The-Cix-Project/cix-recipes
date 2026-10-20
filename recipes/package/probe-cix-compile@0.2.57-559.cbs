@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "57e621c19df3e827007bf4de58ffca3a6bfd5898722ab77b78838f3ae82034e0"
         "changelog" "0.2.57-559: compile and selftest probe of commit 2dc39a65 -- a slow handler names the calls that took its time (cix#619)."
     }
 
