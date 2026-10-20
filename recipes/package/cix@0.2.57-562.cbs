@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "21d3c8af2ca9259fe251fc75c73e5d5f8079702317603b7b7f72fa771915ee52"
         "changelog" "0.2.57-562: a passed-through interface can be named by a mac mapping and given its own name inside the container (cix#349, ADR-0345); 561 failed its own hostbuild selftest on a test race, fixed here."
     }
 
