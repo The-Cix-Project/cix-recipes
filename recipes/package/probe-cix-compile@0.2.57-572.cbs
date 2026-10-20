@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2972a402e6828f8078e11362fdaac21ee1d2eb19a775083e0be83e88f4e529bb"
         "changelog" "0.2.57-572: compile and selftest probe of commit 200b2c1d -- interfaces can be named by a mac mapping and named inside (ADR-0345 step 3, cix#349)."
     }
 
