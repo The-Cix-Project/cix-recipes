@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b67a209b84a5a0b966f1ffddbdf3b82c52d008da7ea6ca80bdeed5222692af5e"
         "changelog" "0.2.57-551: a slow handler names the calls that took its time, in an install's merge and the build-logs read (cix#619, cix#617)."
     }
 

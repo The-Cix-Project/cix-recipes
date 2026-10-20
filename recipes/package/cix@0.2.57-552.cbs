@@ -206,6 +206,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0ed075f600c6d48d1a9bfb4e3c5e9cbec660a1fb01654ea740d4f44e60d1ca07"
         "changelog" "0.2.57-552: a container's disk usage says how its filesystem accounts, and the install's two unlink sites are tallied apart (cix#613, cix#619)."
     }
 
