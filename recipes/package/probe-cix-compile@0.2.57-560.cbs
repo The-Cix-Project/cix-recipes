@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "786dce726807e2c719180f02e9a1edb85c0a75ddf142af3b53671da3bfa51b32"
         "changelog" "0.2.57-560: compile and selftest probe of commit dfc358cc -- a container's disk usage says how its filesystem accounts (cix#613, cix#619)."
     }
 
