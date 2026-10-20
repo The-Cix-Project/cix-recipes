@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3708bd9ef426fd6300fff9c09652f2b8153be53fba0b0bc53d57653f69343160"
         "changelog" "0.2.57-558: a device record says what the device is -- serial, wwid, mac and whether the mac is permanent -- the first step of naming devices by identity (cix#349, ADR-0345)."
     }
 

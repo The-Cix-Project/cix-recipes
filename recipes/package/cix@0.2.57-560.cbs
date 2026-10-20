@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4122f6b5acb1d8d590924fb7ef2166a0200d42d8e1900c16b1579e4b58b45bee"
         "changelog" "0.2.57-560: a filesystem UUID is a device field, and the dashboard names a device by its identity and shows who holds it (cix#349, ADR-0345)."
     }
 

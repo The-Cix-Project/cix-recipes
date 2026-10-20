@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9717e63efb53a70fd54b5ca25699b9ff7ff5e73e3297b35c87f0d704203c530a"
         "changelog" "0.2.57-559: a device name says which device it is -- usb_serial, wwid, fs_uuid, mac, ambiguity refused -- and a USB id says where it is (cix#349, ADR-0345)."
     }
 
