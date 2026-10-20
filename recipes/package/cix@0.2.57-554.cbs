@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "54d67e9b74a6bc4f47c5f9335b96688c2b31ca7c063fa25b20ac5df3a988c544"
         "changelog" "0.2.57-554: a build reports its phases and the command it failed in, from cbs v0.1.107's event stream (cix#388, cix#489); the test floor moves to cbs v0.1.107-1."
     }
 

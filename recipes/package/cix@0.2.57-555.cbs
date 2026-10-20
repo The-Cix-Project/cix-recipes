@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "04632e63fd8a7d3a3cd42ce7cc70578cfb8b9a6250ebea9371aa54786a1d19a1"
         "changelog" "0.2.57-555: a build's phases are read every 2 s and in file order, and a failed command is reported as its argv (cix#388, cix#489)."
     }
 

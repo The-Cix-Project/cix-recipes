@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "24ecaa4781f6d110907ea64e6fe564e77693886a47ee86cf5da82d8271d703a5"
         "changelog" "0.2.57-556: a device is one record with one state, every grant asks it, and a stopped container may reserve its devices (cix#620, ADR-0344)."
     }
 

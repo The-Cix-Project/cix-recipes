@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "aa6d1471596e550e6b09af50d55415f365e7982835c66a9355c38e0de2cfd86a"
         "changelog" "0.2.57-557: a device granted to a user-namespace container is made by the parent, so passthrough works in the default isolation mode (cix#621)."
     }
 
