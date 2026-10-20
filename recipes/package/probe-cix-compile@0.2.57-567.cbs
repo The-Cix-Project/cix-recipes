@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "4ee4ac03922e3efe5a67bcab59482539ee0f7f566d8d4658f315dcc479254352"
         "changelog" "0.2.57-567: compile and selftest probe of commit 3a8ae970 -- a duplicate live attach is a 409 again, and a device is one record with one state, and every grant asks it (cix#620, ADR-0344)."
     }
 
