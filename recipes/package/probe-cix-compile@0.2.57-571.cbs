@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "aa9c0796172fd632cc02b0f463fc141b91d15d109125698904dc7b9b40cbc349"
         "changelog" "0.2.57-571: compile and selftest probe of commit c2d66d80 -- a filesystem UUID is a device field, the dashboard names devices by identity (ADR-0345 step 2b, cix#349)."
     }
 
