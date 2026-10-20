@@ -148,6 +148,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d44978432b0ba9d808b23278324564e5e81eb54a2363732d3dc0930def45b808"
         "changelog" "0.2.57-563: compile and selftest probe of commit 5a422567 -- an image keeps a bounded history, and a version leaves it off the loop (ADR-0343, cix#619)."
     }
 
