@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "c457eae78dfefe3e11fa4bc2552e579f773165c31d360a56579e858420f27f35"
         "changelog" "0.2.57-575: compile and selftest probe of commit d6dfc2ad -- a container whose interface leaves the host has failed (ADR-0347, cix#623)."
     }
 
