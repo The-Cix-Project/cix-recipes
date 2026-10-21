@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "9471f1155bc510885fcd5d054f5854e78e36b6d2d4fc5b250d694cc3646eb2e4"
         "changelog" "0.2.57-580: compile and selftest probe of commit c1684d21 -- ADR-0348 release one: one policy decides every module load, and a coldplug sweep at start (cix#143)."
     }
 
