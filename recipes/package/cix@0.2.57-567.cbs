@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9eaea87a971cd9426498df084a0bddedc87e648124fc94325d3a85f56ac54391"
         "changelog" "0.2.57-567: a container whose process dies before exec is a failed create, a 500 naming the step, never a 201 running (cix#622)."
     }
 

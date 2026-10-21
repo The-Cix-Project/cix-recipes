@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2cd432be8a7e8299bbd85b993a6322d8231fa20ef2e5520457762304ec0874e0"
         "changelog" "0.2.57-568: one policy decides every module load (kmod-policy, blacklist, allowlist), and a coldplug sweep at start gives hardware present at boot its driver (ADR-0348 release one, cix#143)."
     }
 

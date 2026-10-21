@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d294872d881a47403b7d01a61e60e9d81583367c530b2ea47a5ee4e2dc235c9f"
         "changelog" "0.2.57-569: the coldplug sweep counts built-in code with module info as builtin, so the vt keyboard handler is no longer reported failed (ADR-0348, cix#143)."
     }
 
