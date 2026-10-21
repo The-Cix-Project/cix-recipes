@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e5243e26f5528c47ea7dfe6158958146c5ffc3c000d786e4ab242d4f6f74fd3d"
         "changelog" "0.2.57-583: compile and selftest probe of commit 78201d8d -- ADR-0348 release two, with test_kmod naming a module no kernel has (cix#143)."
     }
 
