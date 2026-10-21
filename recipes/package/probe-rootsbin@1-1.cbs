@@ -1,0 +1,117 @@
+#
+# probe-rootsbin -- does the control-plane root carry /sbin/modprobe,
+# the path the kernel's request_module() runs? (cix#143, ADR-0348)
+#
+# THE QUESTION. kernel.modprobe reads /sbin/modprobe on 192.168.15.95
+# (GET /v1/system/sysctl/kernel.modprobe, 2026-10-21). mkbootroot
+# creates bin, usr/bin and usr/sbin and no sbin, and modprobe is staged
+# at /usr/bin/modprobe -- so kernel-requested module loads probably
+# fail today. That is read from the code, not measured; this measures
+# it, from a root this host's own mkbootroot produced (the 553
+# installer's payload/cix-root.squashfs, the probe-rootlibs route).
+#
+# Also lists what an ADR-0348 rendering would need: /usr/bin/false and
+# the root's modprobe.d and lib/modules directories.
+#
+package "probe-rootsbin" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-553-x86_64.iso"
+            sha256 "2e8ed0b0cdbce2298c9d813bbc7023116d3473d63774b14d596c45b7c639e2c6"
+        }
+    }
+
+    requires {
+        build {
+            tool "xorriso"
+            tool "squashfs-tools"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: is there a /sbin/modprobe in the control-plane root, the path kernel.modprobe names (cix#143, ADR-0348)? Lists the root's top level, every modprobe and false in it, and its modprobe.d and lib/modules."
+    }
+
+    prepare {
+        materialize $source.iso to "${build}/cix.iso"
+    }
+
+    build {
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/cix.iso"
+            "-extract"
+            "/payload/cix-root.squashfs"
+            "${build}/cix-root.squashfs"
+        }
+
+        run "unsquashfs" {
+            "-d"
+            "${build}/root"
+            "${build}/cix-root.squashfs"
+        }
+
+        run "ls" {
+            "-la"
+            "${build}/root"
+        }
+
+        run "find" {
+            "${build}/root"
+            "("
+            "-name"
+            "modprobe*"
+            "-o"
+            "-name"
+            "false"
+            "-o"
+            "-name"
+            "request-key*"
+            ")"
+            "-exec"
+            "ls"
+            "-la"
+            "{}"
+            "+"
+        }
+
+        run "find" {
+            "${build}/root/lib/modules"
+            "-maxdepth"
+            "1"
+        }
+
+        run "false" {
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${build}/root/sbin"
+                allow_failure
+            }
+            run "ls" {
+                "-la"
+                "${build}/root/etc"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rootsbin" parents
+    }
+}
