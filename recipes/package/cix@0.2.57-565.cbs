@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "04c2aec9d0b802a53089fc82e1e7239a2af6d2e984a9ef98ed06f22afa470a33"
         "changelog" "0.2.57-565: a container whose interfaces[] hardware leaves the host is failed and comes back when it returns; a refused rolling replay is retried; only a running container holds a device (cix#623, ADR-0347)."
     }
 
