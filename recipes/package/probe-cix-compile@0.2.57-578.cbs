@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "61b3180a2a2109acc7f94f37e51a2bd0c82a26e9d81d118b6c0a83bc68d813ad"
         "changelog" "0.2.57-578: compile and selftest probe of commit b463e07e -- a container whose process dies before exec is a failed create, and the blocking-wait ceiling follows (cix#622)."
     }
 
