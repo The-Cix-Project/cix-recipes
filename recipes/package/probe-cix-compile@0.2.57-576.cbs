@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1595a8f2323f7dd6f0cdadde4c2bd668b85b3a3db8167da6e79a1d96dc055546"
         "changelog" "0.2.57-576: compile and selftest probe of commit 5ad387ba -- an interface that left with its hardware is not moved back (ADR-0347, cix#623)."
     }
 
