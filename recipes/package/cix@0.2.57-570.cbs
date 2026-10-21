@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "cbc6d061f04d2907377e4cff9ba327e09bba9fd4b6a94f54be726d71d4e5b84c"
         "changelog" "0.2.57-570: a plugged device gets its driver, and every module load and unload after start runs in one queue off the event loop; autoload both is the default (ADR-0348 release two, cix#143)."
     }
 
