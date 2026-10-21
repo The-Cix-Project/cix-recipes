@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7fd5eec6221c76684563622576c31530ec6fd0755f8fcf72f24f12f519dc2de4"
         "changelog" "0.2.57-566: an interface that left the host with its hardware is no longer moved back at teardown, so an unplug logs one error line (ADR-0347, cix#623)."
     }
 
