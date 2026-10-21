@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7ba0e8452833d8f19f82c13abb47f9e1fd0e1a63b92c4162ab299055bab3bf44"
         "changelog" "0.2.57-564: a restart the daemon cannot make is retried on the crash backoff and shown as restart_refused, instead of leaving the container down for good (cix#623, ADR-0346)."
     }
 

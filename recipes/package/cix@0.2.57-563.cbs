@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "aa8b3ac952335515f02ab3b93e45d8fd2823ed9d77908e623db2fa806352a3fc"
         "changelog" "0.2.57-563: a device unplugged from a running container is given back when it returns, in any port when it was named by a mapping (cix#349, ADR-0345)."
     }
 
