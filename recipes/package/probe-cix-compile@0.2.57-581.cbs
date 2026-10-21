@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "0a0ab00d2dff9d2faffd7795bca10e0ab32e8a025595cae6004d47c363cf95bd"
         "changelog" "0.2.57-581: compile and selftest probe of commit 99ae8ee1 -- ADR-0348: built-in code with module info counts as builtin (cix#143)."
     }
 
