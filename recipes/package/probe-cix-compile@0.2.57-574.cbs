@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e0b16fd2b0b12f53b587ae4f96860d6593affaac76c6788784816b21783d0ae8"
         "changelog" "0.2.57-574: compile and selftest probe of commit 9d40a2ec -- a restart that cannot be made is retried, and says why (ADR-0346, cix#623)."
     }
 
