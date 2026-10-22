@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5e88776a49dfdb2353049b3bdd7ec1c4fb4153dd810ed9e193cfc7597e1c69ca"
         "changelog" "0.2.57-571: ADR-0348 release three -- the dashboard shows the module policy, the device scan and the blacklisted mark (cix#143)."
     }
 
