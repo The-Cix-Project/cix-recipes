@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "15bb80d41396003a533bcfe90d5e8ee4ba6aaf2ae1992b6f9f597125670ed71c"
         "changelog" "0.2.57-589: compile and selftest probe of commit a058228d -- one hostbuild at a time, for every caller (cix#627)."
     }
 
