@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "44e1387c68a6da2aee72c54dd6d1bf5d5bf606a3a2bbcdcac1c6b52e528f56b6"
         "changelog" "0.2.57-576: ADR-0350 release one -- the trust-anchor store, used by every HTTPS fetch (cix#591)."
     }
 
