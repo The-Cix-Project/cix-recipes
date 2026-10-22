@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5a6dfbb7fecc6d188c364edd7f0ecab950a416c5e79a426773b249e8984042f5"
         "changelog" "0.2.57-585: compile and selftest probe of commit df420eab -- ADR-0348 release three, with the scan entries titled (cix#143)."
     }
 
