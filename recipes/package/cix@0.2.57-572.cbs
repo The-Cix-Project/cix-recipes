@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "22571962edb1957b68d12c9ad0e26d501bd6a7d67bf2e00afca7c4a9993b2e4c"
         "changelog" "0.2.57-572: ADR-0349 -- a container's /proc/loadavg is its own load average, sampled by procfuse (cix#625)."
     }
 
