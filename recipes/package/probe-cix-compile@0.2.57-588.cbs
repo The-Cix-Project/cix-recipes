@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5122aa3e48c5e9f40671d8917c4a2fa95139b417d0ea5d8c2c8ad942305b3865"
         "changelog" "0.2.57-588: compile and selftest probe of commit e885b23c -- the documentation sweep of 2026-10-22, gated."
     }
 
