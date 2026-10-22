@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2868d578ceabce0c2c03a5c8ea748c896613f4c020b5fa3d5c9be3d06d26c5a2"
         "changelog" "0.2.57-587: compile and selftest probe of commit 30241989 -- the create path names its slowest step (cix#624)."
     }
 
