@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a12328ea102873f04d6a00a1b8a07746ecccd376f84678ae66b91c95baaa2381"
         "changelog" "0.2.57-573: a slow container create names its slowest step (cix#624)."
     }
 
