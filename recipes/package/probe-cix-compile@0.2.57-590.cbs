@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d76ee55fe76f65a995782a1bec35bf077e014456a0a524a461d103daa4922280"
         "changelog" "0.2.57-590: compile and selftest probe of commit 78cd9145 -- a build slot is set aside, not deleted on the loop (cix#626)."
     }
 
