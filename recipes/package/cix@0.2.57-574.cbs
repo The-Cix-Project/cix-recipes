@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7fb25bd008decf253a39c7b4f7630038fc1f88c8df7d37505f83f80fde91353a"
         "changelog" "0.2.57-574: one hostbuild at a time for every caller, kmod-build included (cix#627); the 2026-10-22 documentation sweep."
     }
 

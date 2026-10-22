@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d6b5add228ad140cd22112faaae1a9e93918e24c837ae8027cf2f4e6e93f5c83"
         "changelog" "0.2.57-592: compile and selftest probe of commit e365d4b2 -- ADR-0350 release one, with the test_web_tree fix (cix#591)."
     }
 

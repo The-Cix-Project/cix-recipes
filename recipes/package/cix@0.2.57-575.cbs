@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "da69056eb0da6c27e3bf98125bf3878d484e92147ce6b1fff189f7a539d91054"
         "changelog" "0.2.57-575: a build slot's previous tree is set aside and deleted off the event loop (cix#626)."
     }
 
