@@ -76,6 +76,7 @@ package "nss-pam-ldapd" {
     }
 
     metadata {
+        "artifact_sha256" "b1b14e4c607c0460490803882d6163abc03781541fe82ef36fb741d1702cab9a"
         "changelog" "0.9.13-8: declares libgcc-s at run time. nslcd aborted with signal 6 on every stop, because glibc could not find libgcc_s.so.1 to cancel its threads (cix#639)."
     }
 
