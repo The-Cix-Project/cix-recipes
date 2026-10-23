@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e82be0ec5d452c979f27b0f9651f077c011f7be655a50d48dee5975a12015ec2"
         "changelog" "0.2.57-594: compile and selftest probe of commit 8d22fa89 -- a trust anchor is named by its CN (cix#629)."
     }
 
