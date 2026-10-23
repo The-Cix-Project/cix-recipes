@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "41d4f1d1371f9f0ff161292cc61e59d2e0bec1797c2c3a8a3bbaf1764c25f7e9"
         "changelog" "0.2.57-601: compile and selftest probe of commit 4b356ca3 -- test_boot_ab and test_boot_update join test_boot in the release gate (cix#584)."
     }
 
