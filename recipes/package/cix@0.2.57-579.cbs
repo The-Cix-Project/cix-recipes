@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7f4db2a134ed83e2ed35a7bba5655dc3b1678aec14277c7601125efcbaeafcec"
         "changelog" "0.2.57-579: a system backup is made off the event loop (cix#630, cix#617)."
     }
 
