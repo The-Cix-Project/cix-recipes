@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3c9b2b65e9828d44ca7a85fbbff74dff7092ec2725a6f4c080fb40750db9056e"
         "changelog" "0.2.57-577: ADR-0350 release two -- the root's CA bundle is the ca-certificates package, and the build host's copy is gone (cix#591)."
     }
 
