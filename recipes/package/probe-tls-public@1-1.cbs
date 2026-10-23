@@ -1,0 +1,45 @@
+#
+# probe-tls-public -- the control for probe-tls-untrusted (ADR-0350
+# release two, cix#591): a host whose certificate a public root covers
+# must PASS TLS verification on a root whose bundle is the
+# ca-certificates package alone.
+#
+# badssl.com's own front page has an ordinary, publicly trusted
+# certificate. The sha256 is all zeroes, so success here is the
+# checksum failure "N bytes hash to ...": the bytes arrived, so TLS
+# verified. A CA error here would mean the root's public bundle is
+# missing or unreadable.
+#
+package "probe-tls-public" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "page" {
+            url "https://badssl.com/"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: a host a public root covers must pass TLS verification on the package bundle (ADR-0350 release two, cix#591)."
+    }
+
+    build {
+        # Never reached: the fetch is the probe.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tls-public"
+    }
+}
