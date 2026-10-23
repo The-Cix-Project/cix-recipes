@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "328f945948e362febf2e2f4efa283cbba4ca8d702156495089bec4371b026903"
         "changelog" "0.2.57-578: a trust anchor is named by its CN, and the dashboard table leads with it (cix#629)."
     }
 
