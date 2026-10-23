@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e1c09f27aa2332a16e4c1afb5c4beba9f9f6b7256e2f10548e7308f75c99c0e9"
         "changelog" "0.2.57-590: the ESP is remounted read-only before it is unmounted at shutdown, and the outcome is logged; 589's unmount-first left it dirty (cix#638)."
     }
 

@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2c8e3fb92cc204a84306402b004f403cbfaebeafc3b501abb136af4dca47b41b"
         "changelog" "0.2.57-589: a reboot leaves the ESP clean, so a boot no longer reports it was not properly unmounted (cix#638)."
     }
 
