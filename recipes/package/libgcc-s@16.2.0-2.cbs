@@ -51,6 +51,7 @@ package "libgcc-s" {
     }
 
     metadata {
+        "artifact_sha256" "0102a1c95598f489ef767f98360d4b83cb615fd29235ac5b369a114d5ad5b4c4"
         "changelog" "16.2.0-2: declares binutils for finalize's strip, which refused -1. libgcc_s.so.1 from the gcc 16.2.0-19 artifact, byte for byte, so a program that cancels a thread finds it without a compiler in its image (cix#639)."
     }
 

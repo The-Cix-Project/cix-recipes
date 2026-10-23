@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f3868649ef1ce72d302c74bdf910a8a5c7240958863946e396dbd2baae23db82"
         "changelog" "0.2.57-587: a boot manager install fetches off the event loop (cix#633)."
     }
 
