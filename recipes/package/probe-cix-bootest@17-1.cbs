@@ -96,6 +96,7 @@ package "probe-cix-bootest" {
     }
 
     metadata {
+        "artifact_sha256" "0676988331b8596af9de8a26dea776a9d1c8ee5b94b8cbd41916fd4792d9fbc1"
         "changelog" "17: builds commit 8031d5df. 16-1 stopped in 11 ms because test_boot_update passed mkbootroot an empty host-tools root; it passes / now (cix#584)."
     }
 
