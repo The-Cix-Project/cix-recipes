@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "84b17c2be79c8157d22eec59b4973b114f19bb4254669ee53bcf7bb0070f6f6b"
         "changelog" "0.2.57-608: compile and selftest probe of commit 88cf86ab -- the ESP is remounted read-only before it is unmounted (cix#638)."
     }
 
