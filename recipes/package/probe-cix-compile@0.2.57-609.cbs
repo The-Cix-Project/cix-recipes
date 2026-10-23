@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "cfccc6820d43ec83bd2efe8a47e0d37f79d73c8a9d51e1d7673c193206a99f35"
         "changelog" "0.2.57-609: compile and selftest probe of commit 8bd714fd -- the ESP is checked with fsck.fat at every boot (cix#638)."
     }
 
