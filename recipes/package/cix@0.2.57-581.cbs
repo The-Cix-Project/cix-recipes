@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4f957cd884e8f4e3392f7cc80aca3d48705e7899a3f6147355ede3439283e7b8"
         "changelog" "0.2.57-581: a backup carries only the recipes no source gives back (ADR-0351, cix#632)."
     }
 
