@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "82967d0788975af9b5a4207e09e66c9ded3cf9d35468201e88b8633847f9de3f"
         "changelog" "0.2.57-604: compile and selftest probe of commit 7fb91c81 -- a boot manager install fetches off the event loop (cix#633)."
     }
 
