@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "285a43710e1cea760bf1c272faab7b7e26b27424356efa49270be15272d29e6b"
         "changelog" "0.2.57-597: compile and selftest probe of commit 60e7002a -- a backup carries only the recipes no source gives back (ADR-0351, cix#632)."
     }
 
