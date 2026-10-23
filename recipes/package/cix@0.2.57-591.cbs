@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "55ca32cae69c51dbd07cbcec54c9ded7fe93d918b5954243ed7df5ddb7c5d836"
         "changelog" "0.2.57-591: the ESP is checked with fsck.fat at every boot before it is mounted, because the kernel never clears a FAT dirty bit it found at mount; fsck.fat joins the root from cix-hosttools 2.4.5 (cix#638)."
     }
 
