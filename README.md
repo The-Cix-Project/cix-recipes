@@ -47,3 +47,12 @@ recipe that produced it.
 `test/` holds the gates that assert things about recipe *content*, and
 they moved here with the recipes they test. Tests of daemon behaviour
 stayed in `cix`.
+
+## Licence
+
+The recipes and the tests in this repository are under the [MIT
+licence](LICENSE). That covers the recipe files, not the software they build:
+each package keeps its upstream licence, which its recipe records in its
+`license` line, and `recipes/keys/` holds upstream projects' public signing
+keys, published by their owners. The Cix name and marks, and what counts as an
+official Cix catalogue, are governed separately by [TRADEMARK.md](TRADEMARK.md).
