@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "aa00167a1d0f949452a969395178722dea77dfaad4a3470a9274c1b6d1db612e"
         "changelog" "0.2.57-593: compile and selftest probe of commit 76efacf6 -- ADR-0350 release two (cix#591)."
     }
 
