@@ -1,0 +1,83 @@
+#
+# libgcc-s -- gcc's libgcc_s.so.1 on its own, for programs that need it
+# at run time without a compiler beside them (cix#639).
+#
+# glibc dlopen()s libgcc_s.so.1 by name to unwind a thread, in
+# pthread_cancel() and pthread_exit(), and aborts when it is absent:
+# "libgcc_s.so.1 must be installed for pthread_cancel to work". No ELF
+# walk sees that dependency, so nothing put the library into images
+# whose programs need it. nslcd in jump aborted on every stop this way,
+# 347 times in its retained log on 192.168.15.95 (2026-10-23).
+#
+# THE BYTES ARE GCC'S. The main source is the published gcc artifact,
+# pinned by its sha256 (the cache's own, measured 2026-10-23), unpacked
+# by cbs, and the library is copied out unchanged; a check proves it is
+# byte-identical. Nothing is compiled here, and the version is gcc's, so
+# a new gcc means a new revision of this.
+#
+# gcc's own package ships usr/lib/libgcc_s.so.1 too, so an image holding
+# both would put one path in two packages, which cix#553 refuses. The
+# replaces block hands the path to this package in such an image; the
+# bytes are the same either way.
+#
+package "libgcc-s" {
+    version "16.2.0"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "gcc" {
+            url "http://192.168.15.31:8080/gcc-16.2.0-19-x86_64.cixpkg"
+            sha256 "8b1161e1c2eb17ccc5aeb4fc3b216b2093a2ad255bd8c4157b94f782cc52ecf8"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "cbs"
+        }
+        runtime {
+            package "glibc"
+        }
+    }
+
+    replaces {
+        package "gcc"
+    }
+
+    metadata {
+        "changelog" "16.2.0-1: libgcc_s.so.1 from the gcc 16.2.0-19 artifact, byte for byte, so a program that cancels a thread finds it without a compiler in its image (cix#639)."
+    }
+
+    build {
+        run "cbs" {
+            "extract"
+            "${src}/gcc/gcc-16.2.0-19-x86_64.cixpkg"
+            "--into"
+            "${build}/gcc"
+        }
+        on_fail {
+            run "ls" {
+                "-la" "${src}/gcc"
+                allow_failure
+            }
+        }
+    }
+
+    check {
+        case "the library is gcc's, unchanged" {
+            require file "${dest}/usr/lib/libgcc_s.so.1" {
+                exists
+                nonempty
+                same_as "${build}/gcc/usr/lib/libgcc_s.so.1"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib" parents
+        copy "${build}/gcc/usr/lib/libgcc_s.so.1" to "${dest}/usr/lib/libgcc_s.so.1"
+    }
+}
