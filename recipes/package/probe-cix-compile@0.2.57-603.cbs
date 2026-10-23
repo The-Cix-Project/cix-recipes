@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "de2364cba79a70ec322d4457f04574e0150acb714f288402c0930b1d07e428fa"
         "changelog" "0.2.57-603: compile and selftest probe of commit 0ca73e50 -- 602 failed test_console_shell on its 150 s limit inside the selftest; it has the measured 300 s now (cix#584, cix#636)."
     }
 
