@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "68fec6b5601d7a1fd4b255369ebdfccffa2f0d1a64c58ba2ea8508f0a2f3de98"
         "changelog" "0.2.57-582: a system update writes the slot off the event loop (cix#631)."
     }
 

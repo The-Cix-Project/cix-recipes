@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3901c9fc66d7b8ec82adc37f88bc1967b4904a86710a9a7c01da58cbbd8098cb"
         "changelog" "0.2.57-583: the root carries the gcc-built sfdisk (util-linux 2.42.2-4, cix#634), and test_boot runs on a Cix host (cix#584)."
     }
 
