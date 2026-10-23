@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "303780e59500e0e180dc088c252583b6d4ec40f5b7e43145664fa290edd291e4"
         "changelog" "0.2.57-596: compile and selftest probe of commit d28ddc5d -- the chart series palette is computed and gated (cix#601)."
     }
 
