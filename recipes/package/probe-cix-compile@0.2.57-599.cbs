@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "9987da785facecaab7268db3b646ed927f471c94a760d7a891f6a15a51932278"
         "changelog" "0.2.57-599: compile and selftest probe of commit aed0790a -- the boot harness runs on a Cix host, and the root takes the gcc-built sfdisk (cix#584, cix#634)."
     }
 
