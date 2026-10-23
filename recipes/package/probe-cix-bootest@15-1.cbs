@@ -96,6 +96,7 @@ package "probe-cix-bootest" {
     }
 
     metadata {
+        "artifact_sha256" "4d9cb0d28e7eb858b416640aec0e0cf1dc81cd8e77960f298a4bb1b985d4def5"
         "changelog" "15: builds commit 7b978983 and runs test_boot_ab, the A/B rollback test, now that test_boot gates releases (0.2.57-584). Its fixture carries cix-config through config_partition_write(). The install phase copies a file, so a pass is installed (cix#584)."
     }
 
