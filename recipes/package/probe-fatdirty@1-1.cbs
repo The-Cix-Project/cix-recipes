@@ -31,6 +31,7 @@ package "probe-fatdirty" {
     }
 
     metadata {
+        "artifact_sha256" "9ebabf9601964beb6cd08de5638fdb3d8e5c6a4c03deb8d77d934f33a618f48c"
         "changelog" "1: fat_set_state() and its callers in kernel 7.2.12, to settle whether a clean shutdown can clear a FAT volume that was already dirty (cix#638)."
     }
 
