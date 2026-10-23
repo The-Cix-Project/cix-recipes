@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "271fb4057fdab79b3c453bae28ed6c0367bc9fbb4085c7e8a39469685162f90a"
         "changelog" "0.2.57-585: test_boot_ab and test_boot_update join test_boot in the release gate, so every release proves its A/B fallback and a staged update boots (cix#584); the artifact records its licence, GPL-3.0-or-later (ADR-0352)."
     }
 

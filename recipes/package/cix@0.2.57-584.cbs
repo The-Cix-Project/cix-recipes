@@ -231,6 +231,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c1c490e12922c4f14a206a6bda2b54c22546b2213b239065210085d658bae2a1"
         "changelog" "0.2.57-584: test_boot gates every release, booting the root this tree builds under qemu and OVMF (cix#584); the source is GPL-3.0-or-later (ADR-0352)."
     }
 
