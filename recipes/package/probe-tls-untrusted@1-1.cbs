@@ -1,0 +1,48 @@
+#
+# probe-tls-untrusted -- the negative half of ADR-0350's release-two
+# check (cix#591): a fetch of a host whose certificate chains to a root
+# that no public root program and no registered trust anchor contains
+# must FAIL TLS verification. With probe-tls-public beside it, which
+# fetches a host a public root does cover, the pair shows cixd verifies
+# against the bundle and is not skipping verification.
+#
+# untrusted-root.badssl.com exists for exactly this test: its
+# certificate is issued by a private "BadSSL Untrusted Root" CA.
+#
+# The sha256 is all zeroes, as in probe-cix-tarball. If TLS ever
+# accepted this host, the package would fail on the checksum instead
+# and print "N bytes hash to ...", which is the wrong answer and says so.
+#
+package "probe-tls-untrusted" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "page" {
+            url "https://untrusted-root.badssl.com/"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: a fetch of a host no public root and no trust anchor covers must fail TLS verification (ADR-0350 release two, cix#591)."
+    }
+
+    build {
+        # Never reached: the fetch is the probe.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tls-untrusted"
+    }
+}
