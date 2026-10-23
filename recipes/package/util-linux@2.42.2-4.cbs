@@ -1,0 +1,115 @@
+# util-linux -- built for ONE binary, sfdisk, which is what this
+# platform partitions disks with. Converted from build.sh to
+# build.cbs (ADR-0305 stage 4, cix#487).
+#
+# NOTHING TO RESTORE under cix#491: this recipe never deleted
+# anything. --disable-all-programs means almost nothing is built and
+# it copies one binary out.
+#
+# THE ELF CHECK IS REPLACED BY SOMETHING STRICTLY STRONGER, and that
+# is the interesting part of this conversion. The shell recipe was:
+#
+#   if [ -x .libs/sfdisk ] && head -c 4 .libs/sfdisk | grep -q ELF
+#   elif head -c 4 sfdisk | grep -q ELF
+#   else fail
+#
+# -- a hedge, because the author did not know whether libtool would
+# leave the real binary at ./sfdisk or behind a wrapper in .libs/,
+# and a magic-byte check because a libtool wrapper is a shell script.
+#
+# With --disable-shared there is no wrapper, so this names ./sfdisk
+# directly. And the check becomes `executable` (cbs#189) plus
+# actually RUNNING it: the shell recipe's own last line was
+# `sfdisk --version`, which proves far more than four magic bytes --
+# a file can start with \177ELF and still be unrunnable. Running it
+# is the assertion; the magic check was a proxy for it.
+#
+# If ./sfdisk turns out not to be the real binary the build fails
+# here and names the path, which is a better outcome than a hedge
+# that silently picks the other branch.
+#
+# GCC SINCE 2.42.2-4. Every check above passed for the tcc build, and
+# it was wrong: sfdisk --version ran, and the GPT it wrote was one no
+# reader would accept. The protective MBR is struct gpt_legacy_mbr,
+# declared packed, and tcc ignores packed (ADR-0008), so the partition
+# records moved from 446 to 448 and the 0x55AA signature from 510 to
+# 512, where the GPT header then overwrote it. Measured, not inferred:
+# probe-cix-bootest@9-1 dumped the image test_boot had partitioned. A
+# version check proves the binary runs, never that it writes the right
+# bytes; the boot tests are what gate that (cix#584).
+package "util-linux" {
+    version "2.42.2"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+        runtime {
+            package "ncurses"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "TCC ignores __attribute__((packed)) (ADR-0008), and libfdisk lays the protective MBR over a packed struct gpt_legacy_mbr. Built by tcc 0.9.28rc, sfdisk wrote its partition records at offset 448 instead of 446 and no 0x55AA signature at 510, so neither libfdisk nor the kernel recognised the GPT it had just written. Measured on 192.168.15.95, 2026-10-23, by probe-cix-bootest@9-1 (od of the disk.img test_boot left behind)"
+    }
+
+    metadata {
+        "changelog" "2.42.2-4: built with gcc. The tcc build wrote a GPT whose protective MBR had its records two bytes late and no 0x55AA signature, because tcc ignores packed on struct gpt_legacy_mbr, so sfdisk -d found no table in the image it had just written (cix#584, probe-cix-bootest@9-1). Same tarball and configure line; the tcc-only -D__STDC_NO_VLA__ is gone."
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-all-programs"
+                "--enable-fdisks=check"
+                "--enable-libfdisk"
+                "--enable-libsmartcols"
+                "--enable-libuuid"
+                "--enable-libblkid"
+                "--disable-shared"
+                "--enable-static"
+                "--without-readline"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+                "sfdisk"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" chmod 0755
+        copy "${src}/util-linux/util-linux-2.42.2/sfdisk" to "${dest}/usr/sbin/sfdisk"
+        chmod 0755 "${dest}/usr/sbin/sfdisk"
+        require file "${dest}/usr/sbin/sfdisk" {
+            exists
+            nonempty
+            executable
+        }
+        run "${dest}/usr/sbin/sfdisk" {
+            "--version"
+        }
+    }
+}
