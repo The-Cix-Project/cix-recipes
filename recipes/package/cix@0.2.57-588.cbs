@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "82c035eb6a15aa5e6db5ac3c19691ed7d3472abaaf96c962da38b4362d25d1e2"
         "changelog" "0.2.57-588: certificate keys are generated ahead of need, in a helper child (ADR-0353, cix#637), and a helper child no longer holds the daemon's listening sockets."
     }
 
