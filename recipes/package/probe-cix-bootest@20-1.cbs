@@ -96,6 +96,7 @@ package "probe-cix-bootest" {
     }
 
     metadata {
+        "artifact_sha256" "2dd6bf2da57dcf336e8cc7a8e8dc0310003493d14674aff04240266e5afd9e57"
         "changelog" "20: builds commit 8ec5089a and runs test_console_shell, now waiting for the line ok rather than the word, then test_console_pki_bootstrap. A pager that cannot start no longer takes the output (cix#636)."
     }
 
