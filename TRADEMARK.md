@@ -4,9 +4,8 @@
 owned by Omar Sakka and used by The Cix Project.
 
 The MIT licence applies to these recipes. It does not grant permission to use
-the Cix name, logos, or other
-project marks for a modified distribution in a way that implies official
-endorsement.
+the Cix name, logos, or other project marks for a modified distribution in a
+way that implies official endorsement.
 
 You may truthfully describe an unmodified copy as Cix and may use the name to
 refer to the upstream project. Modified distributions should use a distinct
