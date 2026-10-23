@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e0fc32004191ce8ebed3cc9c2dfccfd583d2d98ad598f3bbfc1b00735fe49b7d"
         "changelog" "0.2.57-610: compile and selftest probe of commit dcf391da -- log lines written before the store opens are held and written when it does (cix#638)."
     }
 
