@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1f39e1274d8ded063831e271753c11e3f40e26a2825609c201ebc1bf23bf93dd"
         "changelog" "0.2.57-607: compile and selftest probe of commit 29216caf -- a reboot leaves the ESP clean (cix#638)."
     }
 
