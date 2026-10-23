@@ -1,0 +1,52 @@
+#
+# probe-fatdirty -- does this kernel ever clear a FAT volume's dirty bit
+# once it was found set at mount? (cix#638)
+#
+# 0.2.57-589 unmounted the ESP at shutdown and 0.2.57-590 remounted it
+# read-only first, and the boot after each still logged "FAT-fs (vdb1):
+# Volume was not properly unmounted". If fat_set_state() leaves the state
+# alone for a volume that was already dirty when mounted, no clean
+# shutdown can clear it and only fsck.fat can. This reads the running
+# kernel's own source rather than recalling it. Source only; nothing is
+# built.
+#
+package "probe-fatdirty" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.12.tar.xz"
+            sha256 "bb18468a8dc8978aa00caa6446e753f7b6da3fee56b6b7f38b16f9430ba02d4f"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: fat_set_state() and its callers in kernel 7.2.12, to settle whether a clean shutdown can clear a FAT volume that was already dirty (cix#638)."
+    }
+
+    build {
+        run "grep" {
+            "-n" "-A" "40" "^static void fat_set_state"
+            "${src}/linux/linux-7.2.12/fs/fat/inode.c"
+        }
+        run "grep" {
+            "-n" "fat_set_state\\|sbi->dirty\\|FAT_STATE_DIRTY"
+            "${src}/linux/linux-7.2.12/fs/fat/inode.c"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-fatdirty" parents
+        copy "${src}/linux/linux-7.2.12/COPYING" to "${dest}/usr/share/probe-fatdirty/COPYING"
+    }
+}
