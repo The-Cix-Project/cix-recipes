@@ -1,0 +1,65 @@
+#
+# probe-fsckfat -- what dosfstools 4.2's fsck.fat does with a FAT
+# volume's dirty bit, and what its exit statuses mean (cix#638).
+#
+# The kernel never clears a dirty bit it found at mount
+# (probe-fatdirty@1-1), so cixd is to run fsck.fat on the ESP at boot.
+# Before a comment claims what -a does, this reads the source that
+# decides it. Source only; nothing is built.
+#
+package "probe-fsckfat" {
+    version "1"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "dosfstools" {
+            url "https://github.com/dosfstools/dosfstools/releases/download/v4.2/dosfstools-4.2.tar.gz"
+            sha256 "64926eebf90092dca21b14259a5301b7b98e7b1943e8a201c7d726084809b527"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1-2: the dirty-bit code is not in boot.c, so search all of src. 1-1: fsck.fat 4.2's dirty-bit handling and exit statuses, read from its source before cixd runs it on the ESP at boot (cix#638)."
+    }
+
+    build {
+        run "grep" {
+            "-rn" "-i" "-B" "4" "-A" "14" "dirty"
+            "${src}/dosfstools/dosfstools-4.2/src"
+        }
+        # Every read below may match nothing; a deliberate failure
+        # moves them into on_fail, where a miss is allowed.
+        run "false" {}
+        on_fail {
+        run "grep" {
+            "-n" "exit\\|case 'a'\\|case 'y'\\|case 'n'\\|case 'w'\\|rw = \\|interactive = \\|write_immed\\|fs_close"
+            "${src}/dosfstools/dosfstools-4.2/src/fsck.fat.c"
+            allow_failure
+        }
+        run "grep" {
+            "-n" "-A" "30" "fs_close"
+            "${src}/dosfstools/dosfstools-4.2/src/io.c"
+            allow_failure
+        }
+        run "grep" {
+            "-rn" "-i" "-A" "14" "exit status\\|EXIT STATUS"
+            "${src}/dosfstools/dosfstools-4.2/manpages"
+            allow_failure
+        }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-fsckfat" parents
+        copy "${src}/dosfstools/dosfstools-4.2/COPYING" to "${dest}/usr/share/probe-fsckfat/COPYING"
+    }
+}
