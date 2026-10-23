@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "4bd5f2e84c7bc9e4767a9233894b1223f6ffd4d2bda17eb8b5ececb10c777d9a"
         "changelog" "0.2.57-586: commands typed at a Cix host's console show their output again -- a pager that cannot start no longer takes it (cix#636) -- and both console boot tests join the release gate (cix#584)."
     }
 
