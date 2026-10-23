@@ -208,6 +208,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "dcb2f07bff99930ac32f17abcc151f4da72ab614b0807aea1cf5b6e5e5c37685"
         "changelog" "0.2.57-580: the chart series palette is computed and gated (cix#601)."
     }
 
