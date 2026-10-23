@@ -1,0 +1,84 @@
+#
+# probe-packed -- which tcc-built packages lay an on-disk format over a
+# packed struct (cix#635)?
+#
+# cix#634: tcc ignores __attribute__((packed)) (ADR-0008), and util-linux
+# built with tcc wrote GPT protective MBRs two bytes out. This lists every
+# packed declaration in the three tcc-built packages the control-plane
+# root or a build image carries -- libuuid (from the util-linux tree),
+# squashfs-tools and e2fsprogs -- so each hit can be judged. It reads
+# source only; nothing is built.
+#
+package "probe-packed" {
+    version "1"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+        extra "squashfs" {
+            url "https://github.com/plougher/squashfs-tools/archive/refs/tags/4.7.5.tar.gz"
+            sha256 "547b7b7f4d2e44bf91b6fc554664850c69563701deab9fd9cd7e21f694c88ea6"
+        }
+        extra "e2fsprogs" {
+            url "https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.47.4/e2fsprogs-1.47.4.tar.gz"
+            sha256 "da274408bebbfd13a5a2fc3cfc66e3ffff17c48534673aa67f88d49b99123b96"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "1-3: prints the packed struct definitions 1-1 found in e2fsprogs (ext2_fs.h, the quota files), and whether e2fsprogs links its bundled blkid, so each can be judged (cix#635)."
+    }
+
+    prepare {
+        extract $source.squashfs into "${src}" as "squashfs-tools"
+        extract $source.e2fsprogs into "${src}" as "e2fsprogs"
+    }
+
+    # A grep that finds nothing exits 1, and a run may only be allowed to
+    # fail inside on_fail, so the greps are the diagnostics of a phase
+    # that fails on purpose. The answer is the build log.
+    build {
+        run "false" {
+        }
+        on_fail {
+        run "sed" {
+            "-n" "600,650p" "${src}/e2fsprogs/lib/ext2fs/ext2_fs.h"
+            allow_failure
+        }
+        run "sed" {
+            "-n" "25,41p" "${src}/e2fsprogs/lib/support/quotaio.c"
+            allow_failure
+        }
+        run "sed" {
+            "-n" "15,31p" "${src}/e2fsprogs/lib/support/quotaio_tree.h"
+            allow_failure
+        }
+        run "sed" {
+            "-n" "10,68p" "${src}/e2fsprogs/lib/support/quotaio_v2.h"
+            allow_failure
+        }
+        run "ls" {
+            "${src}/e2fsprogs"
+            allow_failure
+        }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-packed" parents
+        copy "${src}/util-linux/util-linux-2.42.2/COPYING" to "${dest}/usr/share/probe-packed/COPYING"
+    }
+}
