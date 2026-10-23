@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f57f670cd2c73145c51da8e56d405c9190e8d5ba147d26154e8d0c8e219ad057"
         "changelog" "0.2.57-606: compile and selftest probe of commit 9bc2fd60 -- 605 failed two restart tests because a key-pool fill child held the old daemon's port; a helper child now closes the listening sockets (cix#637)."
     }
 
