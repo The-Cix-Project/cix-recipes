@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "259f1e650efce0adad9c2732d9951ec26a45e9403fc79c0b329de08e27b04c90"
         "changelog" "0.2.57-598: compile and selftest probe of commit c7b8a43c -- a system update writes the slot off the event loop (cix#631)."
     }
 
