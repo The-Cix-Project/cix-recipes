@@ -150,6 +150,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e69815de3f75937c81f8168dcbbc12d280c3e3e0fdc96f819c8bffa9d0908ed2"
         "changelog" "0.2.57-595: compile and selftest probe of commit acf787f4 -- a system backup is made off the event loop (cix#630)."
     }
 
