@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f21c7c19516cb4b7dc512dd5711303ce981c5cab050e32029171d7b650378d11"
         "changelog" "0.2.57-600: compile and selftest probe of commit a1d7e020 -- test_boot gates every release: the kernel is a declared source and qemu, ovmf and the host-tools set are declared tools (cix#584)."
     }
 
