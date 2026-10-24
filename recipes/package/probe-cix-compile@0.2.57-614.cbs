@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8e47a583d2af9b2b0e3dd089178aa4fcd803a381c3f34440a0e0a180771d3a3a"
         "changelog" "0.2.57-614: compile and selftest probe of commit a04b9eea -- the configuration document carries the wireless country (cix#355)."
     }
 
