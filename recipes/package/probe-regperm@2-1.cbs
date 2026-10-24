@@ -1,0 +1,89 @@
+#
+# probe-regperm 2 -- what does NL80211_CMD_GET_REG reply with for one
+# wiphy, and when does a wiphy have a domain of its own? (cix#355)
+#
+# Revision 1 settled that a userns container cannot set the domain
+# (ADR-0354). The daemon will now read each radio's domain with
+# GET_REG and NL80211_ATTR_WIPHY, so the parser needs the reply's exact
+# shape: which attribute says the domain is the wiphy's own, and which
+# says it is self-managed. Read from kernel 7.2.12, the booted kernel.
+#
+#   net/wireless/nl80211.c  -- nl80211_get_reg_do() and the helper that
+#                              writes a domain into a reply
+#   net/wireless/reg.c      -- where a wiphy's private regd is set
+#
+# Every grep is bundled with `#include`, which cannot miss, so a grep
+# with no match reports rather than ending the phase. Nothing is
+# compiled; the phase fails at the end so the log is kept.
+#
+package "probe-regperm" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.12.tar.xz"
+            sha256 "bb18468a8dc8978aa00caa6446e753f7b6da3fee56b6b7f38b16f9430ba02d4f"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the reply shape of NL80211_CMD_GET_REG for one wiphy, and where a wiphy gets a private domain, read from kernel 7.2.12 (cix#355)."
+    }
+
+    build {
+        run "grep" {
+            "-n"
+            "-A"
+            "75"
+            "-e"
+            "static int nl80211_get_reg_do("
+            "-e"
+            "#include <linux/if.h>"
+            "${src}/linux/linux-7.2.12/net/wireless/nl80211.c"
+        }
+        run "grep" {
+            "-n"
+            "-A"
+            "45"
+            "-e"
+            "static int nl80211_put_regdom("
+            "-e"
+            "static int nl80211_send_regdom("
+            "-e"
+            "#include <linux/if.h>"
+            "${src}/linux/linux-7.2.12/net/wireless/nl80211.c"
+        }
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "4"
+            "-e"
+            "->regd = "
+            "-e"
+            "->regd, "
+            "-e"
+            "#include <linux/kernel.h>"
+            "${src}/linux/linux-7.2.12/net/wireless/reg.c"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-regperm" parents
+        write "${dest}/usr/share/probe-regperm/probe" "${version}-${release}\n"
+    }
+}
