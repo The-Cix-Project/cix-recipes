@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7990dd75bf6eaf79ab41d598a7d533eea297e42d9254e08ff068a53a4533d215"
         "changelog" "0.2.57-616: compile and selftest probe of commit 1a84f1bc -- a recipe keeps its publish time when its text is rewritten (cix#628)."
     }
 
