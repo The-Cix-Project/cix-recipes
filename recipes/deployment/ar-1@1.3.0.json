@@ -1,0 +1,72 @@
+{
+  "name": "ar-1",
+  "image": "wifi_router",
+  "services": [
+    {
+      "name": "hostapd",
+      "cmd": [
+        "/usr/bin/hostapd",
+        "/etc/hostapd/hostapd.conf"
+      ],
+      "on_exit": "fail-container"
+    }
+  ],
+  "consoles": [
+    {
+      "name": "hostapd_cli",
+      "cmd": [
+        "/usr/bin/hostapd_cli",
+        "-p",
+        "/run/hostapd"
+      ]
+    },
+    {
+      "name": "iw-list",
+      "cmd": [
+        "/usr/sbin/iw",
+        "list"
+      ]
+    }
+  ],
+  "capture_output": true,
+  "interfaces": [
+    "radio-ap"
+  ],
+  "networks": [
+    {
+      "name": "services",
+      "ip": "192.168.150.110",
+      "ifname": "services"
+    },
+    {
+      "name": "access",
+      "ip": "192.168.151.110",
+      "ifname": "access",
+      "container_bridge": "br0"
+    }
+  ],
+  "restart": "always",
+  "follow_rolling": true,
+  "restart_delay_seconds": 2,
+  "files": [
+    {
+      "path": "/etc/hostapd/hostapd.conf",
+      "mode": "0600",
+      "content": "# ar-1 -- the site access point (#30).\n#\n# interface is the real radio, moved into this container's own network\n# namespace by the \"interfaces\" list in this recipe. It is named by\n# its mac device mapping, radio-ap (cix ADR-0345, 1.2.0): inside it is\n# radio-ap whatever the kernel called it on the host, so neither this\n# file nor the recipe names a probe-order name like wlan0 any more. A\n# host running this needs that mapping first, on the radio's permanent\n# address:\n#   cixctl devicemap create --name=radio-ap --kind=mac --selector=MAC\n# and without it the create is refused with a 400 naming radio-ap.\n# It is a netdev\n# passthrough, not a USB device passthrough: a wireless adapter is\n# claimed by its driver on the host, and what a container needs is the\n# resulting interface, not the USB endpoint (daemon/src/device.c says\n# so in as many words).\n#\n# bridge is the whole reason ADR-0264 exists. hostapd puts the radio into\n# br0 and will create br0 if it is missing -- but it knows nothing\n# about this container's other interfaces and would never enslave one,\n# so a bridge hostapd built alone would carry the radio and nothing\n# else. Cix builds br0 first, with the access-network veth already in\n# it, and hostapd then adds the radio to the bridge it finds. Wireless\n# clients and the wired access segment are one layer-2 domain.\n#\n# ctrl_interface is what the hostapd_cli console attaches to.\n#\ninterface=radio-ap\nbridge=br0\ndriver=nl80211\nctrl_interface=/run/hostapd\n\n#\n# hostapd logs \"rfkill: Cannot open RFKILL control device\" here, every\n# start, and it is harmless TODAY rather than harmless. There is no\n# /dev/rfkill in this container, so hostapd cannot read or clear a\n# soft block. Nothing sets one at present and the AP comes up fine --\n# but if a radio ever is soft-blocked, hostapd inside here has no way\n# to see why it cannot transmit, and the message above is the only\n# clue it will give. Passing /dev/rfkill through is the fix if that\n# ever happens; it is not done now because a device passthrough that\n# nothing needs is a permission granted for no reason.\n#\n\n#\n# NO COUNTRY CODE HERE, AND THERE NEVER CAN BE ONE.\n#\n# The country is the HOST's, set by cixd from `cixctl wireless set`\n# (cix ADR-0354, #355), and this host's is GB. The kernel holds one\n# regulatory domain for the whole host and accepts it only from\n# CAP_NET_ADMIN in the initial user namespace (NL80211_CMD_REQ_SET_REG\n# is GENL_ADMIN_PERM, kernel 7.2.12). This container is in a user\n# namespace, so a country_code here is refused, every start, with\n#   wlan0: interface state UNINITIALIZED->COUNTRY_UPDATE\n#   Failed to set country code\n# which is what 1.0.8 and 1.1.0 did. hostapd sends the request whenever\n# a country is set, even one the kernel already has, so the line has to\n# be absent rather than merely correct. ieee80211d needs a country, so\n# it is absent too.\n#\n# The regulatory database does load: kernel 7.2.3-8 onwards builds\n# regulatory.db in with CONFIG_EXTRA_FIRMWARE, and on 2026-10-24 the\n# host moved from the world domain 00 to GB as soon as cixd asked.\n#\n#\n# Band and channel: 5 GHz, channel 36 (the owner's choice, 2026-10-24).\n#\n# Under the world domain every 5 GHz channel was NO-IR, so an AP could\n# not start there and this ran 2.4 GHz channel 6. Under GB, measured on\n# this radio the same day, channels 36-48 carry 23 dBm with no NO-IR,\n# and 52-64 and 100-144 need radar detection. 36 is the bottom of\n# UNII-1 and needs none, so the AP beacons at once instead of waiting\n# out a DFS scan, and ieee80211h is not needed.\n#\n# NO VHT (802.11ac) HERE, AND THAT IS A BUILD FACT RATHER THAN A CHOICE.\n#\n# hostapd rejected ieee80211ac, vht_oper_chwidth and\n# vht_oper_centr_freq_seg0_idx as \"unknown configuration item\" and\n# refused to start -- upstream's defconfig, which hostapd.recipe uses\n# as-is, leaves CONFIG_IEEE80211AC commented out, so the binary has no\n# VHT support compiled in. An unknown item is fatal to hostapd, not a\n# warning, so these cannot simply be left in place hopefully. The AP\n# therefore runs 802.11n (HT) on 5 GHz.\n#\nhw_mode=a\nchannel=36\nieee80211n=1\n\n#\n# The network itself.\n#\n# WPA2-PSK with CCMP only. TKIP is not offered at all -- it is broken,\n# and offering it as a fallback is how a network ends up negotiating it.\n#\n# The passphrase below is a secret placeholder in the committed\n# recipe, substituted from the apply request rather than stored here.\n# This file is in git; the passphrase is not, and never will be.\n#\n# The placeholder is deliberately not spelled out in this comment:\n# cixd warns when a RENDERED container still contains the token prefix,\n# and prose describing it trips that check exactly as a forgotten\n# secret would. A warning that cries wolf at documentation is worse\n# than no warning.\n#\nssid=cix\nwpa=2\nwpa_key_mgmt=WPA-PSK\nrsn_pairwise=CCMP\nwpa_passphrase={{SECRET:WIFI_PASSPHRASE}}\n\n# Clients talk to each other through the bridge, which is what a normal\n# wireless LAN does. Set to 1 to isolate them from one another.\nap_isolate=0\n"
+    },
+    {
+      "path": "/etc/passwd",
+      "mode": "0644",
+      "content": "root:x:0:0:root:/root:/usr/bin/bash\n"
+    },
+    {
+      "path": "/etc/group",
+      "mode": "0644",
+      "content": "root:x:0:\n"
+    },
+    {
+      "path": "/tmp/.keep",
+      "content": "# hostapd_cli needs a /tmp, and this image has none.\n#\n# hostapd_cli connects to hostapd by creating its OWN client socket\n# first, and wpa_ctrl.c hardcodes that to /tmp. This platform's\n# minimal images have /run and no /tmp at all (measured: GET\n# .../files?path=/tmp returns 404 while /run and /run/hostapd are\n# both directories), so the console attached, printed \"Could not\n# connect to hostapd\" and could tell nobody why.\n#\n# Declaring a file is how a container asks for a directory here,\n# which is a blunt way to say it. The general fix is for every\n# container to have a /tmp the way ADR-0119 gave every container a\n# /run -- this is the third time its absence has cost real\n# debugging (iptables, gcc, now this) and it is filed rather than\n# solved inside one AP's recipe.\n"
+    }
+  ]
+}
