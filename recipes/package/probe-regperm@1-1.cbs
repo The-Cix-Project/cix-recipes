@@ -1,0 +1,162 @@
+#
+# probe-regperm 1 -- can a process in a user namespace set the host's
+# wireless regulatory domain at all? (cix#355)
+#
+# WHY IT DECIDES SOMETHING. ar-1's hostapd, in a userns container, logs
+# `Failed to set country code` for country_code=GB on every start. The
+# 2026-10-03 hypothesis is that NL80211_CMD_REQ_SET_REG is gated on
+# CAP_NET_ADMIN in the INITIAL user namespace, so no userns container
+# can ever pass it. If so, the country is a host fact cixd must set;
+# if not, the cause is somewhere else and that design is wrong.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL. `cixctl boot` reports kernel
+# 7.2.12 and kernel@7.2.12-1.cbs declares exactly this tarball and
+# sha256.
+#
+# WHAT IT READS:
+#   net/wireless/nl80211.c     -- the op flags on REQ_SET_REG, and
+#                                 nl80211_req_set_reg() itself
+#   net/netlink/genetlink.c    -- what GENL_ADMIN_PERM checks, against
+#                                 GENL_UNS_ADMIN_PERM
+#   net/netlink/af_netlink.c   -- netlink_capable() vs netlink_ns_capable()
+#   net/wireless/reg.c         -- the ieee80211_regdom parameter, and
+#                                 what a reset restores
+#   drivers/net/wireless/realtek/rtw88/regd.c
+#                              -- whether the radio's driver manages its
+#                                 own regulatory domain or hints one
+#
+# EVERY GREP IS BUNDLED WITH `#include`, which cannot miss in a C file,
+# so a grep with no match reports instead of ending the phase.
+#
+# NOTHING IS COMPILED. The tarball is extracted and read; the phase
+# fails deliberately at the end so the log is kept and nothing is
+# published.
+#
+package "probe-regperm" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.12.tar.xz"
+            sha256 "bb18468a8dc8978aa00caa6446e753f7b6da3fee56b6b7f38b16f9430ba02d4f"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: is NL80211_CMD_REQ_SET_REG gated on CAP_NET_ADMIN in the initial user namespace, so a userns hostapd can never set a country? Read from kernel 7.2.12 (cix#355)."
+    }
+
+    build {
+        # 1. The flags on the op, with enough context to see them.
+        run "grep" {
+            "-n"
+            "-B"
+            "2"
+            "-A"
+            "6"
+            "-e"
+            ".cmd = NL80211_CMD_REQ_SET_REG,"
+            "-e"
+            ".cmd = NL80211_CMD_GET_REG,"
+            "-e"
+            "#include <linux/if.h>"
+            "${src}/linux/linux-7.2.12/net/wireless/nl80211.c"
+        }
+        run "grep" {
+            "-n"
+            "-A"
+            "40"
+            "-e"
+            "static int nl80211_req_set_reg("
+            "-e"
+            "#include <linux/if.h>"
+            "${src}/linux/linux-7.2.12/net/wireless/nl80211.c"
+        }
+
+        # 2. What each admin flag checks.
+        run "grep" {
+            "-n"
+            "-B"
+            "3"
+            "-A"
+            "6"
+            "-e"
+            "GENL_ADMIN_PERM"
+            "-e"
+            "GENL_UNS_ADMIN_PERM"
+            "-e"
+            "#include <linux/module.h>"
+            "${src}/linux/linux-7.2.12/net/netlink/genetlink.c"
+        }
+
+        # 3. The two capability helpers those flags call.
+        run "grep" {
+            "-n"
+            "-A"
+            "12"
+            "-e"
+            "bool netlink_capable("
+            "-e"
+            "bool netlink_ns_capable("
+            "-e"
+            "bool __netlink_ns_capable("
+            "-e"
+            "#include <linux/module.h>"
+            "${src}/linux/linux-7.2.12/net/netlink/af_netlink.c"
+        }
+
+        # 4. The boot-time country parameter, and what a reset keeps.
+        run "grep" {
+            "-n"
+            "-B"
+            "2"
+            "-A"
+            "4"
+            "-e"
+            "ieee80211_regdom"
+            "-e"
+            "user_alpha2"
+            "-e"
+            "#include <linux/kernel.h>"
+            "${src}/linux/linux-7.2.12/net/wireless/reg.c"
+        }
+
+        # 5. Does the radio's driver set or hint its own domain?
+        run "grep" {
+            "-n"
+            "-B"
+            "2"
+            "-A"
+            "4"
+            "-e"
+            "SELF_MANAGED"
+            "-e"
+            "regulatory_hint"
+            "-e"
+            "regulatory_flags"
+            "-e"
+            "REGULATORY_"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.12/drivers/net/wireless/realtek/rtw88/regd.c"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-regperm" parents
+        write "${dest}/usr/share/probe-regperm/probe" "${version}-${release}\n"
+    }
+}
