@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "099c9856efcfbab07c10a911bee7713916b007e927a0a315a05198f335f7aab6"
         "changelog" "0.2.57-592: log lines written before the store opens are held and written when it does, so the boot ESP check and boot_init()'s other lines reach the log (cix#638)."
     }
 
