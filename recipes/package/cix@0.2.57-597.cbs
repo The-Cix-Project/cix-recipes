@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "57ead4f3385c053c7ebeaffc870b5d33ac1ab1139be5fe9e31a4001bd87da6ad"
         "changelog" "0.2.57-597: a recipe keeps its publish time when its text is rewritten, so the newest policy orders by publication (cix#628)."
     }
 
