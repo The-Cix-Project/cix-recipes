@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b02b7318caa1e96b066c73bd7b05e0db9ee89adfc2313031831e438283c96384"
         "changelog" "0.2.57-596: cixctl help lists every command, and the contract declares the fields the daemon emits (cix#628)."
     }
 
