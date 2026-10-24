@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b08de91931c5274f49a3f4a81fdb22c3c4b1dd775e7d3d48c8bf3b71507b9042"
         "changelog" "0.2.57-611: compile and selftest probe of commit 4ef90910 -- a container exit reason names the service that ended it (cix#640)."
     }
 
