@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a6f0b055ca1ed253b3e7dad5f15ea6c6a04ea813b3cc30f39fd99779d9443891"
         "changelog" "0.2.57-593: a container exit reason names the service that ended it, rather than decoding a service exit code as a setup failure (cix#640)."
     }
 

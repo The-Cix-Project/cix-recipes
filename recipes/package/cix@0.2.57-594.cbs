@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f5f0297a25adf122475d3d3e7684e101dfdb2fedc92a6586d4fd5653ca0f0f61"
         "changelog" "0.2.57-594: the host wireless country is a setting cixd applies over nl80211, GET/PUT /v1/system/wireless and cixctl wireless (cix#355, ADR-0354)."
     }
 

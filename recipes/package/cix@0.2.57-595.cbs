@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "a01af0bbd80a6694166397c839fe1642f556e6577d41a23f2065c2f15aa86d2c"
         "changelog" "0.2.57-595: the configuration document carries the wireless country as its wireless section (cix#355, ADR-0354)."
     }
 
