@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2b7a948d22ed8f774f7465076cb3c25dd32bf57a79cac62f8339d4f1f7419122"
         "changelog" "0.2.57-615: compile and selftest probe of commit 7394fc89 -- cixctl help lists every command; the contract declares what the daemon emits (cix#628)."
     }
 
