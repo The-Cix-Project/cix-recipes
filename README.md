@@ -12,13 +12,13 @@ One file per recipe, flat, in one directory per kind:
 ```
 recipes/package/zstd@1.5.7-5.cbs
 recipes/package/bash@5.2.37-6.cbs
-recipes/image/cix-builder@1.4.0.sh
-recipes/deployment/dns-1@1.2.0.json
+recipes/image/cix-builder@6.2.1.json
+recipes/deployment/dns-1@1.8.0.json
 ```
 
 `<name>@<version>.<ext>`, where the extension is the format: `cbs` for a
-PBS recipe in CPDL, `sh` for a shell one (cix ADR-0305), `json` for a
-container deployment definition.
+package recipe in CPDL, `json` for an image recipe or a container
+deployment definition. There are no shell recipes (cix ADR-0329).
 
 It used to be `<name>/<version>/build.<ext>` — two directory levels
 carrying two fields, under a leaf filename that was the same two
@@ -34,8 +34,8 @@ because no recipe name contains one.
 ## How a host gets these
 
 `cixctl pkg sync`. The daemon fetches an archive of this repository and
-walks `recipes/`; the repository it fetches is set with
-`cixctl pkg repo-config set --url=`.
+walks `recipes/`; the sources a host fetches from are set with
+`cixctl pkg source` (cix ADR-0324).
 
 Recipe versions are **immutable** (cix ADR-0107): a published version is
 never edited, only superseded by a new one. That is why old revisions

@@ -9,7 +9,12 @@
 # TCC, like everything else this project builds (cix ADR-0224). These
 # link no daemon code, deliberately: that is what lets them run here
 # with nothing but a compiler.
-CC ?= tcc
+#
+# `=`, not `?=`: make defines CC as `cc` by default, so `?=` never
+# applied and these built with whatever `cc` was, or failed where
+# there is none -- a Cix build container (measured by
+# probe-recipe-gates@1-2, 2026-10-25). `make CC=...` still overrides.
+CC = tcc
 CFLAGS ?= -Wall -Werror -D_GNU_SOURCE -D_FORTIFY_SOURCE=0
 BUILD := build
 
