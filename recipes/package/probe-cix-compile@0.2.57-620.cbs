@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "80317a240a4294922962dfd2d2a83343b82f8531c997d2f38becef15fbd63e45"
         "changelog" "0.2.57-620: compile and selftest probe of commit 3f45fb8b -- a container's CPU directory lists only its own CPUs (cix#363)."
     }
 
