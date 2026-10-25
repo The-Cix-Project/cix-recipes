@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c6e58ed2102abdde90c4dee17bbbe3aad5ff19ad41291ffac25e5068c7cddec1"
         "changelog" "0.2.57-601: an install's image version is produced in a helper child, so an upgrade's unlinks no longer hold the event loop (cix#617)."
     }
 

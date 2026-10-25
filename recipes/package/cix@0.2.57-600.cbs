@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "01927948ad96660d5b7a6fb664f9b105f1ac9c926544c2d990e7079f04428771"
         "changelog" "0.2.57-600: a container's /sys/devices/system/cpu lists only its own CPUs, so htop draws no offline meter for a CPU outside its cpuset (cix#363)."
     }
 
