@@ -7,10 +7,12 @@
  * four-part bar and its required tracking issue NO LONGER APPLY to
  * third-party packages, because the owner's instruction is that moving
  * a package this project neither owns nor wrote should be the natural
- * change rather than a battle. What is still required is
- * pkg_toolchain= and pkg_toolchain_reason=, for auditability rather
- * than permission -- a reason may be as ordinary as "the language has
- * no TCC front end".
+ * change rather than a battle. What is still required is CPDL's
+ * `toolchain "gcc" { reason "..." }`, for auditability rather than
+ * permission -- a reason may be as ordinary as "the language has no
+ * TCC front end". CBS itself refuses `compiler "gcc"` without one
+ * (CPDL-E3004), so each recipe is gated at publish; this test is the
+ * aggregate the per-recipe check cannot give.
  *
  * The rule is not the interesting part -- an informal version of it
  * already existed, as prose in CLAUDE.md, and did not stop gcc
@@ -27,7 +29,7 @@
  * them either (#217).
  *
  * Deliberately checks only what is mechanically true: whether a
- * recipe's pkg_build() invokes gcc. Whether the reason recorded beside
+ * recipe declares or invokes gcc. Whether the reason recorded beside
  * it is a GOOD reason is review, and a gate pretending to judge that
  * would be the kind that passes while the thing it names is wrong.
  *
@@ -42,53 +44,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 /*
- * Every recipe whose latest revision builds with gcc, as of ADR-0224.
+ * Every package whose latest revision builds with gcc. Each one
+ * declares it with a reason, which CBS requires; this list is what
+ * makes the SET visible, so adding a name here is the deliberate edit.
  *
- * These are GRANDFATHERED, not blessed: the ADR requires each to carry
- * pkg_toolchain= and a reason naming the compiler gap it waits on, and
- * that backfill is tracked separately. What this list does today is
- * stop the set GROWING unnoticed, which is the failure that mattered.
+ * Re-derived on 2026-10-25 from the corpus at that day's main, after
+ * this file was found never to have compiled in this repository: it
+ * used a recipe-suffix macro from cix's headers without including any
+ * of them, and the macro had since been renamed there (cix#628). The 32 names it carried then had
+ * become 41 -- the meson-built set (glib, pixman, libslirp, qemu; the
+ * meson fact is in cix's CLAUDE.md), edk2's (acpica, edk2-basetools,
+ * ovmf, probe-edk2-build), and others -- and three shell-recipe
+ * probes had left the corpus with the shell form.
  */
 static const char *const g_gcc_recipes[] = {
-	"bind-utils", "btop", "binutils", "binutils-dev", "bird", "btrfs-progs", "cmake",
-	"efivar", "elfutils",
-	"fastfetch", "gcc", "gitea", "glauth", "glibc", "gnu-efi", "go", "go-bootstrap",
-	"grub", "kernel", "keyutils", "kmod", "libblkid", "libxcrypt",
-	"linux-headers", "node",
-	/*
-	 * openssl: a gcc build since it was written, and one this gate
-	 * could not see until 3.0.20-7. Configure target linux-x86_64
-	 * sets CC=gcc (Configurations/10-main.conf) and the recipe has
-	 * always declared gcc as a build tool -- but the shell form
-	 * carried no pkg_toolchain= line, and uses_gcc() below scans
-	 * pkg_build() textually, where this recipe says only
-	 * "perl ./Configure". A gcc package invisible to the audit is
-	 * exactly what ADR-0224 exists to prevent, and it sat here for
-	 * the whole life of the shell recipe. The CPDL revision declares
-	 * it, which is what put this line in a diff.
-	 */
-	"openssl",
-	"perl", "probe-gcc-headers", "probe-gcc-postglibc",
-	/*
-	 * probe-wifi-driver names /usr/bin/gcc to ASK ABOUT it, not to
-	 * build with it: revision 9 runs `gcc -E -Wp,-v` to print HOSTCC's
-	 * own include search path, and revision 10 tests `[ -x
-	 * /usr/bin/gcc ]` to confirm it is running in kernel-builder
-	 * rather than a four-tool composed environment. The scan below is
-	 * textual and cannot tell a compile from a question about the
-	 * compiler.
-	 *
-	 * Listed rather than excluded, because that is what this file
-	 * already does with probe-gcc-headers and probe-gcc-postglibc, and
-	 * because the point of the list is that a name appearing here is
-	 * visible in a diff. Teaching the scan to skip probe-* would make
-	 * every future probe invisible to it, which is a worse trade than
-	 * one honest line with a reason attached.
-	 */
-	"probe-wifi-driver", "python",
+	"acpica", "bind-utils", "binutils", "binutils-dev", "bird", "btop", "btrfs-progs",
+	"cmake", "edk2-basetools", "efivar", "elfutils", "fastfetch", "gcc", "gitea", "glauth",
+	"glib", "glibc", "gnu-efi", "go", "go-bootstrap", "grub", "kernel", "keyutils", "kmod",
+	"libblkid", "libffi", "libslirp", "libxcrypt", "linux-headers", "ninja", "node",
+	"openssl", "ovmf", "perl", "pixman", "probe-edk2-build", "probe-go-race", "python",
+	"qemu", "util-linux",
 	/*
 	 * quickjs: a JS engine's Makefile adds -fwrapv unconditionally --
 	 * its signed-overflow behaviour is load-bearing for JavaScript's
@@ -154,14 +131,13 @@ static int version_newer(const char *a, const char *b)
 /*
  * Does this recipe DECLARE gcc?
  *
- * `pkg_toolchain="gcc"` is the authoritative answer and is checked
- * first, because the scan below can only see a compiler a recipe names
- * out loud -- and a recipe need not name one at all. `cmake` runs
+ * `toolchain "gcc"` is the authoritative answer and is checked first,
+ * because the scan below can only see a compiler a recipe names out
+ * loud -- and a recipe need not name one at all. `cmake` runs
  * `./bootstrap`, `fastfetch` runs `cmake`; both build with g++ or gcc,
  * both declare it with a measured reason, and neither writes a
- * compiler anywhere in pkg_build(). They were counted as TCC recipes
- * and broke the total, which failed every build's selftest while both
- * recipes were entirely correct.
+ * compiler in any phase. They were counted as TCC recipes and broke
+ * the total while both recipes were entirely correct.
  *
  * So the two signals answer different questions and both are kept. A
  * declaration is what a recipe says; the scan is what it does. Their
@@ -170,16 +146,11 @@ static int version_newer(const char *a, const char *b)
  * WITHOUT declaring it, which is the undetected move ADR-0224 exists
  * to make impossible.
  *
- * Read before pkg_build(), where the metadata lives.
+ * The node is indented, so leading whitespace is skipped. The walk in
+ * main() reads only .cbs files: a recipe is CPDL and nothing else
+ * (cix ADR-0329), and a format this textual scan did not recognise
+ * would be a silent zero rather than an error.
  */
-/* 1 when path is a regular file. Keeps the resolution above readable. */
-static int stat_exists(const char *path)
-{
-	struct stat st;
-
-	return stat(path, &st) == 0 && S_ISREG(st.st_mode);
-}
-
 static int recipe_declares_gcc(const char *path)
 {
 	FILE *f = fopen(path, "r");
@@ -189,35 +160,13 @@ static int recipe_declares_gcc(const char *path)
 	if (f == NULL)
 		return 0;
 	while (fgets(line, sizeof(line), f) != NULL) {
-		if (strncmp(line, "pkg_build()", 11) == 0)
-			break;
-		/* 19, not 20: fgets() keeps the newline, so comparing the
-		 * terminator too would never match. */
-		if (strncmp(line, "pkg_toolchain=\"gcc\"", 19) == 0) {
+		const char *q = line;
+
+		while (*q == ' ' || *q == '\t')
+			q++;
+		if (strncmp(q, "toolchain \"gcc\"", 15) == 0) {
 			declares = 1;
 			break;
-		}
-		/*
-		 * ADR-0305: the same declaration in a PBS recipe, where it is
-		 * CPDL's own `toolchain "gcc" { "reason" }` node rather than a
-		 * shell assignment -- and indented, so the line is not
-		 * anchored at column zero the way the shell form is.
-		 *
-		 * This gate MUST learn every recipe language as it arrives.
-		 * It walks the corpus textually and counts, so a format it
-		 * does not recognise is not an error here -- it is a silent
-		 * zero, and a gcc recipe that escapes the count is exactly
-		 * what ADR-0224 exists to make impossible.
-		 */
-		{
-			const char *q = line;
-
-			while (*q == ' ' || *q == '\t')
-				q++;
-			if (strncmp(q, "toolchain \"gcc\"", 15) == 0) {
-				declares = 1;
-				break;
-			}
 		}
 	}
 	fclose(f);
@@ -225,16 +174,17 @@ static int recipe_declares_gcc(const char *path)
 }
 
 /*
- * Does this recipe's pkg_build() actually invoke the gcc toolchain?
+ * Does this recipe actually invoke the gcc toolchain?
  *
- * Scans from pkg_build() onward, skipping comment lines. Anything
- * before pkg_build() is metadata and prose.
+ * Scans the whole file, skipping comment lines: a CPDL recipe's phases
+ * ARE the document, and its metadata carries no compiler invocation to
+ * confuse the scan.
  *
  * g++ counts. It is the same toolchain wearing its C++ driver, and a
  * recipe that builds with it is exactly as much a gcc recipe as one
  * calling gcc -- which is the whole thing this count exists to keep
  * visible. Added when btop, the first C++ package here, declared
- * pkg_toolchain="gcc" and went undetected because it invokes CXX
+ * gcc and went undetected because it invokes CXX
  * rather than CC: an undetected gcc recipe is worse than a miscounted
  * one, since it means a package can move to gcc without the diff
  * anybody reviews ever showing it.
@@ -243,31 +193,13 @@ static int recipe_uses_gcc(const char *path)
 {
 	FILE *f = fopen(path, "r");
 	char line[4096];
-	size_t plen = strlen(path);
-	const size_t slen = sizeof(PKG_RECIPE_PBS_SUFFIX) - 1;
-	const int is_pbs = plen >= slen && strcmp(path + plen - slen, PKG_RECIPE_PBS_SUFFIX) == 0;
-	int in_build = 0, uses = 0;
+	int uses = 0;
 
 	if (f == NULL)
 		return 0;
 	while (fgets(line, sizeof(line), f) != NULL) {
 		const char *p = line;
 
-		if (!in_build) {
-			if (strncmp(line, "pkg_build()", 11) == 0)
-				in_build = 1;
-			/*
-			 * A PBS recipe has no pkg_build() to wait for: its
-			 * phases ARE the document, and the metadata above them
-			 * carries no compiler invocation to confuse this scan.
-			 * So the whole file is in scope from the first line
-			 * (ADR-0305).
-			 */
-			else if (is_pbs)
-				in_build = 1;
-			else
-				continue;
-		}
 		while (*p == ' ' || *p == '\t')
 			p++;
 		if (*p == '#')
@@ -333,9 +265,7 @@ int main(void)
 	 * cix#505: the corpus is FLAT -- one file per recipe, named
 	 * "<name>@<version>.<ext>" -- so "the newest revision of each
 	 * package" is found by asking, for each file, whether a higher
-	 * version of the same name exists. No inner directory to walk,
-	 * and no separate stat() to discover which language a version is
-	 * written in: the extension says so.
+	 * version of the same name exists. No inner directory to walk.
 	 */
 	while ((ent = readdir(d)) != NULL) {
 		char name[256], version[256], path[2048];
@@ -347,7 +277,7 @@ int main(void)
 		if (recipe_split(ent->d_name, name, sizeof(name), version, sizeof(version),
 		                 &ext) != 0)
 			continue;
-		if (strcmp(ext, "sh") != 0 && strcmp(ext, "cbs") != 0)
+		if (strcmp(ext, "cbs") != 0)
 			continue;
 
 		d2 = opendir("recipes/package");
@@ -359,7 +289,7 @@ int main(void)
 
 			if (recipe_split(e2->d_name, n2, sizeof(n2), v2, sizeof(v2), &x2) != 0)
 				continue;
-			if (strcmp(x2, "sh") != 0 && strcmp(x2, "cbs") != 0)
+			if (strcmp(x2, "cbs") != 0)
 				continue;
 			if (strcmp(n2, name) != 0)
 				continue;
@@ -380,8 +310,8 @@ int main(void)
 			fail("%s@%s builds with gcc and is not in this test's list.\n"
 			     "       ADR-0226: gcc is an ordinary choice for a third-party package,\n"
 			     "       so this is not a refusal -- it is a request to make the change\n"
-			     "       visible. Record pkg_toolchain=\"gcc\" and a pkg_toolchain_reason\n"
-			     "       naming what was measured, then add it to g_gcc_recipes[] here.\n"
+			     "       visible. Give it a toolchain \"gcc\" { reason } naming what was\n"
+			     "       measured, then add it to g_gcc_recipes[] here.\n"
 			     "       That edit is the point: the set may grow, but never unnoticed.",
 			     name, version);
 		}
