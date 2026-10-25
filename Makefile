@@ -54,10 +54,15 @@ test: $(TESTS) secrets
 # daemon substitutes it at fetch time and never stores it. Grep, not
 # a C program, because this repository builds no compiler of its own
 # and the check is one pattern.
+#
+# `://user:secret@` is the placeholder cix@0.2.57-365 and -366 quote in
+# their changelogs to describe redact_url_userinfo() (cix#502). Those
+# recipes are published and immutable, so the placeholder is allowed
+# by its exact spelling, like the others here.
 .PHONY: secrets
 secrets:
 	@bad=$$(grep -rIoE '://[A-Za-z0-9_.-]+:[^@/ "]+@' recipes/ test/ 2>/dev/null \
-	        | grep -vE '\{\{REPO_TOKEN\}\}|REPLACE_WITH_REAL_TOKEN|<password>|<token>|<TOKEN>|:TOKEN@' \
+	        | grep -vE '\{\{REPO_TOKEN\}\}|REPLACE_WITH_REAL_TOKEN|<password>|<token>|<TOKEN>|:TOKEN@|://user:secret@' \
 	        || true); \
 	if [ -n "$$bad" ]; then \
 		echo "SECRETS: FAIL -- a file embeds a credential in a URL:"; \
