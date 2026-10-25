@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5fbaced2c5b0ddd00d76b8acdb6a65d8c03b92f22f8f60c675a756d8748488b8"
         "changelog" "0.2.57-599: test_naming scans the whole cix-recipes repository; the test floor reads the corpus at 34dcb239 (cix#628)."
     }
 
