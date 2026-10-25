@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "6323771bb5b1550306fa9fa0d72c31940a8c10adbfec302d5e31e072f06087a7"
         "changelog" "0.2.57-598: the dashboard's storage hints name the pages that exist (cix#628)."
     }
 
