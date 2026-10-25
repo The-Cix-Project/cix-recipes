@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8158d273532bdc9ebd5880701ab9af1248ee2730d15ac2d69afbde54243582a1"
         "changelog" "0.2.57-622: compile and selftest probe of commit 7524ca9c -- GET /v1/pkg/verify is answered from a helper child (cix#643)."
     }
 
