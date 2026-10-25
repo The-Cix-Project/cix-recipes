@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5c9815d28880a1fc9d1cfefc5f354a01609641e840508e9bb1b5fe3c5f31efd6"
         "changelog" "0.2.57-619: compile and selftest probe of commit a2f3d52f -- test_naming scans the whole cix-recipes repository, against the corpus at 34dcb239 (cix#628)."
     }
 
