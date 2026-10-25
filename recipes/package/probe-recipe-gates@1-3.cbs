@@ -1,0 +1,50 @@
+#
+# probe-recipe-gates -- runs cix-recipes' own `make test` (the content
+# gates: test_recipe_hygiene, test_toolchain_policy, secrets) on a Cix
+# host, against the corpus at one commit (cix#628). THE SANDBOX RULE:
+# nothing compiles in the dev sandbox, and nothing else runs them.
+#
+# The build ends in a deliberate `false` so the gates' output is read
+# from the retained build log; nothing is published.
+#
+package "probe-recipe-gates" {
+    version "1"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "recipes" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/ab452d472371d5adea0ffae4852feed2a60272b9.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "make"
+            tool "tcc"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "3: the sha256 of the cix-recipes archive at ab452d47, whose Makefile builds the gates with tcc (cix#628)."
+    }
+
+    build {
+        cd "${src}/recipes/cix-recipes" {
+            run "make" {
+                "test"
+            }
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-recipe-gates" parents
+    }
+}
