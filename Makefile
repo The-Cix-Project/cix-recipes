@@ -18,7 +18,11 @@ CC = tcc
 CFLAGS ?= -Wall -Werror -D_GNU_SOURCE -D_FORTIFY_SOURCE=0
 BUILD := build
 
-TESTS := $(BUILD)/test_recipe_hygiene $(BUILD)/test_toolchain_policy
+# test_recipe_hygiene was removed on 2026-10-25 (cix#628): it checked
+# shell recipes only -- the artifact comment above pkg_artifact_sha256=
+# and command substitution in pkg_* values -- and none exist since cix
+# ADR-0329. Its credential scan was a narrower copy of `secrets` below.
+TESTS := $(BUILD)/test_toolchain_policy
 
 .PHONY: all test clean
 all: $(TESTS)
@@ -29,7 +33,7 @@ $(BUILD):
 $(BUILD)/%: test/%.c | $(BUILD)
 	$(CC) $(CFLAGS) $< -o $@
 
-# Run from the repository root: both tests open recipes/package
+# Run from the repository root: the tests open recipes/package
 # relative to the working directory.
 test: $(TESTS) secrets
 	@fail=0; for t in $(TESTS); do \
