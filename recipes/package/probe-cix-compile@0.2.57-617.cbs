@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d1cf07c1bfd1e7c82aad54daa5f7c14de352fd48920537f56efcaa432826d5e1"
         "changelog" "0.2.57-617: compile and selftest probe of commit 0e315bb2 -- the dashboard's storage hints name the pages that exist (cix#628)."
     }
 
