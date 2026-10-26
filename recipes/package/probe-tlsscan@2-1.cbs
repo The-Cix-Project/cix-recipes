@@ -1,0 +1,87 @@
+#
+# probe-tlsscan -- which tcc-built shared libraries carry thread-local
+# data? (cix#652, second pass)
+#
+# Revision 1 read file lists with GET /v1/pkg/NAME, which answers only
+# for the base image, so every package installed only in another image
+# was missed -- libsodium among them, which test_elfcheck_gcc then
+# refused in compile probe 0.2.57-629. This revision declares every
+# tcc-built package with a shared object in any image, read with
+# GET /v1/pkg/NAME@IMAGE (2026-10-26), and prints the program headers of
+# every shared object under /usr/lib and /usr/libexec in the composed
+# environment. A library with thread-local data has a TLS line.
+#
+package "probe-tlsscan" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "binutils"
+            tool "findutils"
+            tool "bzip2"
+            tool "coreutils"
+            tool "curl"
+            tool "flex"
+            tool "gawk"
+            tool "gmp"
+            tool "hibr"
+            tool "hostapd"
+            tool "ipset"
+            tool "iptables"
+            tool "libarchive"
+            tool "libcap"
+            tool "libmnl"
+            tool "libnftnl"
+            tool "libnl"
+            tool "libsodium"
+            tool "libtool"
+            tool "libuv"
+            tool "linux-pam"
+            tool "ncurses"
+            tool "nftables"
+            tool "nss-pam-ldapd"
+            tool "pcre2"
+            tool "procps"
+            tool "readline"
+            tool "squashfs-tools"
+            tool "xz"
+            tool "zlib"
+            tool "zstd"
+        }
+    }
+
+    metadata {
+        "changelog" "2: every tcc-built package with a shared object in any image, not only base; prints the program headers of every shared object in the composed environment (cix#652)."
+    }
+
+    build {
+        run "find" {
+            "/usr/lib"
+            "/usr/libexec"
+            "-name"
+            "*.so*"
+            "-type"
+            "f"
+            "-exec"
+            "readelf"
+            "-lW"
+            "{}"
+            "+"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tlsscan" parents
+        write "${dest}/usr/share/probe-tlsscan/done" "2\n"
+    }
+}
