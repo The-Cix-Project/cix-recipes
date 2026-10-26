@@ -1,0 +1,57 @@
+#
+# probe-tlssig -- does a TLS-model signature separate tcc's defective
+# libuuid from gcc's correct one? (cix#653)
+#
+# 2.42.2-7 (tcc) reaches its __thread data at fixed %fs offsets
+# (cix#650); 2.42.2-8 (gcc) is correct. This prints each one's dynamic
+# relocations and dynamic symbols, to see whether "PT_TLS with no TLS
+# dynamic relocation and no __tls_get_addr" tells them apart.
+#
+package "probe-tlssig" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+        extra "uuid7" {
+            url "http://192.168.15.31:8080/libuuid-2.42.2-7-x86_64.cixpkg"
+            sha256 "2fae0c40bcd6993af2bdb8bf08ea431d8b395282abc3c52f4408b85fc6db88f0"
+        }
+        extra "uuid8" {
+            url "http://192.168.15.31:8080/libuuid-2.42.2-8-x86_64.cixpkg"
+            sha256 "b09a9a3ba888f69d1bbfaca64ac2e8813164dd6e2f9b3b804ad7c14f65cd62ee"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "1: prints the dynamic relocations, dynamic symbols and dynamic section of libuuid 2.42.2-7 (tcc) and 2.42.2-8 (gcc) (cix#653)."
+    }
+
+    build {
+        mkdir "${build}/x" parents
+        materialize $source.uuid7 to "${build}/x/uuid7.cixpkg"
+        materialize $source.uuid8 to "${build}/x/uuid8.cixpkg"
+        run "cbs" { "extract" "${build}/x/uuid7.cixpkg" "--into" "${build}/x/u7" }
+        run "cbs" { "extract" "${build}/x/uuid8.cixpkg" "--into" "${build}/x/u8" }
+        run "readelf" { "-rW" "--dyn-syms" "-d" "${build}/x/u7/usr/lib/libuuid.so.1" }
+        run "readelf" { "-rW" "--dyn-syms" "-d" "${build}/x/u8/usr/lib/libuuid.so.1" }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tlssig" parents
+        write "${dest}/usr/share/probe-tlssig/done" "1\n"
+    }
+}
