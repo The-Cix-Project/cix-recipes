@@ -37,6 +37,7 @@ package "probe-tlssig" {
     }
 
     metadata {
+        "artifact_sha256" "4ae7a7babc9e314bf59025b3734cdb9f6dbb5c21872b3ed56e48ef78901a4366"
         "changelog" "1: prints the dynamic relocations, dynamic symbols and dynamic section of libuuid 2.42.2-7 (tcc) and 2.42.2-8 (gcc) (cix#653)."
     }
 
