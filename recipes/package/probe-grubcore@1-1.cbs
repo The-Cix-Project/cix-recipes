@@ -1,0 +1,81 @@
+#
+# probe-grubcore -- why does the EFI image grub-mkrescue builds from
+# grub 2.14-13 not know `search`? (cix#649)
+#
+# probe-cix-instest@1-1 booted an ISO mkinstalleriso built with Cix's
+# grub and saw, from the CD under OVMF: "Unknown command `search'.",
+# nine "unknown filesystem" probes, then grub rescue. grub 2.14-13's
+# file list carries search.mod, iso9660.mod, fat.mod, part_gpt.mod and
+# moddep.lst. Two questions, answered from the log:
+#
+#   1. Does grub-mkrescue put search and the filesystem modules into
+#      the EFI core at all? --verbose names each module grub-mkimage
+#      adds.
+#   2. Does search.mod still carry the symbols GRUB's loader needs
+#      (grub_mod_init, grub_mod_fini) and its .modname section?
+#
+# The main source is never read; a recipe must declare one.
+#
+package "probe-grubcore" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "binutils"
+            tool "grub"
+            tool "xorriso"
+            tool "mtools"
+            tool "dosfstools"
+        }
+    }
+
+    metadata {
+        "changelog" "1: runs grub-mkrescue --verbose against grub 2.14-13's module directory and reads search.mod's symbols (cix#649)."
+    }
+
+    build {
+        mkdir "${build}/empty" parents
+        write "${build}/empty/marker" "probe-grubcore\n"
+        run "/usr/bin/grub-mkrescue" {
+            "--verbose"
+            "--directory=/usr/lib/grub/x86_64-efi"
+            "-o"
+            "${build}/t.iso"
+            "${build}/empty"
+        }
+        run "readelf" {
+            "-s"
+            "/usr/lib/grub/x86_64-efi/search.mod"
+        }
+        run "readelf" {
+            "-S"
+            "/usr/lib/grub/x86_64-efi/search.mod"
+        }
+        run "grep" {
+            "-E"
+            "^(search|iso9660|fat|part_gpt|normal):"
+            "/usr/lib/grub/x86_64-efi/moddep.lst"
+        }
+        run "readelf" {
+            "-h"
+            "/usr/lib/grub/x86_64-efi/search.mod"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-grubcore" parents
+        write "${dest}/usr/share/probe-grubcore/done" "1\n"
+    }
+}
