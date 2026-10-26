@@ -48,6 +48,7 @@ package "probe-tlsscan" {
     }
 
     metadata {
+        "artifact_sha256" "0aff37f5976324cddab7d7e2bccf6873c9be1096ff1d604a2f05ecad4c20f371"
         "changelog" "1: prints the program headers of every shared object the installed tcc-built packages ship, with tcc-built libuuid 2.42.2-7 as the control, to find thread-local data (cix#652)."
     }
 
