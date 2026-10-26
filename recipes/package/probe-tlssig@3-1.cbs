@@ -26,6 +26,7 @@ package "probe-tlssig" {
     }
 
     metadata {
+        "artifact_sha256" "8090022c39686cff11083a52eec8c045f119e863be43ad3c148a04fb08c508f8"
         "changelog" "3: the same read of the gcc builds, libsodium 1.0.20-5 and nss-pam-ldapd 0.9.13-13 (cix#652)."
     }
 
