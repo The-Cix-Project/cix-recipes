@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "fa70ff16a81cabc87f55ca51730f9c2253b374b9b60ff121544af59336473f33"
         "changelog" "0.2.57-605: the installer ISO is built from the iso-builder image, which holds its toolchain, now that the isotools package cannot be built; a recipe may declare as many build tools as the composer allows (cix#649)."
     }
 
