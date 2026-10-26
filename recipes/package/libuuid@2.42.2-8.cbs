@@ -61,6 +61,7 @@ package "libuuid" {
     }
 
     metadata {
+        "artifact_sha256" "b09a9a3ba888f69d1bbfaca64ac2e8813164dd6e2f9b3b804ad7c14f65cd62ee"
         "changelog" "2.42.2-8: built with gcc (cix#650). The tcc build placed libuuid's thread-local clock state at local-exec TLS offsets, which alias the executable's own TLS in a shared library, so uuid_generate() crashed mkfs.btrfs in rewind(NULL) and every btrfs format failed."
     }
 
