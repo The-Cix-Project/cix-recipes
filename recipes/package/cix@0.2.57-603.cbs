@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c969b6761e849d56eaf4565a53e5eb1a740f90d055d1bb49adc9b38fa0f85047"
         "changelog" "0.2.57-603: an uninstall is a package job, produced in a helper child, so deleting a package no longer stops the control plane (cix#642)."
     }
 
