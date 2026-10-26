@@ -1,0 +1,41 @@
+#
+# probe-tlssig -- do the gcc builds of libsodium (1.0.20-5) and
+# nss-pam-ldapd (0.9.13-13) reach their TLS through a dynamic TLS
+# relocation or __tls_get_addr, as libuuid 2.42.2-8 does? (cix#652)
+#
+package "probe-tlssig" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "libsodium@1.0.20-5"
+            tool "nss-pam-ldapd@0.9.13-13"
+        }
+    }
+
+    metadata {
+        "changelog" "3: the same read of the gcc builds, libsodium 1.0.20-5 and nss-pam-ldapd 0.9.13-13 (cix#652)."
+    }
+
+    build {
+        run "readelf" { "-lrW" "--dyn-syms" "/usr/lib/libsodium.so.26.2.0" }
+        run "readelf" { "-lrW" "--dyn-syms" "/usr/lib/libnss_ldap.so.2" }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tlssig" parents
+        write "${dest}/usr/share/probe-tlssig/done" "3\n"
+    }
+}
