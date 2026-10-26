@@ -75,6 +75,7 @@ package "nss-pam-ldapd" {
     }
 
     metadata {
+        "artifact_sha256" "86d3b092aeec6d98e72d42fad73e392b27a99757334cb4389a2603bc4f49a9a0"
         "changelog" "0.9.13-13: built with gcc (cix#652), as gnu17 (gcc 16 defaults to C23, where cfg.c's parameter named bool is a keyword), against openldap-client 2.6.14-7's gcc archives (gcc cannot resolve tcc's __va_arg). The tcc build placed libnss_ldap's thread-local data at local-exec TLS offsets, which alias the loading program's own TLS; cix's install-time ELF gate refuses that (cix#653). Drops the tcc-only replaces and -D__STDC_NO_VLA__."
     }
 
