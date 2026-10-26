@@ -1,0 +1,192 @@
+#
+# probe-mkfsdev -- mkfs.btrfs on a real block device, verbose (cix#650)
+#
+# mkfs.btrfs 7.1-12 segfaults inside libc on a block device -- in the
+# installer (probe-cix-instest@1-1) and in .95's own control-plane root
+# (POST /v1/storage/vdb6/format, 2026-10-26) -- and formats an image file
+# cleanly in a build container (probe-mkfsbtrfs@1-1). A build container
+# has no block device, so this boots a QEMU guest whose root is a small
+# ISO: an init, mkfs.btrfs and its libraries. The init runs, on the
+# guest's one virtio disk:
+#
+#   1. mkfs.btrfs -f -L probe /dev/vda   (verbose, the default)
+#   2. mkfs.btrfs -f -K /dev/vda         (no discard)
+#   3. mkfs.btrfs -f /run/img            (a file, the control)
+#
+# and powers off. Each prints its exit status. The binaries are copied
+# with `run "cp"`: this is a throwaway diagnostic, and cbs's stage
+# operations cannot reach /usr/sbin (cix#649).
+#
+package "probe-mkfsdev" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+        extra "kernelpkg" {
+            url "http://192.168.15.31:8080/kernel-7.2.9-2-x86_64.cixpkg"
+            sha256 "2cde33d6f432843c7bd1956c105c6ecc14a226d7adf375a024d566d85ee334a2"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "bash"
+            tool "coreutils"
+            tool "linux-headers"
+            tool "cbs"
+            tool "qemu"
+            tool "ovmf"
+            tool "xorriso"
+            tool "btrfs-progs"
+        }
+    }
+
+    metadata {
+        "changelog" "1: boots a QEMU guest that runs mkfs.btrfs verbose on a virtio disk, again with -K, and on a file, to find where 7.1-12 segfaults in libc (cix#650)."
+    }
+
+    prepare {
+        materialize $source.kernelpkg to "${build}/kernel.cixpkg"
+    }
+
+    build {
+        run "cbs" {
+            "extract"
+            "${build}/kernel.cixpkg"
+            "--into"
+            "${build}/k"
+        }
+        mkdir "${build}/root/usr/sbin" parents
+        mkdir "${build}/root/usr/lib" parents
+        mkdir "${build}/root/lib64" parents
+        mkdir "${build}/root/proc" parents
+        mkdir "${build}/root/sys" parents
+        mkdir "${build}/root/dev" parents
+        mkdir "${build}/root/run" parents
+        write "${build}/init.c" """
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/mount.h>
+#include <sys/reboot.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+static void run(char *const argv[])
+{
+	pid_t pid;
+	int status = 0;
+
+	printf("PROBE: run %s %s %s\n", argv[1], argv[2], argv[3] ? argv[3] : "");
+	fflush(stdout);
+	pid = fork();
+	if (pid == 0) {
+		execv(argv[0], argv);
+		_exit(127);
+	}
+	waitpid(pid, &status, 0);
+	if (WIFSIGNALED(status))
+		printf("PROBE: signal %d\n", WTERMSIG(status));
+	else
+		printf("PROBE: exit %d\n", WEXITSTATUS(status));
+	fflush(stdout);
+}
+
+int main(void)
+{
+	char *a1[] = { "/usr/sbin/mkfs.btrfs", "-f", "-L", "probe", "/dev/vda", NULL };
+	char *a2[] = { "/usr/sbin/mkfs.btrfs", "-f", "-K", "/dev/vda", NULL };
+	char *a3[] = { "/usr/sbin/mkfs.btrfs", "-f", "/run/img", NULL };
+	int fd;
+
+	mount("proc", "/proc", "proc", 0, NULL);
+	mount("sysfs", "/sys", "sysfs", 0, NULL);
+	mount("tmpfs", "/run", "tmpfs", 0, NULL);
+	printf("PROBE: start\n");
+	run(a1);
+	run(a2);
+	fd = open("/run/img", O_CREAT | O_WRONLY, 0644);
+	if (fd >= 0) {
+		ftruncate(fd, 300L * 1024 * 1024);
+		close(fd);
+	}
+	run(a3);
+	printf("PROBE: end\n");
+	fflush(stdout);
+	sync();
+	reboot(RB_POWER_OFF);
+	for (;;)
+		pause();
+}
+"""
+        run "tcc" {
+            "-o"
+            "${build}/root/init"
+            "${build}/init.c"
+        }
+        run "cp" {
+            "-L"
+            "/usr/sbin/mkfs.btrfs"
+            "${build}/root/usr/sbin/mkfs.btrfs"
+        }
+        run "cp" {
+            "-L"
+            "/lib64/ld-linux-x86-64.so.2"
+            "${build}/root/lib64/ld-linux-x86-64.so.2"
+        }
+        run "cp" {
+            "-L"
+            "/usr/lib/libc.so.6"
+            "/usr/lib/libuuid.so.1"
+            "/usr/lib/libblkid.so.1"
+            "/usr/lib/libz.so.1"
+            "${build}/root/usr/lib/"
+        }
+        run "xorriso" {
+            "-as"
+            "mkisofs"
+            "-R"
+            "-o"
+            "${build}/root.iso"
+            "${build}/root"
+        }
+        run "truncate" {
+            "-s"
+            "1100M"
+            "${build}/disk.img"
+        }
+        run "qemu-system-x86_64" {
+            "-machine"
+            "q35"
+            "-m"
+            "1024"
+            "-bios"
+            "/usr/share/OVMF/OVMF.fd"
+            "-vga"
+            "none"
+            "-nic"
+            "none"
+            "-nographic"
+            "-no-reboot"
+            "-kernel"
+            "${build}/k/bzImage"
+            "-append"
+            "console=ttyS0 root=/dev/sr0 rootfstype=iso9660 ro init=/init"
+            "-cdrom"
+            "${build}/root.iso"
+            "-drive"
+            "file=${build}/disk.img,if=virtio,format=raw"
+            timeout 15m
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-mkfsdev" parents
+        write "${dest}/usr/share/probe-mkfsdev/done" "1\n"
+    }
+}
