@@ -245,6 +245,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "244c931b442d32891cb400fda1f1c1ca9876bc58d9055114abcb30439b8483ef"
         "changelog" "0.2.57-606: test_installer gates every release; it builds an ISO, installs it twice and boots the installed disk twice under qemu (cix#649)."
     }
 

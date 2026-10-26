@@ -31,6 +31,7 @@ package "probe-tlssig" {
     }
 
     metadata {
+        "artifact_sha256" "ef343129d44163421e16787f183850ce126a54e6e1f219f1c101bbd505e74e1c"
         "changelog" "2: prints the dynamic relocations and symbols of tcc-built libsodium 1.0.20-4 and libnss_ldap 0.9.13-8, which carry TLS (cix#653)."
     }
 
