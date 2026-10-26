@@ -1,0 +1,117 @@
+# libuuid, as a CPDL recipe (ADR-0305 stage 4).
+#
+# 2.42.2-8 moves to gcc (cix#650). Every btrfs format on a Cix host
+# failed: mkfs.btrfs segfaulted in libc. A SIGSEGV handler preloaded
+# into it in a QEMU guest (probe-mkfsdev@3-1) put the fault in
+# libuuid, and its disassembly (probe-uuidcall@1-1) is the crash:
+#
+#   call state_fd_init(LIBUUID_CLOCK_FILE, &state_f)  -> fd >= 0
+#   call rewind(state_f)                              -> state_f NULL
+#
+# both variables read straight off %fs at fixed offsets. That is the
+# local-exec TLS model, which a linker may use only in an executable:
+# in a shared library those offsets land in the executable's own
+# thread-local block, so libuuid's state was another program's
+# memory. mkfs.btrfs has TLS of its own, which is why it, and not a
+# program without any, was what crashed.
+#
+# A translation of recipes/package/libuuid/2.42.2-4/build.sh: the same
+# util-linux tarball at the same digest, the same four configure
+# switches, the same `make install`. The package is one library out of a
+# large source tree -- `--disable-all-programs --enable-libuuid` is what
+# makes that so.
+#
+# Both post-install removals are gone, for the two different reasons
+# this conversion keeps running into: usr/share by ADR-0306 (#491), and
+# usr/lib/*.la because ADR-0251's finalize phase already drops every
+# .la file after this phase runs.
+package "libuuid" {
+    version "2.42.2"
+    release 8
+    format "cixpkg"
+
+    license "BSD-3-Clause"
+
+    sources {
+        main "util-linux" {
+            url "https://www.kernel.org/pub/linux/utils/util-linux/v2.42/util-linux-2.42.2.tar.xz"
+            sha256 "03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "TCC compiles libuuid's __thread clock state with the local-exec TLS model, which is valid only in an executable. In a shared library the %fs offsets alias the executable's own thread-local data. Measured on 192.168.15.95, 2026-10-26 (cix#650): mkfs.btrfs 7.1, which has TLS of its own, segfaulted in rewind(state_f) with state_f NULL after state_fd_init() returned a valid fd, in the installer, in .95's root and in a QEMU guest (probe-mkfsdev@3-1, probe-uuidcall@1-1). Re-measure when the compiler changes."
+    }
+
+    metadata {
+        "changelog" "2.42.2-8: built with gcc (cix#650). The tcc build placed libuuid's thread-local clock state at local-exec TLS offsets, which alias the executable's own TLS in a shared library, so uuid_generate() crashed mkfs.btrfs in rewind(NULL) and every btrfs format failed."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/util-linux"
+        }
+        require directory "${src}/util-linux/util-linux-2.42.2" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-all-programs"
+                "--enable-libuuid"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/util-linux/util-linux-2.42.2" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # util-linux's shared data -- its message catalogue and
+        # terminal-colors.d.5 -- is installed by every package built
+        # from this tree, and belongs to util-linux-common (cix#553).
+        remove glob "${dest}/usr/share/locale/*/LC_MESSAGES/util-linux.mo"
+        remove glob "${dest}/usr/share/man/man5/terminal-colors.d.5"
+        # The versioned file, not the libuuid.so.1 soname link beside
+        # it: `require file` lstat()s and demands a regular file, so it
+        # rejects a symlink and says "does not exist"
+        # (cix-build-system#175).
+        require file "${dest}/usr/lib/libuuid.so.1.3.0" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/uuid/uuid.h" {
+            exists
+            nonempty
+        }
+    }
+}
