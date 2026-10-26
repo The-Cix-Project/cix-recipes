@@ -65,6 +65,7 @@ package "libsodium" {
     }
 
     metadata {
+        "artifact_sha256" "e04ff50784672b88f8827a8cb92f6f276c08c103dfdbb729314e2cc259f745b5"
         "changelog" "1.0.20-5: built with gcc (cix#652). The tcc build placed libsodium's thread-local data at local-exec TLS offsets, which in a shared library alias the loading program's own TLS; cix's install-time ELF gate refuses that (cix#653). Drops the -include stdatomic.h only tcc needed."
     }
 
