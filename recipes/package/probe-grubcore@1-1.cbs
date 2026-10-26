@@ -42,6 +42,7 @@ package "probe-grubcore" {
     }
 
     metadata {
+        "artifact_sha256" "31b0d795caf27115b4ba0269640b6ba88825143515aae7f2c1e51c3dcf405c04"
         "changelog" "1: runs grub-mkrescue --verbose against grub 2.14-13's module directory and reads search.mod's symbols (cix#649)."
     }
 
