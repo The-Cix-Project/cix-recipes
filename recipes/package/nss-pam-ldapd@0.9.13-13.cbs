@@ -1,0 +1,188 @@
+# nss-pam-ldapd -- libnss_ldap.so.2, pam_ldap.so and nslcd: the half
+# of the identity chain that lets a Cix host resolve and authenticate
+# an LDAP account.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# 0.9.13-9 MOVES TO GCC (cix#652, cix#653). libnss_ldap.so.2 has
+# thread-local data (a 0x58-byte TLS segment), and tcc compiles __thread
+# in a shared library with the local-exec model, which is valid only in
+# an executable. objdump of 0.9.13-8's libnss_ldap.so.2 shows it reading
+# and writing %fs:-0x58 directly, with no TLS dynamic relocation and no
+# __tls_get_addr import (probe-tlssig@2-1) -- libuuid 2.42.2-7's defect
+# (cix#650). As an NSS module it is loaded into every program in the
+# container that looks up a user, and those offsets are that program's
+# own TLS. cix's install-time ELF gate refuses it (cix#653).
+#
+# The tcc workarounds go with tcc: the two replaces that stripped
+# --version-script and rewrote -Wl,-h (gcc takes both, so upstream's
+# exports.map and pam_ldap.map apply again), and -D__STDC_NO_VLA__ for
+# glibc's regexec() prototype.
+#
+# PT_GNU_STACK IS WHY -6 EXISTS and is worth keeping in view. Without
+# that header the loader reads a shared object as requiring an
+# executable stack and glibc 2.44 refuses it at dlopen with "cannot
+# enable executable stack as shared object requires". The effect was
+# an identity chain that half worked: `getent passwd` returned
+# nothing for an LDAP account while `id` returned the full record,
+# because glibc takes its stack bookkeeping from the main executable
+# and skips the check entirely when that executable is itself
+# unmarked -- so a marked getent was refused and an unmarked id and
+# sshd were not. tcc has emitted the header since 0.9.28rc-10
+# (cix#228); nothing in this recipe does anything about it, and the
+# note is here so a future reader does not go looking.
+package "nss-pam-ldapd" {
+    version "0.9.13"
+    release 13
+    format "cixpkg"
+
+    sources {
+        main "nss-pam-ldapd" {
+            url "https://arthurdejong.org/nss-pam-ldapd/nss-pam-ldapd-0.9.13.tar.gz"
+            sha256 "e01784e17cb533bb66bd0601e205e785263445c3c2df7a6f90232ab4131c716d"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "openldap-client@2.6.14-7"
+            tool "linux-pam"
+            tool "openssl"
+        }
+        runtime {
+            package "openldap-client"
+            package "linux-pam"
+            # nslcd cancels its worker threads on SIGTERM, and glibc
+            # dlopen()s libgcc_s.so.1 to unwind them, aborting without it:
+            # "libgcc_s.so.1 must be installed for pthread_cancel to work"
+            # on every stop of jump (cix#639). No ELF walk sees it.
+            package "libgcc-s"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "TCC compiles __thread in a shared library with the local-exec TLS model, valid only in an executable; in a library the %fs offsets alias the loading program's own thread-local data. Measured on 192.168.15.95, 2026-10-26: libnss_ldap.so.2 from 0.9.13-8 (tcc) reads and writes %fs:-0x58 with no TLS dynamic relocation and no __tls_get_addr import (probe-tlssig@2-1), and cix's install-time ELF gate refuses it (cix#653). Re-measure when the compiler changes."
+    }
+
+    metadata {
+        "changelog" "0.9.13-13: built with gcc (cix#652), as gnu17 (gcc 16 defaults to C23, where cfg.c's parameter named bool is a keyword), against openldap-client 2.6.14-7's gcc archives (gcc cannot resolve tcc's __va_arg). The tcc build placed libnss_ldap's thread-local data at local-exec TLS offsets, which alias the loading program's own TLS; cix's install-time ELF gate refuses that (cix#653). Drops the tcc-only replaces and -D__STDC_NO_VLA__."
+    }
+
+    build {
+        cd "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13" {
+            # -std=gnu17: gcc 16 defaults to C23, where bool is a
+            # keyword, and nslcd/cfg.c names a parameter bool
+            # (print_boolean, line 210). 0.9.13 predates C23.
+            #
+            # ac_cv_func_pthread_kill_other_threads_np=no tells
+            # autoconf the answer directly rather than letting its
+            # link probe decide; the function is a glibc-internal
+            # name this build does not need.
+            run "./configure" {
+                "--prefix=/usr"
+                "--sysconfdir=/etc"
+                "--libdir=/usr/lib"
+                "--with-pam-seclib-dir=/usr/lib/security"
+                "--with-nslcd-pidfile=/run/nslcd/nslcd.pid"
+                "--with-nslcd-socket=/run/nslcd/socket"
+                env "CC" = "/usr/bin/gcc"
+                env "CFLAGS" = "-g -O2 -std=gnu17"
+                env "LDFLAGS" = "-L/usr/lib"
+                env "LIBS" = "-llber -lssl -lcrypto"
+                env "ac_cv_func_pthread_kill_other_threads_np" = "no"
+            }
+            # Built directory by directory, in dependency order, the
+            # way upstream's own top-level Makefile does it.
+            run "make" {
+                "-C"
+                "compat"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "common"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "nss"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "pam"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "nslcd"
+                jobs $jobs
+            }
+            # configure's own record of a failed probe is config.log,
+            # which the build log does not carry. 0.9.13-9's first gcc
+            # build failed at "could not locate a valid LDAP library"
+            # with the reason only in there.
+            on_fail {
+                run "grep" {
+                    "-n"
+                    "-A8"
+                    "-e"
+                    "conftest.c -lldap"
+                    "config.log"
+                    allow_failure
+                }
+            }
+        }
+    }
+
+    install {
+        cd "${src}/nss-pam-ldapd/nss-pam-ldapd-0.9.13" {
+            run "make" {
+                "-C"
+                "nss"
+                "install"
+                "DESTDIR=${dest}"
+            }
+            run "make" {
+                "-C"
+                "pam"
+                "install"
+                "DESTDIR=${dest}"
+            }
+            run "make" {
+                "-C"
+                "nslcd"
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # All three, because this package is only useful when all
+        # three are present: the NSS module answers name lookups, the
+        # PAM module authenticates, and nslcd is the daemon both talk
+        # to. A build producing two of them satisfies make and leaves
+        # an identity chain that half works -- which is exactly the
+        # shape of the PT_GNU_STACK failure -6 was cut for.
+        require file "${dest}/usr/lib/libnss_ldap.so.2" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/security/pam_ldap.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/sbin/nslcd" {
+            exists
+            executable
+        }
+    }
+}
