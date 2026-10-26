@@ -48,6 +48,7 @@ package "probe-mkfsdev" {
     }
 
     metadata {
+        "artifact_sha256" "8f147bbc24c42f6702011ce654e63976f30e752acf1c10f18220dfd8078759d7"
         "changelog" "1: boots a QEMU guest that runs mkfs.btrfs verbose on a virtio disk, again with -K, and on a file, to find where 7.1-12 segfaults in libc (cix#650)."
     }
 
