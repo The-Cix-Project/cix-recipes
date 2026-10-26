@@ -1,0 +1,117 @@
+#
+# probe-tlsscan -- which tcc-built shared libraries carry thread-local
+# data? (cix#652)
+#
+# tcc compiles __thread in a shared library with the local-exec model,
+# which aliases the loading program's own TLS (cix#650, libuuid). The
+# installed packages built with tcc that ship a shared object are the
+# ten declared below after libuuid (read from GET /v1/pkg/NAME on .95,
+# 2026-10-26, against each recipe's compiler line). This prints every
+# one's program headers; a library with thread-local data should have a
+# TLS line.
+#
+# The control is libuuid 2.42.2-7, the tcc build #650 found defective:
+# its program headers and its section headers say whether a tcc -shared
+# object with __thread data carries a PT_TLS segment at all. If it does
+# not, a clean result below means nothing, and the instrument has to be
+# the disassembly instead.
+#
+package "probe-tlsscan" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "libuuid@2.42.2-7"
+            tool "bzip2"
+            tool "curl"
+            tool "flex"
+            tool "gawk"
+            tool "libarchive"
+            tool "libtool"
+            tool "pcre2"
+            tool "xz"
+            tool "zlib"
+            tool "zstd"
+        }
+    }
+
+    metadata {
+        "changelog" "1: prints the program headers of every shared object the installed tcc-built packages ship, with tcc-built libuuid 2.42.2-7 as the control, to find thread-local data (cix#652)."
+    }
+
+    build {
+        run "readelf" {
+            "-lSW"
+            "/usr/lib/libuuid.so.1"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libarchive.so.13.8.1"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libbz2.so.1.0.8"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libcurl.so.4.8.0"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libfl.so.2.0.0"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libltdl.so.7.3.2"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/liblzma.so.5.8.3"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libpcre2-8.so.0.16.1"
+            "/usr/lib/libpcre2-posix.so.3.0.9"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libz.so.1.3.2"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libzstd.so.1.5.7"
+        }
+        run "readelf" {
+            "-lW"
+            "/usr/lib/gawk/filefuncs.so"
+            "/usr/lib/gawk/fnmatch.so"
+            "/usr/lib/gawk/fork.so"
+            "/usr/lib/gawk/inplace.so"
+            "/usr/lib/gawk/intdiv.so"
+            "/usr/lib/gawk/ordchr.so"
+            "/usr/lib/gawk/readdir.so"
+            "/usr/lib/gawk/readfile.so"
+            "/usr/lib/gawk/revoutput.so"
+            "/usr/lib/gawk/revtwoway.so"
+            "/usr/lib/gawk/rwarray.so"
+            "/usr/lib/gawk/time.so"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tlsscan" parents
+        write "${dest}/usr/share/probe-tlsscan/done" "1\n"
+    }
+}
