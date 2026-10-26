@@ -1,0 +1,89 @@
+#
+# probe-mkfsbtrfs -- why does mkfs.btrfs segfault inside the installer?
+# (cix#650)
+#
+# probe-cix-instest@1-1, 2026-10-26, from the installer's console:
+#
+#   mkfs.btrfs[69]: segfault at 1 ip 00007f749396d44a ... error 4 in
+#   libc.so.6[8944a,7f749390c000+168000]
+#   Code: ... <f6> 47 01 80 ...
+#
+# f6 47 01 80 is `testb $0x80, 0x1(%rdi)` with a fault at address 1,
+# so %rdi was NULL: a stdio function given a NULL FILE *. Three things
+# from the same packages the installer staged, read into the log:
+#
+#   1. libc's LOAD segments and its dynamic symbols, to turn text
+#      offset 0x8944a into the function that faulted;
+#   2. what mkfs.btrfs imports;
+#   3. a control: mkfs.btrfs on an image file here, where /proc, /sys
+#      and /tmp are all present.
+#
+# The main source is never read; a recipe must declare one.
+#
+package "probe-mkfsbtrfs" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "btrfs-progs"
+        }
+    }
+
+    metadata {
+        "changelog" "1: maps the installer's mkfs.btrfs crash offset to a libc function, lists mkfs.btrfs's imports, and runs it on an image file as a control (cix#650)."
+    }
+
+    build {
+        run "readelf" {
+            "-lW"
+            "/usr/lib/libc.so.6"
+        }
+        run "nm" {
+            "-D"
+            "--defined-only"
+            "-n"
+            "/usr/lib/libc.so.6"
+        }
+        run "readelf" {
+            "-dW"
+            "/usr/sbin/mkfs.btrfs"
+        }
+        run "nm" {
+            "-D"
+            "--undefined-only"
+            "/usr/sbin/mkfs.btrfs"
+        }
+        run "/usr/sbin/mkfs.btrfs" {
+            "--version"
+        }
+        run "truncate" {
+            "-s"
+            "1100M"
+            "${build}/img"
+        }
+        run "/usr/sbin/mkfs.btrfs" {
+            "-q"
+            "-f"
+            "-L"
+            "probe"
+            "${build}/img"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-mkfsbtrfs" parents
+        write "${dest}/usr/share/probe-mkfsbtrfs/done" "1\n"
+    }
+}
