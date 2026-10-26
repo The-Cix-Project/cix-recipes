@@ -185,6 +185,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "88d405515b197087a3952c1bc825ea686c049bf20c6c25626aad135dd14324ed"
         "changelog" "0.2.57-628: compile and selftest probe of commit 72c63e11 -- test_installer joins the boot gates, with the ISO toolchain declared and TMPDIR on disk (cix#649)."
     }
 
