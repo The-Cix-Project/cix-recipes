@@ -1,0 +1,110 @@
+# libsodium -- the crypto library minisign and the PKI side build
+# against. Converted from build.sh to build.cbs (ADR-0305 stage 4,
+# #487).
+#
+# WHAT CHANGES:
+#
+#   usr/share/man   -- no longer deleted (ADR-0306, #491).
+#   usr/lib/*.a     -- not translated. --disable-static means none is
+#                      built, and CPDL's `remove glob` FAILS on a glob
+#                      matching nothing where `rm -f` shrugged. The
+#                      finalize policy would drop one anyway, given
+#                      libsodium.so.26.2.0 beside it.
+#
+#   the shared-library guard MOVES and gets stronger. The shell
+#   recipe tested for src/libsodium/.libs/libsodium.so BEFORE the
+#   install -- a libtool build-tree path, which is a symlink, and
+#   `require file` matches regular files only and would report it as
+#   "does not exist" (cix-build-system#175). Asserting the INSTALLED
+#   usr/lib/libsodium.so.26.2.0 instead checks the thing that ships
+#   rather than an intermediate, and is a real file.
+#
+# 1.0.20-5 moves to gcc (cix#652, cix#653). libsodium has thread-local
+# data (a 0x238-byte TLS segment), and tcc compiles __thread in a
+# shared library with the local-exec model, which is valid only in an
+# executable: the %fs offsets land on the loading program's own TLS.
+# probe-tlssig@2-1 measured 1.0.20-4 with no TLS dynamic relocation
+# and no __tls_get_addr import, libuuid 2.42.2-7's defect (cix#650),
+# and cix's install-time ELF gate now refuses it.
+#
+# -include stdatomic.h goes with tcc. It existed because
+# private/common.h's #elif HAVE_C11_MEMORY_FENCES arm uses
+# atomic_thread_fence without including <stdatomic.h>, and tcc was
+# the first compiler to take that arm. gcc defines the macros the
+# #ifdef arm before it tests, so the #elif arm is dead code again.
+package "libsodium" {
+    version "1.0.20"
+    release 5
+    format "cixpkg"
+
+    sources {
+        main "libsodium" {
+            url "https://download.libsodium.org/libsodium/releases/libsodium-1.0.20.tar.gz"
+            sha256 "ebb65ef6ca439333c2bb41a0c1990587288da07f6c7fd07cb3a18cc18d30ce19"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "TCC compiles __thread in a shared library with the local-exec TLS model, valid only in an executable; in a library the %fs offsets alias the loading program's own thread-local data. Measured on 192.168.15.95, 2026-10-26: libsodium 1.0.20-4 (tcc) carries a 0x238-byte TLS segment with no TLS dynamic relocation and no __tls_get_addr import (probe-tlssig@2-1), and cix's install-time ELF gate refuses it (cix#653). Re-measure when the compiler changes."
+    }
+
+    metadata {
+        "changelog" "1.0.20-5: built with gcc (cix#652). The tcc build placed libsodium's thread-local data at local-exec TLS offsets, which in a shared library alias the loading program's own TLS; cix's install-time ELF gate refuses that (cix#653). Drops the -include stdatomic.h only tcc needed."
+    }
+
+    build {
+        cd "${src}/libsodium/libsodium-1.0.20" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-asm"
+                "--disable-static"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libsodium/libsodium-1.0.20" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # The same refusal zlib makes, for the same reason: a silent
+        # fall back to static-only produces a package whose only
+        # consumer then fails to link, one build cycle later and
+        # somewhere else (#113).
+        require file "${dest}/usr/lib/libsodium.so.26.2.0" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/sodium.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libsodium.pc" {
+            exists
+            nonempty
+        }
+    }
+}
