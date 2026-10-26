@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8a70cde78ef227eb4630e4ce9d4c4f7e1e6dbf95d64b17202ca9c390c2e1810b"
         "changelog" "0.2.57-624: compile and selftest probe of commit 78ec247f -- an uninstall is a package job, and its entry says so (cix#642)."
     }
 
