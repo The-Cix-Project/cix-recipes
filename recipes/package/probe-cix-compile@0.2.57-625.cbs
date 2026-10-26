@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "abdc30641ba5fd5352a34955a6d09a799a8b4c8db6acba45a065e844c9cea691"
         "changelog" "0.2.57-625: compile and selftest probe of commit 65a0bea9 -- a failed hostbuild artifact directory leaves through the discard queue (cix#644)."
     }
 
