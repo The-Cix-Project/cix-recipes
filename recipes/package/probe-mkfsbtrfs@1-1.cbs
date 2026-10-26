@@ -42,6 +42,7 @@ package "probe-mkfsbtrfs" {
     }
 
     metadata {
+        "artifact_sha256" "b4b7424e1a5635d89909d2d349b635def616009291a3e2731a0578ef2b3f7149"
         "changelog" "1: maps the installer's mkfs.btrfs crash offset to a libc function, lists mkfs.btrfs's imports, and runs it on an image file as a control (cix#650)."
     }
 
