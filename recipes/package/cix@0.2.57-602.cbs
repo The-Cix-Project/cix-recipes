@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c67dc9c0961aee91933202f95c4ef61d68d418a6910e952b6290a17ce3129aa8"
         "changelog" "0.2.57-602: GET /v1/pkg/verify is answered from a helper child, so verifying the installed packages no longer stops the control plane (cix#643)."
     }
 
