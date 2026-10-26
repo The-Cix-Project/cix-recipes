@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "52c39a4682efcd6864925c4dff1761338c36b0fd980846bcbaf32cfa9e963ed2"
         "changelog" "0.2.57-626: compile and selftest probe of commit 3f5bee39 -- the installer ISO is built from the iso-builder image (cix#649)."
     }
 
