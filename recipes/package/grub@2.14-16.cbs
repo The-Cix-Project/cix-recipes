@@ -161,6 +161,7 @@ package "grub" {
     }
 
     metadata {
+        "artifact_sha256" "086a7f87d0bb3493aef599425b582b64da096fcb91a2b420b8bed22c336d684a"
         "changelog" "2.14-16: 2.14-13 built and finalized again (cix#649): its modules lost their local grub_mod_init symbol, so an ISO built with it stopped at grub rescue with Unknown command search. It was finalized on 2026-09-21, before the strip was chosen by ELF type. A gate asserts search.mod carries grub_mod_init; 2.14-14 and -15 built and failed only that gate, which captured readelf one line at a time."
     }
 
