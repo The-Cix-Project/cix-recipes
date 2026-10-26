@@ -233,6 +233,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8d9258995d06edbe6ada7ae57aef3d949fa018f3164b812e6bd597e2e0dc1110"
         "changelog" "0.2.57-604: a failed hostbuild artifact directory is set aside and deleted in a helper child, not on the event loop (cix#644)."
     }
 
