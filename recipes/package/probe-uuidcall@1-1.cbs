@@ -1,0 +1,78 @@
+#
+# probe-uuidcall -- which libuuid call hands libc a NULL FILE *? (cix#650)
+#
+# probe-mkfsdev@3-1's SIGSEGV handler found the faulting libc stdio
+# routine called from libuuid.so.1 at offset 0x53d4, under frames at
+# 0x5d7a, 0x5e13, 0x61a5, 0x61c2 and 0x6520, from mkfs.btrfs at
+# 0x416175. This disassembles those spots, with libuuid's dynamic
+# symbols to name the functions they sit in.
+#
+package "probe-uuidcall" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "btrfs-progs"
+        }
+    }
+
+    metadata {
+        "changelog" "1: disassembles libuuid and mkfs.btrfs around the return addresses probe-mkfsdev@3-1 found on the crashing stack (cix#650)."
+    }
+
+    build {
+        run "nm" {
+            "-D"
+            "--defined-only"
+            "-n"
+            "/usr/lib/libuuid.so.1"
+        }
+        run "objdump" {
+            "-d"
+            "--start-address=0x5300"
+            "--stop-address=0x5420"
+            "/usr/lib/libuuid.so.1"
+        }
+        run "objdump" {
+            "-d"
+            "--start-address=0x5c80"
+            "--stop-address=0x5e40"
+            "/usr/lib/libuuid.so.1"
+        }
+        run "objdump" {
+            "-d"
+            "--start-address=0x6100"
+            "--stop-address=0x6540"
+            "/usr/lib/libuuid.so.1"
+        }
+        run "objdump" {
+            "-d"
+            "--start-address=0x416120"
+            "--stop-address=0x416180"
+            "/usr/sbin/mkfs.btrfs"
+        }
+        run "objdump" {
+            "-s"
+            "-j"
+            ".rodata"
+            "/usr/lib/libuuid.so.1"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-uuidcall" parents
+        write "${dest}/usr/share/probe-uuidcall/done" "1\n"
+    }
+}
