@@ -1,0 +1,165 @@
+# openldap-client, as a CPDL recipe (ADR-0305 stage 4).
+#
+# A translation of recipes/package/openldap-client/2.6.14-4/build.sh:
+# same tarball at the same digest, the same eight configure switches,
+# the same four `make` invocations and the same three installs.
+#
+# The package is the client libraries and tools out of a much larger
+# tree -- `--disable-slapd --disable-backends` is what makes that so,
+# and the three `make -C` targets are why there is no plain `make`.
+#
+# 2.6.14-7 MOVES TO GCC (cix#652). This package ships static archives
+# only (liblber.a, libldap.a), and nss-pam-ldapd links them into
+# libnss_ldap.so.2 -- which has to be a gcc build, because tcc compiles
+# __thread in a shared library with the local-exec TLS model (cix#653).
+# gcc cannot link tcc's objects: their va_arg is a call to tcc's own
+# runtime helper __va_arg (libtcc1.a), and nss-pam-ldapd 0.9.13-11's
+# configure failed on exactly that, "liblber.a(decode.o): in function
+# ber_scanf: undefined reference to __va_arg" (192.168.15.95,
+# 2026-10-26). With gcc, -D__STDC_NO_VLA__=1 goes: it steered glibc's
+# <regex.h> onto its no-VLA branch for tcc's parser.
+#
+# One detail carried over deliberately:
+#
+#   ac_cv_func_pthread_kill_other_threads_np=no
+#                         an autoconf cache variable correcting a probe
+#                         that answers wrongly here.
+#
+# It is a POSITIONAL argument rather than the environment
+# variable the shell used, and that is forced: CPDL's `env` accepts
+# `[A-Z_][A-Z0-9_]*` only, so a lowercase cache variable is refused
+# with CPDL-E3004 (cix-build-system#179). Autoconf reads a VAR=VALUE
+# argument before consulting its cache, so the effect on ./configure is
+# the same.
+#
+# NOT translated: `rm -f "$PKG_DESTDIR/usr/lib"/*.la`. ADR-0251's
+# finalize phase drops every .la file after this phase runs, so the
+# recipe restating it is a second home for platform policy -- and
+# `remove glob` fails on a glob matching nothing, so a defensive line
+# is worse than no line.
+package "openldap-client" {
+    version "2.6.14"
+    release 7
+    format "cixpkg"
+
+    license "OLDAP-2.8"
+
+    sources {
+        main "openldap" {
+            url "https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-2.6.14.tgz"
+            sha256 "806dcd21d366428187fba3278da773d5930f774852c9e92517f950d585f19107"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "openssl"
+            tool "libuuid"
+        }
+        runtime {
+            package "openssl"
+            package "libuuid"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "This package's static liblber.a and libldap.a are linked into nss-pam-ldapd's libnss_ldap.so.2, which is a gcc build because TCC compiles __thread in a shared library with the local-exec TLS model (cix#652, cix#653). gcc's linker cannot resolve the __va_arg helper TCC-built objects call: measured on 192.168.15.95, 2026-10-26, nss-pam-ldapd 0.9.13-11's configure failed with liblber.a(decode.o) undefined reference to __va_arg. Re-measure when the compiler changes."
+    }
+
+    metadata {
+        "changelog" "2.6.14-7: built with gcc (cix#652). Its static liblber.a and libldap.a are linked into nss-pam-ldapd's libnss_ldap.so.2, which must be a gcc build (cix#653), and gcc cannot resolve the __va_arg runtime helper tcc's objects call. Drops -D__STDC_NO_VLA__=1, which only tcc needed."
+    }
+
+    prepare {
+        run "ls" {
+            "-la"
+            "${src}/openldap"
+        }
+        require directory "${src}/openldap/openldap-2.6.14" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/openldap/openldap-2.6.14" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-slapd"
+                "--disable-backends"
+                "--without-systemd"
+                "--enable-static=yes"
+                "--enable-shared=no"
+                "--enable-versioning=no"
+                "--with-tls=openssl"
+                "ac_cv_func_pthread_kill_other_threads_np=no"
+                env "CC" = "/usr/bin/gcc"
+            }
+            # `make depend` first, then only the three subtrees this
+            # package ships. A plain `make` would build slapd, which
+            # configure has just been told not to produce.
+            run "make" {
+                "depend"
+            }
+            run "make" {
+                "-C"
+                "include"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "libraries"
+                jobs $jobs
+            }
+            run "make" {
+                "-C"
+                "clients"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/openldap/openldap-2.6.14" {
+            run "make" {
+                "-C"
+                "include"
+                "install"
+                "DESTDIR=${dest}"
+            }
+            run "make" {
+                "-C"
+                "libraries"
+                "install"
+                "DESTDIR=${dest}"
+            }
+            run "make" {
+                "-C"
+                "clients"
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        # openldap installs its config under the prefix; this platform
+        # keeps it at /etc, which is where ldapsearch and friends look.
+        mkdir "${dest}/etc" chmod 0755
+        move "${dest}/usr/etc/openldap" to "${dest}/etc/openldap"
+        remove tree "${dest}/usr/etc"
+        require file "${dest}/usr/bin/ldapsearch" {
+            exists
+            nonempty
+        }
+        require directory "${dest}/etc/openldap" {
+            exists
+        }
+    }
+}
