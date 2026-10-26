@@ -77,6 +77,7 @@ package "openldap-client" {
     }
 
     metadata {
+        "artifact_sha256" "06fe7b62576bdd635666021165ff1ff709b7ee2ae4ef3b8bb40f04aae80cd8b3"
         "changelog" "2.6.14-7: built with gcc (cix#652). Its static liblber.a and libldap.a are linked into nss-pam-ldapd's libnss_ldap.so.2, which must be a gcc build (cix#653), and gcc cannot resolve the __va_arg runtime helper tcc's objects call. Drops -D__STDC_NO_VLA__=1, which only tcc needed."
     }
 
