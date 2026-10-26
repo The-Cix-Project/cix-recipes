@@ -1,0 +1,47 @@
+#
+# probe-tlssig -- do libsodium 1.0.20-4 and nss-pam-ldapd 0.9.13-8, both
+# built with tcc, carry the unreachable-TLS signature? (cix#653)
+#
+# probe-tlsscan@2-1 found a TLS segment in libsodium.so.26.2.0 and
+# libnss_ldap.so.2. This prints their dynamic relocations and dynamic
+# symbols: a TLS relocation or a __tls_get_addr import means the
+# library reaches its TLS correctly; neither means libuuid 2.42.2-7's
+# defect (probe-tlssig@1-1).
+#
+package "probe-tlssig" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "libsodium"
+            tool "nss-pam-ldapd"
+        }
+    }
+
+    metadata {
+        "changelog" "2: prints the dynamic relocations and symbols of tcc-built libsodium 1.0.20-4 and libnss_ldap 0.9.13-8, which carry TLS (cix#653)."
+    }
+
+    build {
+        run "readelf" { "-lrW" "--dyn-syms" "/usr/lib/libsodium.so.26.2.0" }
+        run "readelf" { "-lrW" "--dyn-syms" "/usr/lib/libnss_ldap.so.2" }
+        run "objdump" { "-d" "/usr/lib/libnss_ldap.so.2" }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tlssig" parents
+        write "${dest}/usr/share/probe-tlssig/done" "2\n"
+    }
+}
