@@ -48,6 +48,7 @@ package "probe-mkfsdev" {
     }
 
     metadata {
+        "artifact_sha256" "245ac7d536721d07fb3b4c0c3c3916366fc750d4cd95002c3890a5890b7ad9b8"
         "changelog" "3: preloads a SIGSEGV handler that prints registers, the stack and /proc/self/maps, to name the caller inside mkfs.btrfs (cix#650)."
     }
 
