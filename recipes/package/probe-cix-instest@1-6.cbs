@@ -99,6 +99,7 @@ package "probe-cix-instest" {
     }
 
     metadata {
+        "artifact_sha256" "fbb1effdd424d1b92e89d333f6aeb047293f39c62ecd812560a02e24ebc47c00"
         "changelog" "1-6: commit b76fe4bb, which reads state from the config partition; 1-5 passed both installed boots and stopped on that check (cix#649)."
     }
 
