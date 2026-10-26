@@ -1,0 +1,166 @@
+#
+# probe-cix-instest -- does test_installer PASS on a Cix host? (cix#649)
+#
+# test_installer builds a real installer ISO with mkinstalleriso, boots
+# it under QEMU with OVMF, installs onto a blank disk twice (unattended,
+# then interactive), and boots the installed disk twice. It had never
+# run on a Cix host: it copied a Debian machine's grub, shim and
+# mokutil, and booted Debian's OVMF files.
+#
+# THE ISO TOOLS ARE DECLARED TOOLS. Since ADR-0358 mkinstalleriso reads
+# them at their package paths beneath a tools root, and the test passes
+# "/", this composed build container -- the same answer it gives
+# mkbootroot. So grub, sbsigntools, xorriso, mtools, mokutil, shim,
+# dosfstools and the libraries mokutil links are tools here, as they
+# are packages in the iso-builder image.
+#
+# THE INPUTS ARE SOURCES, because a build container is sealed: the
+# kernel (build-inputs/bzImage, as probe-cix-bootest takes it), the
+# glibc artifact the ISO carries as its package seed
+# (build-inputs/floor-artifacts, as the cix release recipe stages it)
+# and the cix-recipes tree the seed's recipe is read from
+# (CIX_RECIPES_DIR).
+#
+# NO DELIBERATE FAILURE: `installed` with no error means
+# test_installer printed INSTALLER RESULT: PASS. On a failure the test
+# keeps its /tmp work directory, and on_fail lists it.
+#
+package "probe-cix-instest" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/3f5bee39.tar.gz"
+            sha256 "f4a8126e7ebe56b52436142a35399e874e7788bc4fc1699850763a6261301593"
+        }
+        extra "kernelpkg" {
+            url "http://192.168.15.31:8080/kernel-7.2.9-2-x86_64.cixpkg"
+            sha256 "2cde33d6f432843c7bd1956c105c6ecc14a226d7adf375a024d566d85ee334a2"
+        }
+        extra "glibc" {
+            url "http://192.168.15.31:8080/glibc-2.44-19-x86_64.cixpkg"
+            sha256 "220c11019bf7cc729befca2b0cdf7ddd77399de2b436a50000299d52bd4d954d"
+        }
+        extra "recipes" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/archive/34dcb2393cf9fb7f45594333c0227530a0a5acb7.tar.gz"
+            sha256 "734d4ce6f29e3cdce13dc73f51285cd3dc87dcdab431119d83ad3c8976aaefb7"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "tar"
+            tool "openssl"
+            tool "libarchive"
+            tool "curl"
+            tool "quickjs"
+            tool "minisign"
+            tool "cbs"
+            tool "gcc"
+            tool "gzip"
+            tool "qemu"
+            tool "ovmf"
+            tool "dosfstools"
+            tool "mtools"
+            tool "squashfs-tools"
+            tool "util-linux"
+            tool "e2fsprogs"
+            tool "btrfs-progs"
+            tool "ca-certificates"
+            tool "xz"
+            tool "zlib"
+            # The ISO toolchain (ADR-0358), as the iso-builder image
+            # holds it, and the libraries mokutil links, which
+            # mkinstalleriso stages into the installer image.
+            tool "grub"
+            tool "sbsigntools"
+            tool "xorriso"
+            tool "mokutil"
+            tool "shim"
+            tool "efivar"
+            tool "keyutils"
+            tool "libxcrypt"
+        }
+    }
+
+    metadata {
+        "changelog" "1: builds commit 3f5bee39 and runs test_installer against Cix's own ISO toolchain and OVMF, with no Secure Boot sessions (cix#649, cix#647)."
+    }
+
+    prepare {
+        require directory "${src}/cix/cix" {
+            exists
+        }
+        materialize $source.kernelpkg to "${build}/kernel.cixpkg"
+        mkdir "${src}/cix/cix/build-inputs/floor-artifacts" parents
+        materialize $source.glibc to "${src}/cix/cix/build-inputs/floor-artifacts/glibc-2.44-19.cixpkg"
+        extract $source.recipes into "${src}" as "cix-recipes"
+        require directory "${src}/cix-recipes/recipes/package" {
+            exists
+        }
+    }
+
+    build {
+        run "cbs" {
+            "extract"
+            "${build}/kernel.cixpkg"
+            "--into"
+            "${build}/k"
+        }
+        copy "${build}/k/bzImage" to "${src}/cix/cix/build-inputs/bzImage"
+
+        cd "${src}/cix/cix" {
+            run "make" {
+                "CIX_VERSION=0.2.57-604"
+                "build/cix-init"
+                "build/cixd"
+                "build/cixctl"
+                "build/mkbootroot"
+                "build/cix-boot.efi"
+                "build/cix-install"
+                "build/cix-recover"
+                "build/mkinstalleriso"
+                "build/cix-xorriso"
+                "build/test_installer"
+                jobs $jobs
+            }
+
+            # Five QEMU sessions under TCG, no KVM on this host. The
+            # harness's own ceilings sum to about 31 minutes.
+            run "build/test_installer" {
+                env "CIX_RECIPES_DIR" = "${src}/cix-recipes/recipes"
+                timeout 60m
+            }
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${src}/cix/cix/build"
+                allow_failure
+            }
+            run "find" {
+                "/tmp" "-maxdepth" "2" "-name" "cix_test_installer_*" "-exec" "ls" "-la" "{}" ";"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cix-instest" parents
+        copy "${src}/cix/cix/LICENSE" to "${dest}/usr/share/probe-cix-instest/LICENSE"
+    }
+}
