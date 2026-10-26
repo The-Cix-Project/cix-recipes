@@ -48,6 +48,7 @@ package "probe-mkfsdev" {
     }
 
     metadata {
+        "artifact_sha256" "1d7d05d0911e8229d711717714b348534cf878b31f3a51f380d0fa6e3962269d"
         "changelog" "2: the crash happens on a file in the guest too, so this varies the environment: bare, with PATH/HOME/TERM/LANG, with /etc/mtab, and both (cix#650)."
     }
 
