@@ -173,6 +173,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8ccbdf25c89ee93a90f1b931df453924256869e3897603a54f8488f86f55dd99"
         "changelog" "0.2.57-627: compile and selftest probe of commit c48fd3c0 -- the ISO from the iso-builder image, and a recipe may declare as many build tools as the composer allows (cix#649)."
     }
 
