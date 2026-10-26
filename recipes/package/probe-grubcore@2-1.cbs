@@ -42,6 +42,7 @@ package "probe-grubcore" {
     }
 
     metadata {
+        "artifact_sha256" "958bd7b1385921f50f21e8782f92fd91d738a628c1dd7fb4784209510e3561d3"
         "changelog" "2: also reads the unstripped search.module and fat.module, to see whether the init symbols were lost in the strip (cix#649)."
     }
 
