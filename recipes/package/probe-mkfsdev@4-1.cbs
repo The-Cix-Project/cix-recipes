@@ -49,6 +49,7 @@ package "probe-mkfsdev" {
     }
 
     metadata {
+        "artifact_sha256" "37508f9f8db8b3dc8c2c594ce42ac9203cdf99d174697711347f49411afa31f1"
         "changelog" "4: the runs of 1-1 against libuuid 2.42.2-8, built with gcc, to check the cix#650 fix."
     }
 
