@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "852d5650380da845f4a54178a4a079cee2f74432d6f46fc4238a47fb30506e5d"
         "changelog" "0.2.57-630: compile and selftest probe of commit cb839b4c with libsodium 1.0.20-5, the gcc build, as a tool: 629's test_elfcheck_gcc refused the tcc build in the container (cix#653, cix#652)."
     }
 
