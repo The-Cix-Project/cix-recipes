@@ -1,0 +1,61 @@
+#
+# probe-buildfs 2 -- what filesystem is a build container on, and may a
+# build create and snapshot a btrfs subvolume there? (cix#615, cix#614)
+#
+# WHY IT DECIDES SOMETHING. The owner's decision of 2026-10-27 makes btrfs
+# required for the image and container store and removes the OverlayFS
+# and copy fallbacks. Every daemon test in the release gate creates
+# containers inside a build container, from a data directory on a tmpfs,
+# so today they run on exactly the fallback being removed. The ADR has to
+# say how the gate runs afterwards, and that depends on whether a build
+# container sits on btrfs and may use its subvolume ioctls.
+#
+# Prints /proc/mounts, the filesystem type of the paths a test could use,
+# then tries a subvolume create, a snapshot and a delete under ${build}.
+# Every step may fail; the phase fails deliberately at the end so the log
+# is kept and no artifact is published.
+#
+package "probe-buildfs" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-611.tar.gz"
+            sha256 "39b03edd133fb09e6e3f82c9d182a7214b201ae42ed8b53829dc4b2a8e890c9d"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "btrfs-progs"
+        }
+    }
+
+    metadata {
+        "changelog" "2: the same questions on 0.2.57-612, where a build container should be a btrfs snapshot (cix#657, ADR-0360 decision 4), with CAP_SYS_ADMIN as the cix release recipe has it."
+    }
+
+    capability "CAP_SYS_ADMIN"
+
+    build {
+        run "cat" { "/proc/mounts" }
+        run "id" {}
+        run "false" {}
+        on_fail {
+            run "stat" { "-f" "-c" "%n %T" "/" "/build" "${build}" "/run" "/tmp" allow_failure }
+            run "btrfs" { "subvolume" "create" "${build}/sv" allow_failure }
+            run "btrfs" { "subvolume" "snapshot" "${build}/sv" "${build}/snap" allow_failure }
+            run "btrfs" { "subvolume" "list" "-o" "${build}" allow_failure }
+            run "btrfs" { "subvolume" "delete" "${build}/snap" allow_failure }
+            run "btrfs" { "subvolume" "delete" "${build}/sv" allow_failure }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-buildfs" parents
+    }
+}
