@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ec31d8126b02e992700ff7adc61bff553912dc546aa32e7e5874de48e0e9f23e"
         "changelog" "0.2.57-641: compile and selftest probe of commit 5c5ac939: a build container's cix-init is staged into the tree it pivots onto; 612 could start no build (cix#657, ADR-0360 release A)."
     }
 
