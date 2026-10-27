@@ -1,0 +1,182 @@
+#
+# probe-relsyms -- do installed packages finalized before 2026-09-24 ship
+# relocatable objects stripped of their local symbols? (cix#651)
+#
+# Until 251d3e3e the finalize policy gave --strip-unneeded to every ELF
+# not named *.o or *.ko, which removes the local symbols of a relocatable
+# object (grub 2.14-13, #649). Versions 2-6 split the 61 installed
+# versions whose cached artifact predates the fix, plus grub 2.14-13
+# (known stripped) and 2.14-16 (known good) in version 6, into groups a
+# recipe can declare (at most 16 sources). Each prints every ET_REL file
+# not named .o or .ko with its count of named local symbols.
+#
+package "probe-relsyms" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-609.tar.gz"
+            sha256 "ced95af234b17755482cbc07d98663c82ac2458582e3e14d6261ccc7e8682771"
+        }
+        extra "a1" {
+            url "http://192.168.15.31:8080/fastfetch-2.68.1-7-x86_64.cixpkg"
+            sha256 "77743750bbf2d8312a0ac1cd86ba7a50a3ed64f9135790351315acd74651df4c"
+        }
+        extra "a2" {
+            url "http://192.168.15.31:8080/findutils-4.10.0-6-x86_64.cixpkg"
+            sha256 "d4450532894fdc5519366255bee566fca63bc31881267a2c325430da8d247e4c"
+        }
+        extra "a3" {
+            url "http://192.168.15.31:8080/flex-2.6.4-6-x86_64.cixpkg"
+            sha256 "dd6a3080ee146f27b27f4fd01624c1bfb1b5dff200b0d748f522964303599f2a"
+        }
+        extra "a4" {
+            url "http://192.168.15.31:8080/freetype-2.13.3-7-x86_64.cixpkg"
+            sha256 "826101a1cc30dea29826590a0a1427ba001d1ab6a4b439af0eec09702dd2bcbd"
+        }
+        extra "a5" {
+            url "http://192.168.15.31:8080/getopt-2.42.2-4-x86_64.cixpkg"
+            sha256 "33b42b4d4de58a405aa43a19ddbcfcb1aa00201e8cc952bc981ea104d06c564b"
+        }
+        extra "a6" {
+            url "http://192.168.15.31:8080/gettext-1.0-22-x86_64.cixpkg"
+            sha256 "baa82ba4cd778b652fc3256158a512bba4f2d08ea47a65ad892f3d6f5f4ae549"
+        }
+        extra "a7" {
+            url "http://192.168.15.31:8080/git-2.55.0-11-x86_64.cixpkg"
+            sha256 "258dc9967c3c7fd2d187c7949bdcc08098994e2f8395db7df39a5e8e337c4928"
+        }
+        extra "a8" {
+            url "http://192.168.15.31:8080/gitea-1.24.7-5-x86_64.cixpkg"
+            sha256 "00258928de12c82c172c4fdba4bfbbbedf060d3706f01fbaa01493d71745a25d"
+        }
+        extra "a9" {
+            url "http://192.168.15.31:8080/glauth-2.4.0-7-x86_64.cixpkg"
+            sha256 "6e57e681af6fbfb33137c7cd65953817d580e4a7d14bc25c60b41ea2097e2562"
+        }
+        extra "a10" {
+            url "http://192.168.15.31:8080/glibc-2.44-19-x86_64.cixpkg"
+            sha256 "220c11019bf7cc729befca2b0cdf7ddd77399de2b436a50000299d52bd4d954d"
+        }
+        extra "a11" {
+            url "http://192.168.15.31:8080/gmp-6.3.0-3-x86_64.cixpkg"
+            sha256 "08f2b396fd4cecc23dad60a25f1cb751d6088476f4c0ff2282c711caa1b3251e"
+        }
+        extra "a12" {
+            url "http://192.168.15.31:8080/gnu-efi-3.0.18-8-x86_64.cixpkg"
+            sha256 "5eb306023b0a6dcbd8afe61807415091a70d7bfc629598988abf457eb9aa16d9"
+        }
+        extra "a13" {
+            url "http://192.168.15.31:8080/go-1.24.9-4-x86_64.cixpkg"
+            sha256 "bed183d8718378a84bb2eec0d1e9236d0afce16654bcffe3afa59beaae8404c4"
+        }
+        extra "a14" {
+            url "http://192.168.15.31:8080/hostapd-2.11-17-x86_64.cixpkg"
+            sha256 "8d17067f0a5ed621073b5980f2bcfeba070742df01b7879bab2c6a5383973e67"
+        }
+        extra "a15" {
+            url "http://192.168.15.31:8080/ipset-7.24-10-x86_64.cixpkg"
+            sha256 "f1a1b6ff7420fa730913ac362c138e0f5207ffefc4134c5fe3b4c5010045e602"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "3: group 2 of 5 -- relocatable objects not named .o or .ko, with their named local symbols, in installed versions finalized before 2026-09-24 (cix#651)."
+    }
+
+    build {
+        mkdir "${build}/x" parents
+        materialize $source.a1 to "${build}/x/fastfetch-2.68.1-7.cixpkg"
+        run "cbs" { "extract" "${build}/x/fastfetch-2.68.1-7.cixpkg" "--into" "${build}/x/fastfetch-2.68.1-7" }
+        materialize $source.a2 to "${build}/x/findutils-4.10.0-6.cixpkg"
+        run "cbs" { "extract" "${build}/x/findutils-4.10.0-6.cixpkg" "--into" "${build}/x/findutils-4.10.0-6" }
+        materialize $source.a3 to "${build}/x/flex-2.6.4-6.cixpkg"
+        run "cbs" { "extract" "${build}/x/flex-2.6.4-6.cixpkg" "--into" "${build}/x/flex-2.6.4-6" }
+        materialize $source.a4 to "${build}/x/freetype-2.13.3-7.cixpkg"
+        run "cbs" { "extract" "${build}/x/freetype-2.13.3-7.cixpkg" "--into" "${build}/x/freetype-2.13.3-7" }
+        materialize $source.a5 to "${build}/x/getopt-2.42.2-4.cixpkg"
+        run "cbs" { "extract" "${build}/x/getopt-2.42.2-4.cixpkg" "--into" "${build}/x/getopt-2.42.2-4" }
+        materialize $source.a6 to "${build}/x/gettext-1.0-22.cixpkg"
+        run "cbs" { "extract" "${build}/x/gettext-1.0-22.cixpkg" "--into" "${build}/x/gettext-1.0-22" }
+        materialize $source.a7 to "${build}/x/git-2.55.0-11.cixpkg"
+        run "cbs" { "extract" "${build}/x/git-2.55.0-11.cixpkg" "--into" "${build}/x/git-2.55.0-11" }
+        materialize $source.a8 to "${build}/x/gitea-1.24.7-5.cixpkg"
+        run "cbs" { "extract" "${build}/x/gitea-1.24.7-5.cixpkg" "--into" "${build}/x/gitea-1.24.7-5" }
+        materialize $source.a9 to "${build}/x/glauth-2.4.0-7.cixpkg"
+        run "cbs" { "extract" "${build}/x/glauth-2.4.0-7.cixpkg" "--into" "${build}/x/glauth-2.4.0-7" }
+        materialize $source.a10 to "${build}/x/glibc-2.44-19.cixpkg"
+        run "cbs" { "extract" "${build}/x/glibc-2.44-19.cixpkg" "--into" "${build}/x/glibc-2.44-19" }
+        materialize $source.a11 to "${build}/x/gmp-6.3.0-3.cixpkg"
+        run "cbs" { "extract" "${build}/x/gmp-6.3.0-3.cixpkg" "--into" "${build}/x/gmp-6.3.0-3" }
+        materialize $source.a12 to "${build}/x/gnu-efi-3.0.18-8.cixpkg"
+        run "cbs" { "extract" "${build}/x/gnu-efi-3.0.18-8.cixpkg" "--into" "${build}/x/gnu-efi-3.0.18-8" }
+        materialize $source.a13 to "${build}/x/go-1.24.9-4.cixpkg"
+        run "cbs" { "extract" "${build}/x/go-1.24.9-4.cixpkg" "--into" "${build}/x/go-1.24.9-4" }
+        materialize $source.a14 to "${build}/x/hostapd-2.11-17.cixpkg"
+        run "cbs" { "extract" "${build}/x/hostapd-2.11-17.cixpkg" "--into" "${build}/x/hostapd-2.11-17" }
+        materialize $source.a15 to "${build}/x/ipset-7.24-10.cixpkg"
+        run "cbs" { "extract" "${build}/x/ipset-7.24-10.cixpkg" "--into" "${build}/x/ipset-7.24-10" }
+        write "${build}/scan.c" """
+            #define _GNU_SOURCE
+            #include <elf.h>
+            #include <ftw.h>
+            #include <stdio.h>
+            #include <stdlib.h>
+            #include <string.h>
+            static int g_scanned, g_stripped;
+            static int ends_with(const char *p, const char *s) { size_t n = strlen(p), m = strlen(s); return n >= m && strcmp(p + n - m, s) == 0; }
+            static int cb(const char *p, const struct stat *st, int t, struct FTW *f) {
+                FILE *fp; Elf64_Ehdr eh; Elf64_Shdr *sh; int i, symtab = 0, locals = 0;
+                if (t != FTW_F || ends_with(p, ".o") || ends_with(p, ".ko")) return 0;
+                fp = fopen(p, "rb");
+                if (fp == NULL) return 0;
+                if (fread(&eh, 1, sizeof(eh), fp) != sizeof(eh) || memcmp(eh.e_ident, ELFMAG, SELFMAG) != 0 || eh.e_ident[EI_CLASS] != ELFCLASS64 || eh.e_type != ET_REL || eh.e_shnum == 0) { fclose(fp); return 0; }
+                sh = calloc(eh.e_shnum, sizeof(*sh));
+                if (sh == NULL || fseek(fp, (long)eh.e_shoff, SEEK_SET) != 0 || fread(sh, sizeof(*sh), eh.e_shnum, fp) != eh.e_shnum) { free(sh); fclose(fp); return 0; }
+                for (i = 0; i < eh.e_shnum; i++) {
+                    size_t k, cnt;
+                    Elf64_Sym s;
+                    if (sh[i].sh_type != SHT_SYMTAB) continue;
+                    symtab = 1;
+                    cnt = sh[i].sh_size / sizeof(Elf64_Sym);
+                    if (fseek(fp, (long)sh[i].sh_offset, SEEK_SET) != 0) break;
+                    for (k = 0; k < cnt; k++) {
+                        if (fread(&s, sizeof(s), 1, fp) != 1) break;
+                        if (ELF64_ST_BIND(s.st_info) == STB_LOCAL && ELF64_ST_TYPE(s.st_info) != STT_SECTION && ELF64_ST_TYPE(s.st_info) != STT_FILE && s.st_name != 0) locals++;
+                    }
+                }
+                g_scanned++;
+                if (!symtab || locals == 0) g_stripped++;
+                printf("ETREL symtab=%d locals=%d %s", symtab, locals, p); putchar(10);
+                free(sh);
+                fclose(fp);
+                return 0;
+            }
+            int main(int argc, char **argv) {
+                if (argc != 2 || nftw(argv[1], cb, 32, FTW_PHYS) != 0) { printf("RELSYMS: walk failed"); putchar(10); return 1; }
+                printf("RELSYMS: %d relocatable objects not named .o or .ko, %d with no named local symbols", g_scanned, g_stripped); putchar(10);
+                return 0;
+            }
+            """
+        run "tcc" { "-Wall" "-o" "${build}/scan" "${build}/scan.c" }
+        run "${build}/scan" { "${build}/x" }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-relsyms" parents
+        write "${dest}/usr/share/probe-relsyms/done" "3\n"
+    }
+}
