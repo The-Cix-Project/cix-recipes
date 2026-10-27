@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b6727060d82fdf46ab9fff7f2b4bd2908fe0bfec2465e0e67c7bace4a6138d6c"
         "changelog" "0.2.57-638: compile and selftest probe of commit edf03f7b: 637 failed only test_apigen's deliberate operation counts (cix#613, ADR-0359)."
     }
 
