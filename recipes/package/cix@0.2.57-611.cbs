@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c869115a3c5f9ed3c28e30ee6c1129c4d738f4eec04ca560eb88e118da475380"
         "changelog" "0.2.57-611: quota accounting is a host setting, simple by default, applied when a btrfs is formatted and fixed for its life (cix#613, ADR-0359)."
     }
 

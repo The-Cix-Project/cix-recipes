@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1e20a527970d1eb7dfedbba526fe0c6aabdac677eac6e78d7a5e80dc24eca1a1"
         "changelog" "0.2.57-609: the artifact push queue is kept on disk and a failed push is retried, so a hostbuild's publish survives a reboot (cix#648)."
     }
 

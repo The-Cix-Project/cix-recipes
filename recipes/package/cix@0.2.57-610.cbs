@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "2c9dcd5d94b40df268ede95c4ec8ebb6eb0e168f340baf515dfc6b2693d97225"
         "changelog" "0.2.57-610: a package a gate refuses is reported as refused, not as the image's failure; the session table write is tallied (cix#655, cix#646)."
     }
 
