@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d7e83ec145954d632e21742613f97949c6c10f613fb946c033a3680d6b4bb137"
         "changelog" "0.2.57-607: the install-time ELF gate refuses a shared library whose thread-local data it cannot reach, the defect tcc builds into __thread in a -shared object (cix#653)."
     }
 

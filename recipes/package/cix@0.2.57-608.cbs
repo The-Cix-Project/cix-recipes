@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "102dd30a963474f0926c02d31887c6f8cc4e560697c22f8f47c9907957dbb487"
         "changelog" "0.2.57-608: a refused install's row says which file and which step instead of \"the caller's own mutate step failed\" (cix#654)."
     }
 
