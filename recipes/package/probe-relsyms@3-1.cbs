@@ -94,6 +94,7 @@ package "probe-relsyms" {
     }
 
     metadata {
+        "artifact_sha256" "519afb2c79a84ff58c3e067187de9be4e4380a51e7b79cc5a4711916234d0363"
         "changelog" "3: group 2 of 5 -- relocatable objects not named .o or .ko, with their named local symbols, in installed versions finalized before 2026-09-24 (cix#651)."
     }
 
