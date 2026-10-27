@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d7fcf92fae26b4bd3c21201690def80c609ab7128a3db3d6d55b82956c99a0c4"
         "changelog" "0.2.57-640: compile and selftest probe of commit b30d1754: 639 failed test_installer; a finished build's output is read from its build tree, and a missing staged tree is refused (cix#657, ADR-0360 release A)."
     }
 
