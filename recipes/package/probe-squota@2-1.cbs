@@ -1,0 +1,93 @@
+#
+# probe-squota 2 -- how does the booted kernel mark a filesystem's quota
+# mode, and what does simple accounting do with extents written before
+# it was enabled? (cix#613, ADR-0359)
+#
+# WHY IT DECIDES SOMETHING. ADR-0359 makes the quota mode a host setting,
+# simple by default. cixd has to tell a filesystem's mode from its qgroup
+# status item, so the flag's value is read from this kernel rather than
+# from memory, and the claim that simple quotas never count extents older
+# than the enable is read where the kernel decides it.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL. `cixctl boot` reports kernel
+# 7.2.13, and kernel@7.2.13-1.cbs declares exactly this tarball and
+# sha256.
+#
+# EVERY GREP IS BUNDLED WITH `#include`, which cannot miss in a C file,
+# so a pattern that does not occur is reported as absent rather than
+# ending the phase (probe-srpart's convention). Nothing is compiled.
+# The phase fails deliberately at the end so the log is kept and no
+# artifact is published.
+#
+package "probe-squota" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.13.tar.xz"
+            sha256 "08e7b0c4f2dd1971f972da274b5e589a98989390ac56acd7a1a5af922363ea6c"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: reads the qgroup status flags (the simple-mode bit) and where simple accounting skips extents older than its enable, in kernel 7.2.13 (cix#613, ADR-0359)."
+    }
+
+    build {
+        # 1. The status item's flags, the simple-mode bit among them.
+        run "grep" {
+            "-n"
+            "-e"
+            "QGROUP_STATUS_FLAG"
+            "-e"
+            "struct btrfs_qgroup_status_item"
+            "-e"
+            "enable_gen"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.2.13/include/uapi/linux/btrfs_tree.h"
+        }
+
+        # 2. Where simple accounting decides an extent predates it.
+        run "grep" {
+            "-n"
+            "-B"
+            "3"
+            "-A"
+            "22"
+            "-e"
+            "int btrfs_record_squota_delta"
+            "-e"
+            "#include <linux/mm.h>"
+            "${src}/linux/linux-7.2.13/fs/btrfs/qgroup.c"
+        }
+
+        # 3. How the mode is set at enable and read back.
+        run "grep" {
+            "-n"
+            "-e"
+            "SIMPLE_MODE"
+            "-e"
+            "qgroup_enable_gen"
+            "-e"
+            "#include <linux/mm.h>"
+            "${src}/linux/linux-7.2.13/fs/btrfs/qgroup.c"
+        }
+
+        run "false" {}
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-squota" parents
+    }
+}
