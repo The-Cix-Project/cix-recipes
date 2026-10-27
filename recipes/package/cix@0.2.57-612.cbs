@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "219b81ebb55cedb35b542963c5c7ca18a3a5afb8f34e13f5fafcf5734095943f"
         "changelog" "0.2.57-612: a build container's rootfs is a snapshot of its build environment, and a missing staged tree is refused (cix#657, ADR-0360 release A)."
     }
 
