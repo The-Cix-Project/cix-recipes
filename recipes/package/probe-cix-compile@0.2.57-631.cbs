@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2f5c4e3277192b2eef02ae919af21a88acdbb1a1cf8cdba8b76617b3a3a0cfb5"
         "changelog" "0.2.57-631: compile and selftest probe of commit 6fdc3b13: a refused install's row says which file and which step, gated by a test_pkg case (cix#654)."
     }
 
