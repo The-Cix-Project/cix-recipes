@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "0a502c44ece4a98b4d8b2141216c8e948dee9dc2a1c898f0988b17aa76384577"
         "changelog" "0.2.57-636: compile and selftest probe of commit e3c0fc00: a package a gate refuses is reported as refused, the session table write is tallied, and tarball wording is swept (cix#655, cix#646)."
     }
 
