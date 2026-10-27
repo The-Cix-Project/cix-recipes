@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "befa0e0565b240deacea6ca04e08fbfb253679a5e99a79f3f1d156b08e493210"
         "changelog" "0.2.57-613: a build container's cix-init is staged into the snapshot it pivots onto; 612 could start no build (cix#657, ADR-0360 release A)."
     }
 
