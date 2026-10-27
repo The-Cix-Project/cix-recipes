@@ -1,0 +1,182 @@
+#
+# probe-relsyms -- do installed packages finalized before 2026-09-24 ship
+# relocatable objects stripped of their local symbols? (cix#651)
+#
+# Until 251d3e3e the finalize policy gave --strip-unneeded to every ELF
+# not named *.o or *.ko, which removes the local symbols of a relocatable
+# object (grub 2.14-13, #649). Versions 2-6 split the 61 installed
+# versions whose cached artifact predates the fix, plus grub 2.14-13
+# (known stripped) and 2.14-16 (known good) in version 6, into groups a
+# recipe can declare (at most 16 sources). Each prints every ET_REL file
+# not named .o or .ko with its count of named local symbols.
+#
+package "probe-relsyms" {
+    version "5"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-609.tar.gz"
+            sha256 "ced95af234b17755482cbc07d98663c82ac2458582e3e14d6261ccc7e8682771"
+        }
+        extra "a1" {
+            url "http://192.168.15.31:8080/perl-5.40.1-10-x86_64.cixpkg"
+            sha256 "3e48f1887b40f2ea542f72e990e9bec7bd1fc215ff780db5e8efea12f919026a"
+        }
+        extra "a2" {
+            url "http://192.168.15.31:8080/procps-4.0.6-11-x86_64.cixpkg"
+            sha256 "258e1d75305969ed65ecba866e7aa3817dd17f4b7f16978d77eec3d05035e36f"
+        }
+        extra "a3" {
+            url "http://192.168.15.31:8080/python-3.13.5-10-x86_64.cixpkg"
+            sha256 "1a47a7512357309c4dcca95fe7e944035440ce9bd5cd600fd39ac975ce249a05"
+        }
+        extra "a4" {
+            url "http://192.168.15.31:8080/readline-8.3-4-x86_64.cixpkg"
+            sha256 "f0c757db6155d02fff56aedde485257f822ce6b114dd31d47de03e31d0abb074"
+        }
+        extra "a5" {
+            url "http://192.168.15.31:8080/rtw88-firmware-3-1-x86_64.cixpkg"
+            sha256 "2956ead95de0fc268fa0d63cdd9f85bb4a1206c14e434fce4d98bcd1982a6758"
+        }
+        extra "a6" {
+            url "http://192.168.15.31:8080/sbsigntools-0.9.5-14-x86_64.cixpkg"
+            sha256 "3c41739df0ae109c7b5a3538afa129e934836ee0373552b1001f62b56ddf1aef"
+        }
+        extra "a7" {
+            url "http://192.168.15.31:8080/screen-5.0.2-7-x86_64.cixpkg"
+            sha256 "cc377ec44387faba19ecf547eb6f2bdbf8cf1716f4af2b7a020f09b857052db1"
+        }
+        extra "a8" {
+            url "http://192.168.15.31:8080/shim-16.1-2-x86_64.cixpkg"
+            sha256 "3f3497be60e27f578d9f23408b2588eef420f911d297a8e331dfeb421f59afbb"
+        }
+        extra "a9" {
+            url "http://192.168.15.31:8080/squashfs-tools-4.7.5-13-x86_64.cixpkg"
+            sha256 "da660085128be638dc171d6e6b5f0dc4e1c6556a6fdc2416cf70ee33d68e3814"
+        }
+        extra "a10" {
+            url "http://192.168.15.31:8080/sysklogd-2.7.0-7-x86_64.cixpkg"
+            sha256 "b72e0882c0d4abfaee11587ed3619c0d666259ebac62551448bb3d57d9afc8ff"
+        }
+        extra "a11" {
+            url "http://192.168.15.31:8080/tar-1.35-7-x86_64.cixpkg"
+            sha256 "091ead553adb7599353dd165b362d62ea06ae99b04f1b2f60a2d6ce7e15f202b"
+        }
+        extra "a12" {
+            url "http://192.168.15.31:8080/tcc-0.9.28rc-31-x86_64.cixpkg"
+            sha256 "661b10f4c5800ead2083ef9e74ae6b2e55c6da344c42fe9faec2112d3626ce8c"
+        }
+        extra "a13" {
+            url "http://192.168.15.31:8080/unifont-15.1.05-4-x86_64.cixpkg"
+            sha256 "ae134694149446a50bbb4005af38c5a06fcdbf486a8995aaae7a614736e83bed"
+        }
+        extra "a14" {
+            url "http://192.168.15.31:8080/wireless-regdb-2026.09.03-3-x86_64.cixpkg"
+            sha256 "cdb02510fc19a93392c7dc6c5acce6e33086cbee6ea22795658c7d4b9bc96fa2"
+        }
+        extra "a15" {
+            url "http://192.168.15.31:8080/xorriso-1.5.8.pl02-8-x86_64.cixpkg"
+            sha256 "56275398b1baf7d90793820487b7bbb1f1961fc1f4fb4825592e217b759f9e3b"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "binutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "5: group 4 of 5 -- relocatable objects not named .o or .ko, with their named local symbols, in installed versions finalized before 2026-09-24 (cix#651)."
+    }
+
+    build {
+        mkdir "${build}/x" parents
+        materialize $source.a1 to "${build}/x/perl-5.40.1-10.cixpkg"
+        run "cbs" { "extract" "${build}/x/perl-5.40.1-10.cixpkg" "--into" "${build}/x/perl-5.40.1-10" }
+        materialize $source.a2 to "${build}/x/procps-4.0.6-11.cixpkg"
+        run "cbs" { "extract" "${build}/x/procps-4.0.6-11.cixpkg" "--into" "${build}/x/procps-4.0.6-11" }
+        materialize $source.a3 to "${build}/x/python-3.13.5-10.cixpkg"
+        run "cbs" { "extract" "${build}/x/python-3.13.5-10.cixpkg" "--into" "${build}/x/python-3.13.5-10" }
+        materialize $source.a4 to "${build}/x/readline-8.3-4.cixpkg"
+        run "cbs" { "extract" "${build}/x/readline-8.3-4.cixpkg" "--into" "${build}/x/readline-8.3-4" }
+        materialize $source.a5 to "${build}/x/rtw88-firmware-3-1.cixpkg"
+        run "cbs" { "extract" "${build}/x/rtw88-firmware-3-1.cixpkg" "--into" "${build}/x/rtw88-firmware-3-1" }
+        materialize $source.a6 to "${build}/x/sbsigntools-0.9.5-14.cixpkg"
+        run "cbs" { "extract" "${build}/x/sbsigntools-0.9.5-14.cixpkg" "--into" "${build}/x/sbsigntools-0.9.5-14" }
+        materialize $source.a7 to "${build}/x/screen-5.0.2-7.cixpkg"
+        run "cbs" { "extract" "${build}/x/screen-5.0.2-7.cixpkg" "--into" "${build}/x/screen-5.0.2-7" }
+        materialize $source.a8 to "${build}/x/shim-16.1-2.cixpkg"
+        run "cbs" { "extract" "${build}/x/shim-16.1-2.cixpkg" "--into" "${build}/x/shim-16.1-2" }
+        materialize $source.a9 to "${build}/x/squashfs-tools-4.7.5-13.cixpkg"
+        run "cbs" { "extract" "${build}/x/squashfs-tools-4.7.5-13.cixpkg" "--into" "${build}/x/squashfs-tools-4.7.5-13" }
+        materialize $source.a10 to "${build}/x/sysklogd-2.7.0-7.cixpkg"
+        run "cbs" { "extract" "${build}/x/sysklogd-2.7.0-7.cixpkg" "--into" "${build}/x/sysklogd-2.7.0-7" }
+        materialize $source.a11 to "${build}/x/tar-1.35-7.cixpkg"
+        run "cbs" { "extract" "${build}/x/tar-1.35-7.cixpkg" "--into" "${build}/x/tar-1.35-7" }
+        materialize $source.a12 to "${build}/x/tcc-0.9.28rc-31.cixpkg"
+        run "cbs" { "extract" "${build}/x/tcc-0.9.28rc-31.cixpkg" "--into" "${build}/x/tcc-0.9.28rc-31" }
+        materialize $source.a13 to "${build}/x/unifont-15.1.05-4.cixpkg"
+        run "cbs" { "extract" "${build}/x/unifont-15.1.05-4.cixpkg" "--into" "${build}/x/unifont-15.1.05-4" }
+        materialize $source.a14 to "${build}/x/wireless-regdb-2026.09.03-3.cixpkg"
+        run "cbs" { "extract" "${build}/x/wireless-regdb-2026.09.03-3.cixpkg" "--into" "${build}/x/wireless-regdb-2026.09.03-3" }
+        materialize $source.a15 to "${build}/x/xorriso-1.5.8.pl02-8.cixpkg"
+        run "cbs" { "extract" "${build}/x/xorriso-1.5.8.pl02-8.cixpkg" "--into" "${build}/x/xorriso-1.5.8.pl02-8" }
+        write "${build}/scan.c" """
+            #define _GNU_SOURCE
+            #include <elf.h>
+            #include <ftw.h>
+            #include <stdio.h>
+            #include <stdlib.h>
+            #include <string.h>
+            static int g_scanned, g_stripped;
+            static int ends_with(const char *p, const char *s) { size_t n = strlen(p), m = strlen(s); return n >= m && strcmp(p + n - m, s) == 0; }
+            static int cb(const char *p, const struct stat *st, int t, struct FTW *f) {
+                FILE *fp; Elf64_Ehdr eh; Elf64_Shdr *sh; int i, symtab = 0, locals = 0;
+                if (t != FTW_F || ends_with(p, ".o") || ends_with(p, ".ko")) return 0;
+                fp = fopen(p, "rb");
+                if (fp == NULL) return 0;
+                if (fread(&eh, 1, sizeof(eh), fp) != sizeof(eh) || memcmp(eh.e_ident, ELFMAG, SELFMAG) != 0 || eh.e_ident[EI_CLASS] != ELFCLASS64 || eh.e_type != ET_REL || eh.e_shnum == 0) { fclose(fp); return 0; }
+                sh = calloc(eh.e_shnum, sizeof(*sh));
+                if (sh == NULL || fseek(fp, (long)eh.e_shoff, SEEK_SET) != 0 || fread(sh, sizeof(*sh), eh.e_shnum, fp) != eh.e_shnum) { free(sh); fclose(fp); return 0; }
+                for (i = 0; i < eh.e_shnum; i++) {
+                    size_t k, cnt;
+                    Elf64_Sym s;
+                    if (sh[i].sh_type != SHT_SYMTAB) continue;
+                    symtab = 1;
+                    cnt = sh[i].sh_size / sizeof(Elf64_Sym);
+                    if (fseek(fp, (long)sh[i].sh_offset, SEEK_SET) != 0) break;
+                    for (k = 0; k < cnt; k++) {
+                        if (fread(&s, sizeof(s), 1, fp) != 1) break;
+                        if (ELF64_ST_BIND(s.st_info) == STB_LOCAL && ELF64_ST_TYPE(s.st_info) != STT_SECTION && ELF64_ST_TYPE(s.st_info) != STT_FILE && s.st_name != 0) locals++;
+                    }
+                }
+                g_scanned++;
+                if (!symtab || locals == 0) g_stripped++;
+                printf("ETREL symtab=%d locals=%d %s", symtab, locals, p); putchar(10);
+                free(sh);
+                fclose(fp);
+                return 0;
+            }
+            int main(int argc, char **argv) {
+                if (argc != 2 || nftw(argv[1], cb, 32, FTW_PHYS) != 0) { printf("RELSYMS: walk failed"); putchar(10); return 1; }
+                printf("RELSYMS: %d relocatable objects not named .o or .ko, %d with no named local symbols", g_scanned, g_stripped); putchar(10);
+                return 0;
+            }
+            """
+        run "tcc" { "-Wall" "-o" "${build}/scan" "${build}/scan.c" }
+        run "${build}/scan" { "${build}/x" }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-relsyms" parents
+        write "${dest}/usr/share/probe-relsyms/done" "5\n"
+    }
+}
