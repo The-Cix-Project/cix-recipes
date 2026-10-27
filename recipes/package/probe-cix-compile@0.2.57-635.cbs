@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3483e463eda8b8f26d66a20b0b0b1d4b2251023b5059599080a2605c180f2b46"
         "changelog" "0.2.57-635: compile and selftest probe of commit e86784aa: 634 showed a successful push read as HTTP 0, its status file in a directory only a fetch creates (cix#648)."
     }
 
