@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "013bc901206635a3adcef8772162de89408de249a1cbddf7dda1441742806348"
         "changelog" "0.2.57-644: compile and selftest probe of commit a2e09c9b: an export never puts a half-written artifact in the package cache; 643 failed only test_kmod_build's drift check on it (cix#658)."
     }
 
