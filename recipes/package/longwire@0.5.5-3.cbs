@@ -1,0 +1,121 @@
+#
+# longwire -- one long wire between your sites: a Layer 2 VPN that
+# stretches one Ethernet segment across the internet. The owner's
+# project (git.home.arpa/itdlabs/longwire), built on hibr.
+#
+# THREE THINGS, ONE PACKAGE. Upstream ships the module (longwire.so)
+# as a deb/rpm/pacman package and the two scripts (the node and the
+# switchboard) through hibr's online catalogue. On Cix an image's
+# content comes only from packages (ADR-0333), so this package carries
+# all three, at one version: the module, the two launchers, and the
+# two scripts in /var/lib/hibr/cli, which is where the launcher looks
+# (packaging/launcher.sh, the machine's scope). The owner's choice,
+# 2026-10-28.
+#
+# UPSTREAM'S OWN COMPILE LINE. The Makefile builds longwire.so with tcc
+# ("override CC = tcc", longwire ADR 0021) against
+# $(HIBR_SRC)/include/hibr.h. hibr installs its headers at
+# /usr/include/hibr, so HIBR_SRC is a directory whose include links
+# there, and `make` runs as upstream wrote it.
+#
+# WHAT IS LEFT OUT, because Cix has no use for it: the systemd units,
+# sysusers.d, the polkit action, the `jack` root helper (it makes a tap
+# device with `ip`), and the gzipped man pages. A Cix container runs
+# the node as a service of its own definition instead.
+#
+package "longwire" {
+    version "0.5.5"
+    release 3
+    format "cixpkg"
+
+    upstream "gitea-tags" {
+        tag "v{version}"
+        source "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/longwire/archive/v{version}.tar.gz"
+        verify origin
+    }
+
+    sources {
+        main "longwire" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/longwire/archive/v0.5.5.tar.gz"
+            sha256 "cd41b868ed0aa009f589d2a4df2f5c957be8941e1f33c4af82a1a70cc3a49adb"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            # strip, which finalize runs on longwire.so (ADR-0251).
+            tool "binutils"
+            # hibr.h, and the hibr the module is loaded by. HIBR_MIN is
+            # 0.99.315.
+            tool "hibr"
+        }
+        runtime {
+            # The module is loaded by hibr and the launchers exec it,
+            # so nothing records hibr as a DT_NEEDED.
+            package "hibr"
+            # The launchers are /bin/sh scripts.
+            package "bash"
+        }
+    }
+
+    metadata {
+        "changelog" "0.5.5-3: declares binutils, for finalize's strip. 0.5.5-2: builds with make only; make lint stops at engine/port.c:113 under tcc@0.9.28rc-31 (reported upstream). 0.5.5-1: longwire 0.5.5: the module, both launchers and both scripts, built with tcc against hibr's installed headers."
+    }
+
+    prepare {
+        require file "${src}/longwire/longwire/Makefile" {
+            exists
+        }
+        mkdir "${build}/hibr" parents
+        symlink "/usr/include/hibr" to "${build}/hibr/include"
+    }
+
+    build {
+        cd "${src}/longwire/longwire" {
+            run "make" {
+                "HIBR_SRC=${build}/hibr"
+            }
+            # Not `make lint`: upstream's own packaging builds with `make`
+            # and `make install` only. Under tcc@0.9.28rc-31, lint stops at
+            # engine/port.c:113, "assignment discards qualifiers from
+            # pointer target type" (192.168.15.95, 2026-10-28), and that
+            # was reported to longwire to fix at the source.
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib/hibr" parents
+        mkdir "${dest}/usr/bin" parents
+        mkdir "${dest}/var/lib/hibr/cli" parents
+        copy "${src}/longwire/longwire/build/longwire.so" to "${dest}/usr/lib/hibr/longwire.so"
+        copy "${src}/longwire/longwire/packaging/launcher.sh" to "${dest}/usr/bin/longwire"
+        copy "${src}/longwire/longwire/packaging/launcher.sh" to "${dest}/usr/bin/longwire-switchboard"
+        copy "${src}/longwire/longwire/scripts/longwire.hibr" to "${dest}/var/lib/hibr/cli/longwire.hibr"
+        copy "${src}/longwire/longwire/scripts/longwire-switchboard.hibr" to "${dest}/var/lib/hibr/cli/longwire-switchboard.hibr"
+        require file "${dest}/usr/lib/hibr/longwire.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/longwire" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/longwire-switchboard" {
+            exists
+            executable
+        }
+        require file "${dest}/var/lib/hibr/cli/longwire.hibr" {
+            exists
+            nonempty
+        }
+        require file "${dest}/var/lib/hibr/cli/longwire-switchboard.hibr" {
+            exists
+            nonempty
+        }
+    }
+}
