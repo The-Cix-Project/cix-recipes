@@ -1,0 +1,37 @@
+#
+# probe-longwire-tarball 1 -- the sha256 of longwire's v0.5.9 archive,
+# read from the daemon's checksum refusal (the declared hash is
+# deliberately zero). The fetch is the whole probe; nothing builds.
+#
+package "probe-longwire-tarball" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "longwire" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/longwire/archive/v0.5.9.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "4: the sha256 of longwire v0.5.9's archive, for longwire@0.5.9-1."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-longwire-tarball" parents
+        write "${dest}/usr/share/probe-longwire-tarball/probe" "${version}-${release}\n"
+    }
+}
