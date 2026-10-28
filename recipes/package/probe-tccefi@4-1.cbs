@@ -1,0 +1,88 @@
+#
+# probe-tccefi 1 -- can the pinned tinycc, built as its x86_64-win32
+# cross target, compile and link cix-boot.efi? (cix#656)
+#
+# WHY IT DECIDES SOMETHING. cix-boot.efi is the one thing in the cix
+# tree built with gcc, because a PE/COFF EFI application needs the
+# Microsoft x64 calling convention and the installed tcc is native
+# only. The owner's decision (cix#628, 2026-10-27) is to build it with
+# TCC. tinycc carries a win64 target whose default ABI IS the Microsoft
+# one, and its own PE linker. This probe measures, before anything is
+# packaged:
+#
+#   1. that the cross compiler builds from the source tcc@0.9.28rc-31
+#      pins (same url, same sha256), with the installed tcc;
+#   2. which PE linker options that source accepts (subsystem names,
+#      image base, entry), read from tccpe.c and libtcc.c;
+#   3. whether cix-boot.c at cix f362298b compiles and links with it,
+#      what it warns about (EFIAPI is __attribute__((ms_abi)) today,
+#      which a win64 target does not need), and whether the result
+#      carries the trailing COFF symbol table that made shim refuse
+#      the gcc image before `ld -s` (see the cix Makefile).
+#
+# EVERY GREP IS BUNDLED WITH A PATTERN THAT CANNOT MISS, because grep
+# exits 1 on no match and that would end the phase.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end so the log is
+# kept and no artifact is published.
+#
+package "probe-tccefi" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "tinycc" {
+            url "https://codeload.github.com/TinyCC/tinycc/tar.gz/2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+            sha256 "4eb5f0266d4d9deabe9650abedc3f0261dc06295f89ad798bb495abf680dc074"
+        }
+        extra "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/f362298b.tar.gz"
+            sha256 "b7308fe216ac5002e5ffda4ef1fe4595037c0adf7f058df910f45d9fd35ce600"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "4: the code that decides whether tccpe.c emits .reloc, how it orders and names merged sections, and what the dynamicbase-style linker options set (cix#656)."
+    }
+
+    build {
+        run "sed" {
+            "-n"
+            "-e"
+            "340,410p"
+            "-e"
+            "720,830p"
+            "-e"
+            "1264,1340p"
+            "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tccpe.c"
+        }
+        run "sed" {
+            "-n"
+            "-e"
+            "1480,1512p"
+            "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/libtcc.c"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tccefi" parents
+        write "${dest}/usr/share/probe-tccefi/probe" "${version}-${release}\n"
+    }
+}
