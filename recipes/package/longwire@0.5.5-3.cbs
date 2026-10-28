@@ -64,6 +64,7 @@ package "longwire" {
     }
 
     metadata {
+        "artifact_sha256" "f068142a4a0526660d78b98866436ce0998b551faab3657f49cbaae2a8ea3ad5"
         "changelog" "0.5.5-3: declares binutils, for finalize's strip. 0.5.5-2: builds with make only; make lint stops at engine/port.c:113 under tcc@0.9.28rc-31 (reported upstream). 0.5.5-1: longwire 0.5.5: the module, both launchers and both scripts, built with tcc against hibr's installed headers."
     }
 
