@@ -1,0 +1,236 @@
+#
+# probe-tccefi 5 -- a MEASUREMENT, not a package: can a tinycc
+# x86_64-win32 cross compiler produce a cix-boot.efi that is
+# relocatable, carries its own .sbat section and signs cleanly?
+# (cix#656)
+#
+# probe-tccefi@2-1 linked cix-boot.c into a valid EFI application with
+# no .reloc and no .sbat. @4-1 read why: -Wl,-dynamicbase is what makes
+# tccpe emit .reloc, and pe_section_class() folds every read-only
+# section other than .rsrc/.iedat/.pdata into .rdata. This run:
+#
+#   A. links with the UNPATCHED cross compiler plus -dynamicbase and
+#      -nxcompat, then adds .sbat afterwards with objcopy, the route
+#      shim's own SBAT documentation allows -- so the two routes can be
+#      compared on measured bytes;
+#   B. patches tccpe.c with a .sbat section class (a measurement of what
+#      the patch would do, nothing here ships), rebuilds the cross
+#      compiler, and links again;
+#   C. signs both with a throwaway key and verifies them, reading
+#      whether sbsign reports a gap between sections, the warning that
+#      preceded shim's 0x1A refusal of the gcc image before ld -s.
+#
+# It also reads whether this tcc recognises ms_abi or ignores it, which
+# the uefi.h comment has to state correctly either way.
+#
+# NO BUILD OUTPUT. The phase fails deliberately at the end.
+#
+package "probe-tccefi" {
+    version "5"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "tinycc" {
+            url "https://codeload.github.com/TinyCC/tinycc/tar.gz/2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+            sha256 "4eb5f0266d4d9deabe9650abedc3f0261dc06295f89ad798bb495abf680dc074"
+        }
+        extra "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/f362298b.tar.gz"
+            sha256 "b7308fe216ac5002e5ffda4ef1fe4595037c0adf7f058df910f45d9fd35ce600"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "openssl"
+            tool "sbsigntools"
+        }
+    }
+
+    metadata {
+        "changelog" "5: a measurement. Links cix-boot.efi relocatable with the tinycc cross compiler, adds .sbat by objcopy (A) and by a tccpe.c section class (B), and signs and verifies both (cix#656)."
+    }
+
+    build {
+        # Is ms_abi a recognised attribute, or silently ignored?
+        run "grep" {
+            "-n"
+            "-e"
+            "ms_abi"
+            "-e"
+            "#include"
+            "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tcctok.h"
+            "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/tccgen.c"
+        }
+
+        extract $source.cix into "${build}" as "cix"
+        write "${build}/efimem.c" "typedef unsigned long long size_t;\nvoid *memset(void *d, int c, size_t n) { unsigned char *p = d; while (n--) *p++ = (unsigned char)c; return d; }\nvoid *memcpy(void *d, const void *s, size_t n) { unsigned char *p = d; const unsigned char *q = s; while (n--) *p++ = *q++; return d; }\n"
+        write "${build}/sbat.csv" "sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\ncix-boot,1,Cix,cix-boot,1,https://git.home.arpa/itdlabs/cix\n"
+        run "openssl" {
+            "req"
+            "-new"
+            "-x509"
+            "-newkey"
+            "rsa:2048"
+            "-nodes"
+            "-days"
+            "1"
+            "-subj"
+            "/CN=probe-tccefi"
+            "-keyout"
+            "${build}/k.pem"
+            "-out"
+            "${build}/c.pem"
+        }
+
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/configure" {
+                "--source-path=."
+                "--prefix=/usr"
+                "--cc=tcc"
+            }
+            run "make" {
+                "x86_64-win32-tcc"
+            }
+        }
+
+        # ---- A: unpatched, relocatable, .sbat added by objcopy ----
+        run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/x86_64-win32-tcc" {
+            "-nostdlib"
+            "-Wall"
+            "-Werror"
+            "-I${build}/cix/include"
+            "-o"
+            "${build}/a.efi"
+            "${build}/cix/image/src/cix-boot.c"
+            "${build}/efimem.c"
+            "-Wl,-subsystem=efiapp"
+            "-Wl,-image-base=0x10000"
+            "-Wl,-entry=efi_main"
+            "-Wl,-dynamicbase"
+            "-Wl,-nxcompat"
+        }
+        run "objdump" {
+            "-h"
+            "-p"
+            "${build}/a.efi"
+        }
+
+        # ---- B: tccpe.c with a .sbat class ----
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            replace "tccpe.c" {
+                from "    sec_pdata ,\n"
+                at line_start
+                to "    sec_pdata ,\n    sec_sbat ,\n"
+                exactly 1
+            }
+            replace "tccpe.c" {
+                from "                return sec_pdata;\n"
+                at line_start
+                to "                return sec_pdata;\n            if (0 == strcmp(name, \".sbat\"))\n                return sec_sbat;\n"
+                exactly 1
+            }
+            run "rm" {
+                "-f"
+                "x86_64-win32-tcc"
+                "x86_64-win32-tcc.o"
+            }
+            run "make" {
+                "x86_64-win32-tcc"
+            }
+        }
+        run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/x86_64-win32-tcc" {
+            "-nostdlib"
+            "-Wall"
+            "-Werror"
+            "-I${build}/cix/include"
+            "-o"
+            "${build}/b.efi"
+            "${build}/cix/image/src/cix-boot.c"
+            "${build}/efimem.c"
+            "-Wl,-subsystem=efiapp"
+            "-Wl,-image-base=0x10000"
+            "-Wl,-entry=efi_main"
+            "-Wl,-dynamicbase"
+            "-Wl,-nxcompat"
+        }
+        run "objdump" {
+            "-h"
+            "-p"
+            "${build}/b.efi"
+        }
+        run "objdump" {
+            "-s"
+            "-j"
+            ".sbat"
+            "${build}/b.efi"
+        }
+
+        # ---- C: sign and verify B ----
+        run "sbsign" {
+            "--key"
+            "${build}/k.pem"
+            "--cert"
+            "${build}/c.pem"
+            "--output"
+            "${build}/b.signed.efi"
+            "${build}/b.efi"
+        }
+        run "sbverify" {
+            "--cert"
+            "${build}/c.pem"
+            "${build}/b.signed.efi"
+        }
+
+        # ---- A, finished: objcopy adds .sbat, then the same signing ----
+        run "objcopy" {
+            "--add-section"
+            ".sbat=${build}/sbat.csv"
+            "--set-section-flags"
+            ".sbat=contents,alloc,load,readonly,data"
+            "--set-section-alignment"
+            ".sbat=512"
+            "${build}/a.efi"
+            "${build}/a2.efi"
+        }
+        run "ls" {
+            "-la"
+            "${build}/a.efi"
+            "${build}/a2.efi"
+            "${build}/b.efi"
+            "${build}/b.signed.efi"
+        }
+        run "objdump" {
+            "-h"
+            "-f"
+            "${build}/a2.efi"
+        }
+        run "sbsign" {
+            "--key"
+            "${build}/k.pem"
+            "--cert"
+            "${build}/c.pem"
+            "--output"
+            "${build}/a2.signed.efi"
+            "${build}/a2.efi"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tccefi" parents
+        write "${dest}/usr/share/probe-tccefi/probe" "${version}-${release}\n"
+    }
+}
