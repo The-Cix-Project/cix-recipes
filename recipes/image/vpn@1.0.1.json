@@ -1,0 +1,13 @@
+{
+  "image": "vpn",
+  "version": "1.0.1",
+  "notes": "vpn -- the image vpn-1 runs from: hibr, and longwire splicing the remote-access network (192.168.152.0/24) to the owner's other sites over longwire's switchboard.\n\nglibc is named because a named image gets only what its manifest names (see chrony's notes); hibr and longwire link it. bash is longwire's runtime dependency: its launchers are /bin/sh scripts. openssl is hibr's (src/net.c dlopen()s libssl). hibr and longwire roll on their gitea tags; glibc rolls like jumpbox's.\n\n1.0.1: tcpdump, so vpn-1 can capture on its own interface (whether a peer's punch packets arrive).",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "bash", "mode": "pinned", "version": "5.2.37-6" },
+    { "package": "openssl", "mode": "pinned", "version": "3.0.20-7" },
+    { "package": "hibr", "mode": "rolling", "version": "0.99.369" },
+    { "package": "longwire", "mode": "rolling", "version": "0.5.5" },
+    { "package": "tcpdump", "mode": "rolling", "version": "4.99.5" }
+  ]
+}
