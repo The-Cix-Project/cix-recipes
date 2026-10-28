@@ -1,0 +1,84 @@
+#
+# tcpdump -- packet capture from the command line, on libpcap.
+#
+# Packaged so a container can see what arrives on its own interface:
+# vpn-1's longwire node had to answer whether a peer's punch packets
+# reached it, and nothing could say (the owner's request, 2026-10-28).
+# The archive's sha256 was measured on 192.168.15.95 by
+# probe-tcpdump-tarball@1-1 (1418476 bytes).
+#
+# No crypto, SMI or libcap-ng: --without-crypto drops ESP decryption
+# (which needs OpenSSL's libcrypto), and neither SMI nor capability
+# dropping has a library in this corpus. Capturing needs CAP_NET_RAW,
+# which a Cix container holds by default.
+#
+package "tcpdump" {
+    version "4.99.5"
+    release 1
+    format "cixpkg"
+
+    license "BSD-3-Clause"
+
+    sources {
+        main "tcpdump" {
+            url "https://www.tcpdump.org/release/tcpdump-4.99.5.tar.xz"
+            sha256 "d76395ab82d659d526291b013eee200201380930793531515abfc6e77b4f2ee5"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "libpcap"
+        }
+        runtime {
+            package "libpcap"
+        }
+    }
+
+    metadata {
+        "changelog" "4.99.5-1: tcpdump 4.99.5 with tcc on libpcap 1.10.5, without crypto, SMI or libcap-ng."
+    }
+
+    prepare {
+        require directory "${src}/tcpdump/tcpdump-4.99.5" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/tcpdump/tcpdump-4.99.5" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--without-crypto"
+                "--without-smi"
+                "--without-cap-ng"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/tcpdump/tcpdump-4.99.5" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/tcpdump" {
+            exists
+            executable
+        }
+    }
+}
