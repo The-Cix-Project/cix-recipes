@@ -1,0 +1,64 @@
+{
+  "name": "vpn-1",
+  "image": "vpn",
+  "services": [
+    {
+      "name": "longwire",
+      "cmd": [
+        "/usr/bin/longwire",
+        "up",
+        "--switchboard",
+        "{{SECRET:LONGWIRE_SWITCHBOARD}}",
+        "--token",
+        "{{SECRET:LONGWIRE_TOKEN}}",
+        "--splice",
+        "eth1"
+      ],
+      "on_exit": "fail-container"
+    }
+  ],
+  "consoles": [
+    {
+      "name": "hibr",
+      "cmd": [
+        "/usr/bin/hibr"
+      ]
+    }
+  ],
+  "env": {
+    "HOME": "/var/lib/longwire",
+    "LONGWIRE_MOD": "/usr/lib/hibr/longwire.so",
+    "PATH": "/usr/bin:/bin"
+  },
+  "capture_output": true,
+  "dns_servers": [
+    "192.168.15.200",
+    "192.168.15.100"
+  ],
+  "networks": [
+    {
+      "name": "management",
+      "ip": "192.168.15.103"
+    },
+    {
+      "name": "remote-access",
+      "ip": "192.168.152.2"
+    }
+  ],
+  "routes": [
+    {
+      "dest": "0.0.0.0",
+      "prefix_len": 0,
+      "via": "192.168.15.1"
+    }
+  ],
+  "volumes": [
+    {
+      "name": "vpn-1-state",
+      "path": "/var/lib/longwire"
+    }
+  ],
+  "restart": "always",
+  "follow_rolling": true,
+  "restart_delay_seconds": 2
+}
