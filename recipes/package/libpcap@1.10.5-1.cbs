@@ -45,6 +45,7 @@ package "libpcap" {
     }
 
     metadata {
+        "artifact_sha256" "cc6282a20fe0fc277eb850664eebd100fb62335a2ecdadbb8de3e7ddec84fa39"
         "changelog" "1.10.5-1: libpcap 1.10.5 with tcc, Ethernet capture only (no USB, D-Bus, RDMA, Bluetooth, netmap, rpcap or libnl), for tcpdump."
     }
 
