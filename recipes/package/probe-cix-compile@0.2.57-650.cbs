@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ef1b0e5c395df9f5e0b8e72b94abb7e6f46595d10afc61c724b13eec640b2f99"
         "changelog" "0.2.57-650: compile and selftest probe of commit f362298b: a disk is mounted when it gets its role, and a volume is placed only on a mounted volume-storage disk (cix#660, cix#661)."
     }
 
