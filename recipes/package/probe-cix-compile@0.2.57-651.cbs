@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7429c861311f2ea2a376e4c3f311aa1ec3d5e1e3ac0fca63ca9caf46083e7165"
         "changelog" "0.2.57-651: compile and selftest probe of commit f3ea2e99: a console session gets the container's env (cix#663); a sync's counts say whose they are (cix#662)."
     }
 
