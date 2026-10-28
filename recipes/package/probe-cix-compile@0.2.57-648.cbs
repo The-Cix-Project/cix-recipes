@@ -186,6 +186,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "a29312017ff53ac9524d51339d51fe22579ec8ee99e62550ee5c255585e7ab31"
         "changelog" "0.2.57-648: compile and selftest probe of commit 1a79e01e: 647 passed the selftest and failed the #296 control, which ran without the selftest TMPDIR and so off btrfs (cix#658, ADR-0360)."
     }
 
