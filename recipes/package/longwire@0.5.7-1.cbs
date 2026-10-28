@@ -67,6 +67,7 @@ package "longwire" {
     }
 
     metadata {
+        "artifact_sha256" "6a0b66b058cc5d6c4d4c81ceb8fa459741e79d42ee2481be2ef61c694fe0aafe"
         "changelog" "0.5.7-1: longwire 0.5.7, which fixes engine/call.c:223, the second lint failure under tcc@0.9.28rc-31, so make lint runs again."
     }
 
