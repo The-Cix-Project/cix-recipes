@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "728c19f9265cf6a9f2f6b8cd39ef866d6b7ad5eeb00fb36b122b99a740c3d24f"
         "changelog" "0.2.57-617: a console session gets the container's env and none of cixd's (cix#663); a sync's counts say when they belong to the last completed run (cix#662); test_pkg gives a started daemon 30 s. 0.2.57-616 failed its selftest on that 5 s ceiling."
     }
 
