@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "eba22d8d440ef457ab40ea3dce019fc38f944c2b82ec02dcae079efb2e72b0c6"
         "changelog" "0.2.57-614: the container store is btrfs and nothing else is a rootfs -- no OverlayFS, no copy, no container disk, no migrate-storage; container-storage is volume-storage (cix#658, ADR-0360 release B)."
     }
 
