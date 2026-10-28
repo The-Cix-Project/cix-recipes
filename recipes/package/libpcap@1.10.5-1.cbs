@@ -1,0 +1,94 @@
+#
+# libpcap -- the packet capture library tcpdump is built on.
+#
+# Packaged so a container can capture on its own interface: vpn-1's
+# longwire node needs a capture to see whether a peer's punch packets
+# arrive (the owner's request, 2026-10-28). The archive's sha256 was
+# measured on 192.168.15.95 by probe-libpcap-tarball@1-1 (671880 bytes).
+#
+# EVERY OPTIONAL CAPTURE SOURCE IS OFF. USB, D-Bus, RDMA, Bluetooth and
+# netmap each need a library this corpus does not carry, and none of
+# them is Ethernet. remote capture (rpcap) is off because it is a
+# network service, which a capture library has no business shipping by
+# default. libnl is not used: it is only for wireless monitor mode.
+#
+# flex and bison build its filter-expression grammar.
+#
+package "libpcap" {
+    version "1.10.5"
+    release 1
+    format "cixpkg"
+
+    license "BSD-3-Clause"
+
+    sources {
+        main "libpcap" {
+            url "https://www.tcpdump.org/release/libpcap-1.10.5.tar.xz"
+            sha256 "84fa89ac6d303028c1c5b754abff77224f45eca0a94eb1a34ff0aa9ceece3925"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "flex"
+            tool "bison"
+        }
+    }
+
+    metadata {
+        "changelog" "1.10.5-1: libpcap 1.10.5 with tcc, Ethernet capture only (no USB, D-Bus, RDMA, Bluetooth, netmap, rpcap or libnl), for tcpdump."
+    }
+
+    prepare {
+        require directory "${src}/libpcap/libpcap-1.10.5" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/libpcap/libpcap-1.10.5" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                "--disable-usb"
+                "--disable-dbus"
+                "--disable-rdma"
+                "--disable-bluetooth"
+                "--disable-netmap"
+                "--disable-remote"
+                "--without-libnl"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/libpcap/libpcap-1.10.5" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/libpcap.so.1.10.5" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/pcap/pcap.h" {
+            exists
+            nonempty
+        }
+    }
+}
