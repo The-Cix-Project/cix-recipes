@@ -1,0 +1,140 @@
+#
+# tcc-win64 -- tinycc's x86_64-win32 cross compiler, which builds
+# cix-boot.efi, the UEFI boot manager (ADR-0362, cix#656).
+#
+# A UEFI application needs the Microsoft x64 calling convention and a
+# PE/COFF image. This target's default ABI is that convention and it
+# has its own PE linker, so cix-boot.efi is one compile-and-link with
+# no gcc and no ld.
+#
+# THE SAME SOURCE tcc@0.9.28rc-31 PINS, built by the installed tcc. The
+# installed native compiler is neither rebuilt nor changed: this
+# package installs one binary, /usr/bin/x86_64-win32-tcc. It carries
+# none of tcc's own edits (bswap builtins, C11, the library path),
+# which are about the native target and nothing this one compiles.
+#
+# FREESTANDING ONLY. No win32 runtime, headers or libtcc1 are built or
+# installed, so it serves -nostdlib programs, which is what an EFI
+# application is. A program it links provides its own memset/memcpy.
+#
+# ONE SOURCE EDIT: a .sbat section class in tccpe.c. pe_section_class()
+# gives a class of its own only to .rsrc, .iedat, .pdata and .reloc,
+# and merges every other read-only section into .rdata -- so a
+# section(".sbat") variable landed inside .rdata, and shim refuses an
+# image with no .sbat (probe-tccefi@2-1 and @4-1, 192.168.15.95,
+# 2026-10-28). With the class it is its own section, read back
+# verbatim, and the image signs and verifies (probe-tccefi@5-1). The
+# gate below links a .sbat and extracts that section alone, so a
+# compiler that merged it again would fail here, not at a boot.
+#
+package "tcc-win64" {
+    version "0.9.28rc"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "tinycc" {
+            url "https://codeload.github.com/TinyCC/tinycc/tar.gz/2ba12e83b3599ca8f5d50c179fe5138fe956f0c9"
+            sha256 "4eb5f0266d4d9deabe9650abedc3f0261dc06295f89ad798bb495abf680dc074"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            # objcopy, for the .sbat gate.
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "0.9.28rc-1: tinycc's x86_64-win32 cross compiler from the source tcc@0.9.28rc-31 pins, with a .sbat section class in tccpe.c, for cix-boot.efi (ADR-0362, cix#656)."
+    }
+
+    prepare {
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            replace "tccpe.c" {
+                from "    sec_pdata ,\n"
+                at line_start
+                to "    sec_pdata ,\n    sec_sbat ,\n"
+                exactly 1
+            }
+            replace "tccpe.c" {
+                from "                return sec_pdata;\n"
+                at line_start
+                to "                return sec_pdata;\n            if (0 == strcmp(name, \".sbat\"))\n                return sec_sbat; /* shim requires it as its own section (ADR-0362) */\n"
+                exactly 1
+            }
+        }
+    }
+
+    configure {
+        # In tree, as tcc@0.9.28rc-31 builds and for the same reason
+        # (configure derives its source path from $0).
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/configure" {
+                "--source-path=."
+                "--prefix=/usr"
+                "--cc=tcc"
+            }
+        }
+    }
+
+    build {
+        cd "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9" {
+            run "make" {
+                "x86_64-win32-tcc"
+            }
+        }
+
+        # ---- the .sbat gate ----
+        write "${build}/gate.c" "static const char sbat[] __attribute__((section(\".sbat\"))) = \"cix-sbat-gate\\n\";\nstatic const char other[] = \"rdata-neighbour\";\nint efi_main(void *image, void *st) { (void)image; (void)st; return (int)sizeof(sbat) + other[0]; }\n"
+        run "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/x86_64-win32-tcc" {
+            "-nostdlib"
+            "-Wall"
+            "-Werror"
+            "-o"
+            "${build}/gate.efi"
+            "${build}/gate.c"
+            "-Wl,-subsystem=efiapp"
+            "-Wl,-image-base=0x10000"
+            "-Wl,-entry=efi_main"
+            "-Wl,-dynamicbase"
+            "-Wl,-nxcompat"
+        }
+        run "objcopy" {
+            "-O"
+            "binary"
+            "--only-section=.sbat"
+            "${build}/gate.efi"
+            "${build}/gate.sbat"
+        }
+        require file "${build}/gate.sbat" {
+            exists
+            contains "cix-sbat-gate"
+        }
+        on_fail {
+            run "objdump" {
+                "-h"
+                "${build}/gate.efi"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/tinycc/tinycc-2ba12e83b3599ca8f5d50c179fe5138fe956f0c9/x86_64-win32-tcc" to "${dest}/usr/bin/x86_64-win32-tcc"
+        require file "${dest}/usr/bin/x86_64-win32-tcc" {
+            exists
+            executable
+        }
+    }
+}
