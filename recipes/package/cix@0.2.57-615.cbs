@@ -246,6 +246,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5ae03cc8e78a714877b8a57f8b7ce785fc32b005880f4687d610c523b892ab32"
         "changelog" "0.2.57-615: a session write is durable only where losing it is unsafe (cix#659, ADR-0361); a disk is mounted when it gets its role (cix#660), and a volume is placed only on a mounted volume-storage disk (cix#661)."
     }
 
