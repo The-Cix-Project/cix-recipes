@@ -1,0 +1,36 @@
+#
+# probe-tcpdump-tarball 1 -- the sha256 of https://www.tcpdump.org/release/tcpdump-4.99.5.tar.xz, read from the daemon's checksum refusal
+# (the declared hash is deliberately zero). The fetch is the whole probe.
+#
+package "probe-tcpdump-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "src" {
+            url "https://www.tcpdump.org/release/tcpdump-4.99.5.tar.xz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the sha256 of https://www.tcpdump.org/release/tcpdump-4.99.5.tar.xz."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tcpdump-tarball" parents
+        write "${dest}/usr/share/probe-tcpdump-tarball/probe" "${version}-${release}\n"
+    }
+}
