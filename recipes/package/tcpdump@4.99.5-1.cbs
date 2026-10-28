@@ -45,6 +45,7 @@ package "tcpdump" {
     }
 
     metadata {
+        "artifact_sha256" "abf88c49283fc8f1d8fa96d83ae88cff03c56e45f100ecd99c6c220f15336a41"
         "changelog" "4.99.5-1: tcpdump 4.99.5 with tcc on libpcap 1.10.5, without crypto, SMI or libcap-ng."
     }
 
