@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "0e8a33cc0f8c93812bf4a570e23afe1d2f3139f3c62da03f26fff46ced89a31d"
         "changelog" "0.2.57-663: compile and selftest probe of commit 2d3f12d5: a copied tree keeps its owners, directory modes and sockets."
     }
 
