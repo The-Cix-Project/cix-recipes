@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f609fa051680f72c37446bdad32fa75686161cae14c33b7ef234fc050f1abdec"
         "changelog" "0.2.57-618: cix-boot.efi is built by TCC, the win64 target of our own tcc package (cix#656, ADR-0362, ADR-0363); UINTN is 64-bit on that LLP64 target; test_lint lints cix-boot.c as its own target."
     }
 
