@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3a30a9e4bd4d4515ba6223641a366b014eb6f18f6594115cdb2f5dabc8265af2"
         "changelog" "0.2.57-620: GET /v1/system/data-dir and cixctl storage data-dir, what lives in the data directory and who owns it (cix#249)."
     }
 
