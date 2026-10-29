@@ -65,6 +65,7 @@ package "longwire" {
     }
 
     metadata {
+        "artifact_sha256" "92e12866f225a12b0f0b4fe0d1dcc95a2216cc9236f6d3799210d4beafa8e9a7"
         "changelog" "0.5.20-2: the launcher is packaging/launcher.hibr since 0.5.20 (packaging/launcher.sh is gone, which failed 0.5.20-1 at install), and a hibr script, so bash is no longer a runtime dependency."
     }
 
