@@ -98,6 +98,7 @@ package "tcc" {
     }
 
     metadata {
+        "artifact_sha256" "876e3a4f1d26925662d1037c36886819aeb2e48c5f0e1e37e902c54c9f528ddf"
         "changelog" "0.9.28rc-32: also builds the win64 cross target, x86_64-win32-tcc, from the same tree and edits, with a .sbat section class in tccpe.c, for cix-boot.efi (ADR-0362, ADR-0363). The native tcc is gated byte-identical, stripped, to 0.9.28rc-31. 0.9.28rc-31: in-tree build; full history in tcc@0.9.28rc-29.sh."
     }
 
