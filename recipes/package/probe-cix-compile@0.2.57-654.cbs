@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1b71cadfcb4bdc7ea386c46bc388403c4e35cc76aa0b463a15304a654ae25d3c"
         "changelog" "0.2.57-654: compile and selftest probe of commit 275dda50: a hostbuild's harvest sets the previous tree aside instead of deleting it on the event loop (cix#645)."
     }
 
