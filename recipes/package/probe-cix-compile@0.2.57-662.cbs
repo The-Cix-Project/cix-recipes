@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8c9626779356fd613a9dc1e1d306ef2a109545298da733c782526067e08360f0"
         "changelog" "0.2.57-662: compile and selftest probe of commit c8a2c6a6: a failed volume copy says which entry it refused."
     }
 
