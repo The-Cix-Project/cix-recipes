@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d3b00108cf4e010d756ad1ebbb8492a285719dc5c2c675465c36ae6d6352601a"
         "changelog" "0.2.57-657: compile and selftest probe of commit e07b5b3e: the data-directory report looks one level down (cix#249)."
     }
 

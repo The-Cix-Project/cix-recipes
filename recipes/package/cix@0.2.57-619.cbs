@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "01a6d03b54e717eba031b61d9e410fb44f1c9be3befd94cd094f12f97267acc7"
         "changelog" "0.2.57-619: a hostbuild's harvest sets the previous artifact tree aside into the delete queue instead of deleting it on the event loop (cix#645)."
     }
 
