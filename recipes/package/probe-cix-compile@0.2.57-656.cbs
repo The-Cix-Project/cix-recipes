@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b9e6500c5ea7e4fec35d255a760616bef33ba342b03e3b54c24bd14b35a913ad"
         "changelog" "0.2.57-656: compile and selftest probe of commit f848c37c: GET /v1/system/data-dir, what lives in the data directory and who owns it (cix#249)."
     }
 
