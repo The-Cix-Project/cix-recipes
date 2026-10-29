@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1d7a2e266aeea24e48dc3bede9ea0c743fb6f3168bcf4282fb34e67b089e1501"
         "changelog" "0.2.57-623: ADR-0364 decisions 1 and 2: the disk-role and placement files live in /config/state, and a data directory on a tmpfs is reported, not silent (cix#249)."
     }
 
