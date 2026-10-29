@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "fd88ca7194490f25595c7fd117a4fd956e5f25cce0c0daf00dfe3337f3eca726"
         "changelog" "0.2.57-653: compile and selftest probe of commit 9544276f: cix-boot.efi by tcc's win64 target, now part of the tcc package; test_lint lints it as its own target (cix#656, ADR-0362, ADR-0363)."
     }
 
