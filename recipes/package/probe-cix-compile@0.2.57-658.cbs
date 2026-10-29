@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "6574ef93bfbeb6145aa2fb73fb8caf4fd94cdddcc5ccb4e8a061e32f73a58eef"
         "changelog" "0.2.57-658: compile and selftest probe of commit 7a0e6f0e: container bases with no definition are set aside at start (cix#664)."
     }
 
