@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0f3224998a4302ab5e1b43f7361f683474f11ff83eecb58e799e45c070c054de"
         "changelog" "0.2.57-625: ADR-0364 decision 3, stage b: POST /system/data-storage/migrate records a move of the data directory, which the next boot makes, carrying the log store (cix#249)."
     }
 

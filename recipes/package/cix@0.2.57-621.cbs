@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9e53a9147e6fe1488db2641702674b815b4f87e0bc3c68d03aa333e32aac21fc"
         "changelog" "0.2.57-621: the data-directory report looks one level down, cixctl storage data-dir ENTRY (cix#249)."
     }
 

@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d091ef37f7d6fcd220a21159bec9d41b3cf47cef44935b70f9b8e9a415e56d69"
         "changelog" "0.2.57-624: ADR-0364 decision 3, stage a: the data-storage placement kind and role, GET /system/data-storage, and /config mounted before the data directory, which is mounted from a placed disk by its filesystem UUID when one is recorded (cix#249)."
     }
 
