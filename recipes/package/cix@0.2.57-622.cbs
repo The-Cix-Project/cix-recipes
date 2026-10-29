@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "11a9bc3adbd644b83d378bf91dc0473f78c1a7aa31222329c7ccefd9f2e19cbe"
         "changelog" "0.2.57-622: a container base with no definition is set aside at start (cix#664), which clears the build-slot trees left by ADR-0360."
     }
 
