@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "59f9b4e4c5022b40eb5ba476600277511d2a04b853c4074b0f6eb347bdb7c30b"
         "changelog" "0.2.57-659: compile and selftest probe of commit ebbe004f: ADR-0364 decisions 1 and 2, the data directory holds no boot state and a volatile one says so (cix#249)."
     }
 
