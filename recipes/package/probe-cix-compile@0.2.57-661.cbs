@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "eb941e7d51acd31859b4d53a4ec7fe06f446bf52a954efcdb06ef4e1cc8b231e"
         "changelog" "0.2.57-661: compile and selftest probe of commit fad1d0c1: ADR-0364 decision 3 stage b, the data directory moves to a disk at the next boot (cix#249)."
     }
 
