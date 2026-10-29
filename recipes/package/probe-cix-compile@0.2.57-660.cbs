@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2dffe4c43d8c7052417555a2ff9bbf05359d190775967091872372e14666e34f"
         "changelog" "0.2.57-660: compile and selftest probe of commit 408dbf10: ADR-0364 decision 3 stage a, the data-storage placement kind, its read and the mount order (cix#249)."
     }
 
