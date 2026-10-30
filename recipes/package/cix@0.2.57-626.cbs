@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c49b4add33ca1150a15a1cd6168c645f1e52cbfb83c4e621a3dce3eeb5557b8f"
         "changelog" "0.2.57-626: a failed volume copy names the entry it refused, in the response and the log."
     }
 

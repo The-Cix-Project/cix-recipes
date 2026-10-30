@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c26d5e733ee582ddade7bfc297135e46ca81d99602a1d0c151098a3d9e918791"
         "changelog" "0.2.57-630: the dashboard's Placement page reads its placements, shows degraded, and shows and moves the data directory's (cix#665)."
     }
 

@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "09ba503fe081b1e976395afc9c8ab5e937830c44e437f8b583c76b0d4957a421"
         "changelog" "0.2.57-628: a data-directory move mounts its two ends in the disk mountpoints' tmpfs, since the root slot is read-only (cix#249)."
     }
 
