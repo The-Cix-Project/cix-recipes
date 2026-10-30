@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5450d877b722da0a9643967687327c9ef87810f1703d9f6f9fedb604f5399870"
         "changelog" "0.2.57-669: compile and selftest probe of commit 04661f51: the platform partitions are btrfs only (cix#161)."
     }
 
