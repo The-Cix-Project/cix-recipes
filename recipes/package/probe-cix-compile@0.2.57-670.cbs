@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "57dcb73b2330e56622de59afd2fbd471c7e627d05e07583e2718c33688bde754"
         "changelog" "0.2.57-670: compile and selftest probe of commit 5886ed1d: the test floor's cbs is v0.1.122 (cix#378)."
     }
 
