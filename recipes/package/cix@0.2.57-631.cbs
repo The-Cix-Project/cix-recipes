@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0c701451ac5c01c4c9885eb5fef3f1c0996f658f4ec75191025d064990315cb1"
         "changelog" "0.2.57-631: POST /v1/pkg/bootstrap is retired with everything only it used; the retired Secure Boot certificate is filed in docs/keys (cix#628, ADR-0365)."
     }
 
