@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8e9237851a9003e20aacbe1dfe22ecd85870ce9112d7f75912e8021ec0eb21c3"
         "changelog" "0.2.57-664: compile and selftest probe of commit 9a7d06be: a data-directory move mounts its ends in a tmpfs (cix#249)."
     }
 
