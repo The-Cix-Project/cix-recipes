@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "066794349c95cff6f490edd81b7ffa43b802c7f8284b5aec2b1b70ae4354bb72"
         "changelog" "0.2.57-632: the platform's own partitions are btrfs, with no ext4 fallback; ext4 stays for attached data disks (cix#161)."
     }
 
