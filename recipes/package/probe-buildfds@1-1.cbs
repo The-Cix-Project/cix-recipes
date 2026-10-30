@@ -1,0 +1,43 @@
+# probe-buildfds: which file descriptors a build's processes inherit.
+#
+# cbs v0.1.120's own test suite failed in a Cix build container on
+# "--events-fd 9 was accepted": the test expects fd 9 to be closed, and
+# in a cixd build it is open. This lists /proc/self/fd from a build
+# phase, so the answer is a measurement, not a guess. It fails on
+# purpose: the listing is the result, and it is read from the build log.
+package "probe-buildfds" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/04661f51.tar.gz"
+            sha256 "290b753d156422d724ec4db6604efaa4f682c7c8fba671ee105dc2fe052f16b2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: list the file descriptors a build phase inherits (cbs v0.1.120's observability test, cix#378)."
+    }
+
+    build {
+        run "ls" {
+            "-l"
+            "/proc/self/fd/"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-buildfds"
+    }
+}
