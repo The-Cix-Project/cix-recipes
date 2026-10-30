@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "9f0b078ae6d9e2431e71f51bbd2e4da49ca6e7206bb87ffbc2dcea2506d9204a"
         "changelog" "0.2.57-672: compile and selftest probe of commit fb7d4c0a: a recipe's outputs install as packages (cix#378, ADR-0367 step 3)."
     }
 
