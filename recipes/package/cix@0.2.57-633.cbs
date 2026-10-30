@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8228861f5f000b1ad236161140dace676757e689a3a8bdb323d100748ce8c76a"
         "changelog" "0.2.57-633: the build engine is cbs v0.1.122 in the build images, the host root and the test floor (cix#378, ADR-0367 step 1)."
     }
 

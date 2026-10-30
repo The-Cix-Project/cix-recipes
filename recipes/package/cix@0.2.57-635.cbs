@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d122ac2d1ff2ba5f85feb291941dab11688348a179c6108a2fc2b0e9ab8405a8"
         "changelog" "0.2.57-635: a recipe's outputs install as packages, with their own approvals; a name is offered by one recipe (cix#378, ADR-0367 step 3)."
     }
 

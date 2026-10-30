@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1f78f21d691b10564eb6642f91fb098fa7dad9ae79a484d0ecd1492ac1729c1a"
         "changelog" "0.2.57-634: every build writes into an artifact directory with --output-dir, ready for recipes with several outputs (cix#378, ADR-0367 step 2)."
     }
 
