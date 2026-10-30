@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1bf01b02f47d6447cb4e7c0b360295157ec466365f32b5035aba072f6a938568"
         "changelog" "0.2.57-673: compile and selftest probe of commit a5400f3b: a build caches and publishes every package it produced (cix#378)."
     }
 
