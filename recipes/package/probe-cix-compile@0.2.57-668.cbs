@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ec2a8b82f89519446d593be9f41971f6688f4cd302e6b09ece29a53fd2ca6209"
         "changelog" "0.2.57-668: compile and selftest probe of commit 755d2920: POST /v1/pkg/bootstrap is retired (cix#628, ADR-0365)."
     }
 
