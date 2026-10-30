@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "8dc295a4d2964f00996ccd78846fa4b4aa14b1bc76c5151f547f67ee68a4f17d"
         "changelog" "v0.1.122-1: fifteen releases on v0.1.107. Multi-output recipes (cbs#299, ADR-0038): output blocks, --output-dir, an outputs array in explain. A real build_fingerprint; command-end carries exit_status and signal. Recipe commands inherit no descriptor above stderr (cbs#301), and --events-fd is checked before cbs opens its own (cbs#302), both found building v0.1.120 on Cix. For cix#378."
     }
 
