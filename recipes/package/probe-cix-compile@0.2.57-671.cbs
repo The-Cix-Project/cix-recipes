@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "72810e4f3b999ccf3aa448e6bd8e12bd7066d795d684ec61518b302d083f92d6"
         "changelog" "0.2.57-671: compile and selftest probe of commit 4d01a3cd: a build writes into an artifact directory (cix#378, ADR-0367 step 2)."
     }
 
