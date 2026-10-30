@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "4fa29945ff3b2925b4e625ed31ff201829526ab0411736245afefb11d047f124"
         "changelog" "0.2.57-666: compile and selftest probe of commit cef040ba: the dashboard's Placement page reads its placements and shows the data directory's (cix#665)."
     }
 
