@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3bf53669ecaa78fc3b8e3018ef169d7420a7b848214f08cc0dd8e7dc78e07f1f"
         "changelog" "0.2.57-665: compile and selftest probe of commit dc7ceabd: the data-directory move's log line, report and refusals (cix#249)."
     }
 
