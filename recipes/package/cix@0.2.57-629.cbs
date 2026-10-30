@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "da0db726edcf6b269219eb2c78fe17e8010fc3fd564d750e8d17cd76e4132c87"
         "changelog" "0.2.57-629: the data-directory move logs its target correctly, reports a set-aside log store as the log store's, and the active-placement refusals name data-storage (cix#249)."
     }
 

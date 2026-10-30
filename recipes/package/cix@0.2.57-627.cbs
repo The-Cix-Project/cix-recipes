@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e9628a8ac02d887a2e75cf4cb1263e83628577e17ba9869e0366c5b53292ea94"
         "changelog" "0.2.57-627: a copied tree keeps its owners, its directory modes and its sockets, for every storage migration, volume move and backup."
     }
 
