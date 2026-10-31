@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "af0b4c6eb389b1768a877f596ad475830ccca7c5b6867312eadd3c8ad58d8ef3"
+        "artifact_sha256.cixctl" "cfcbc2912bfc302e5915c87fda20e03b9a7afcbef87c367c4cc7ef59fef9fed2"
         "changelog" "0.2.57-640: comparing two copies of a recipe, and writing its approvals back to git, count every approval line, an output's included (cix#378, ADR-0367)."
     }
 
