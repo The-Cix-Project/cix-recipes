@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "42550f2b165244c60074ed861b62b38f025d7de418ce73d526cfac651693e19e"
         "changelog" "0.2.57-682: compile and selftest probe of commit 6f706519: an output's approval carried forward is refused (cix#668)."
     }
 
