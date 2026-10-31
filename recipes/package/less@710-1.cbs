@@ -1,0 +1,79 @@
+#
+# less -- the pager. jumpbox and agent export PAGER=less in their
+# /etc/profile, and cixctl pages through less -FRX on a terminal, but no
+# less package existed: inside agent-1 every paged cixctl command said
+# `sh: line 1: less: command not found` (192.168.15.95, 2026-10-31,
+# cix#378).
+#
+# The source is upstream's own release tarball. Its sha256 was measured
+# by the daemon's fetch (probe-less-src@710-1: 1017103 bytes, d1008fb7...),
+# never downloaded anywhere else.
+#
+# --with-regex=posix: glibc's regcomp. configure would otherwise pick
+# whichever regex library the build sandbox happens to carry, and the
+# sandbox carries exactly the tools below, so the choice is stated
+# rather than left to detection.
+#
+package "less" {
+    version "710"
+    release 1
+    format "cixpkg"
+    license "GPL-3.0-or-later OR BSD-2-Clause"
+
+    sources {
+        main "less" {
+            url "https://www.greenwoodsoftware.com/less/less-710.tar.gz"
+            sha256 "d1008fb78dcae1323ddab664bcb352a61f022b1b131bd8018548e021d975ec7a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "ncurses"
+        }
+        runtime {
+            package "ncurses"
+        }
+    }
+
+    metadata {
+        "changelog" "710-1: first revision. jumpbox and agent set PAGER=less and cixctl pages through less, and no less package existed (cix#378)."
+    }
+
+    build {
+        cd "${src}/less/less-710" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--with-regex=posix"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/less/less-710" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/less" {
+            exists
+            nonempty
+        }
+    }
+}
