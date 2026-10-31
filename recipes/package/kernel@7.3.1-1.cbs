@@ -98,6 +98,7 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256" "7108a8033aace3a4f5d2191bfb7960541d9345babf30d1b9a4656b4cb3276f83"
         "changelog" "7.3.1-1: kernel 7.3.1, sha256 fa595aad93734f829c963c2a90ef7c3673224fd7fdae7b49406e397cde2de231, verified by signed checksums: linux-7.3.1.tar.xz in https://cdn.kernel.org/pub/linux/kernel/v7.x/sha256sums.asc, verified under key B8868C80BA62A1FFFAF5FDA9632D3A06589DA6B1 at 2026-10-30T14:51:02Z. Written by cixd from 7.2.13-1 (ADR-0323)."
     }
 
