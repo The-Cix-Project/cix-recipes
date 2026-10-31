@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7a4db4cce1d657f2fd3815fff05aad013aa41e6adedd0b78bfeb6e1435a3f703"
         "changelog" "0.2.57-679: compile and selftest probe of commit 105fc90c: cixctl takes its server from CIXCTL_HOST and CIXCTL_PORT (cix#667)."
     }
 
