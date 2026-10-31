@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9802bb1ba60b5534c493163796d2043fc712fde6c351935c6ce6a999a0f68ca8"
+        "artifact_sha256.cixctl" "8e4c21f3b88da96f81101a8893343bee817b1eb00057faffc5250fa5acc9fba7"
         "changelog" "0.2.57-643: a sync-applied image recipe installs its new rolling entries by itself (cix#669)."
     }
 
