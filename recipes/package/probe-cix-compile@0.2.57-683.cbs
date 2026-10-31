@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ff2404ec8d2b9930e519786daf61664dc8f4919a7c7b741877f597af911e2cd9"
         "changelog" "0.2.57-683: compile and selftest probe of commit d8ef04d5: a failed build says how its command ended (cix#666)."
     }
 
