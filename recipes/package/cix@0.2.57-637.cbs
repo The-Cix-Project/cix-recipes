@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0f581a2344cb1cea7dcb0e10529700e2b944e1b9ec3b4a3ec16cef467d8a5740"
         "changelog" "0.2.57-637: assembly takes /bin/cixctl from the cixctl package the same cix build produced, and a main package's cache hit brings its outputs (cix#378, ADR-0367)."
     }
 
