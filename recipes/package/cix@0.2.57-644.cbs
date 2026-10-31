@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e7a003a9963c30aef4ee760a6f30a46df893bab3428d860fa25908ae213889c2"
+        "artifact_sha256.cixctl" "5cb4e7f6473d75a140b184a51ddd05a70f9880a6e8dab88b7fd6da4e616ecfb6"
         "changelog" "0.2.57-644: an output's approval carried forward to another revision is refused at publish, as the main package's is (cix#668)."
     }
 
