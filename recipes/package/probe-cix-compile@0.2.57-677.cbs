@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "fa7b829694bb2a27cb307eaa40d6eaba97a1a31a5864e964913bd9a45627a2e1"
         "changelog" "0.2.57-677: compile and selftest probe of commit 8fbbfa16: an install takes its own artifact (cix#378)."
     }
 
