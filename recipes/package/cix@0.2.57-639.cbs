@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "1967d8ef4534128af6726463f20f89cbaf00feed6c79aab6d3855f17e6ecb609"
+        "artifact_sha256.cixctl" "8c5cb6e26d5449ecde05698e9a18c12a6e9bc40c05a92db549d79e4a4c8abdf9"
         "changelog" "0.2.57-639: the cixctl client is its own package, the cixctl output of this recipe, and cix no longer carries it; assembly takes /bin/cixctl from it (cix#378, ADR-0367)."
     }
 
