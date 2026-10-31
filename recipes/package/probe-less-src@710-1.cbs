@@ -1,0 +1,40 @@
+#
+# probe-less-src -- the sha256 of the less 710 source tarball, measured
+# by the daemon's own fetch rather than by downloading it anywhere else.
+# The declared sha256 is deliberately all zeroes, so the fetch fails and
+# names what the bytes hash to (cix#378: agent and jumpbox set
+# PAGER=less, and no less package exists). Nothing builds.
+#
+package "probe-less-src" {
+    version "710"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "less" {
+            url "https://www.greenwoodsoftware.com/less/less-710.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "710-1: the sha256 of less 710's source tarball, for a less package (cix#378)."
+    }
+
+    build {
+        # Never reached: the checksum gate refuses the zeroes first.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-less-src"
+    }
+}
