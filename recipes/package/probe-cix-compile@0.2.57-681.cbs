@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "11a39fd6680dfa585e209f293d23e075f0ae474b2535b5e49a7b5123c0a63dad"
         "changelog" "0.2.57-681: compile and selftest probe of commit b50e574f: a sync-applied image recipe installs its new rolling entries (cix#669)."
     }
 
