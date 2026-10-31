@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5f183c6af69bbbd2e7e9644d8a3ae2ba52e394f02f5d6a52abf826ce3df8e373"
         "changelog" "0.2.57-680: compile and selftest probe of commit 34e2fb41: a recipe's output rolls with its recipe (cix#378)."
     }
 
