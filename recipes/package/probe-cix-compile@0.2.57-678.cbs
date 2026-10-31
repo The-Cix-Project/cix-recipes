@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2c70b417581948e9bddf7c52d2a82385c393205ef78e50b2c83e0cbbf2ead3dc"
         "changelog" "0.2.57-678: compile and selftest probe of commit 08516b67: comparisons and write-back count every approval line (cix#378)."
     }
 
