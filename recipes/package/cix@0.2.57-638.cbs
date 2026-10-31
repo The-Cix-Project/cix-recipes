@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3f75d6b7c443c63639f011e15637e506c1fd2a57aab142d731ebd6ac203d9a2a"
         "changelog" "0.2.57-638: an install takes its own artifact, unpacked, never the build's whole dest, so a recipe's outputs install only their own files (cix#378, ADR-0367)."
     }
 
