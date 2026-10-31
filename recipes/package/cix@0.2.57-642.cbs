@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c0555ee1acd7c20800e64aff0baa15db8604c5a9d026e7ccc4e5eeba2d6c3909"
         "artifact_sha256.cixctl" "913fc5dbfeb73ac94b2b6aec66861013e04ded01a54fcde438d0fd90c070a6e6"
         "changelog" "0.2.57-642: a recipe's output rolls with its recipe, so cixctl in a workload image follows each cix release (cix#378, ADR-0367)."
     }

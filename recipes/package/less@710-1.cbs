@@ -48,6 +48,7 @@ package "less" {
     }
 
     metadata {
+        "artifact_sha256" "a599997bc7dc2f0c2cdea9618a29cea93dbef47d8489d9c24a959ba2e15c20ae"
         "changelog" "710-1: first revision. jumpbox and agent set PAGER=less and cixctl pages through less, and no less package existed (cix#378)."
     }
 
