@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1cb8d332c8dc0fcd6d712c88811b1edcf6c45c439b71631f7f9edcd48b9bd25f"
         "changelog" "0.2.57-676: compile and selftest probe of commit cbed1eca: assembly takes cixctl from the cixctl package (cix#378)."
     }
 
