@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "acdd1124fce7336c44b82264beb185e40238b7843c6ca48e7ea969574a732299"
         "artifact_sha256.cixctl" "46ff92ffd8e1c2bbed7c29a7a2a48c4da3d0dfe90f64df4ce423221693dcd217"
         "changelog" "0.2.57-641: cixctl takes its server from CIXCTL_HOST and CIXCTL_PORT when no flag names it, so a workload container sets it once (cix#667)."
     }
