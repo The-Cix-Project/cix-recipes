@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "97f64de631da4b74b9acda8f06db6b061687e53173c81451de0f1f73d9410699"
         "changelog" "0.2.57-687: compile and selftest probe of commit 57d52b47: an admin group keeps every permission as the vocabulary grows (cix#670)."
     }
 
