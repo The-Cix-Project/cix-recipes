@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d547d469202d3209f5ae5e1397dae8db69fba68010f6771290b253c4312dad71"
         "changelog" "0.2.57-690: compile and selftest probe of commit 96f751a6: docs catch up to 0.2.57-650, and test_docindex names the MCP gateway (cix#391)."
     }
 
