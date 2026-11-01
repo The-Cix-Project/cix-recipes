@@ -83,6 +83,7 @@ package "hibr" {
     }
 
     metadata {
+        "artifact_sha256" "789d7533223734a886af847d141a75949fba4880af73adc41bdce382a7b1b15b"
         "changelog" "0.99.409-1: hibr 0.99.409, sha256 a467288c398341820fe2619ef3e688931d20787782ed84adcfc63e805a7442e8, verified by origin trust: the release archive fetched from trusted origin https://git.home.arpa at 2026-11-01T12:50:59Z. Written by cixd from 0.99.408-1 (ADR-0323)."
     }
 
