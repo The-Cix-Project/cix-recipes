@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "57ee153ae70a33e2bad626b5095d99239538da1ffbe6542d96e515a93c90cbe4"
+        "artifact_sha256.cixctl" "c3e63bb012a8f7d2749a9cc19e7b94032d288e932d97163e2afcb3c4f7d73928"
         "changelog" "0.2.57-645: a failed build says how its command ended, with its exit code or the signal that killed it (cix#666, #489)."
     }
 
