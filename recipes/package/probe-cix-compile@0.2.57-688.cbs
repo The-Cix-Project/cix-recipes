@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e555a18ba4e189a49f6616a9be65eea78b2396bf89b9cdbde7479f1d68134a3c"
         "changelog" "0.2.57-688: compile and selftest probe of commit e1e1e72d: the cix-agents standard group, provisioned per name (cix#391)."
     }
 
