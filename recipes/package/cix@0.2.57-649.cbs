@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "76a980568d39db930d9b08eaa00071807c668d6f11291a8e247a59ca987a7b7c"
+        "artifact_sha256.cixctl" "a138fd9469eb509f9f84814d3ea68c28f016ba1ca43001e0e7d2ad88b53e290e"
         "changelog" "0.2.57-649: the cix-agents standard group, with standard groups provisioned per name (cix#391, ADR-0368)."
     }
 
