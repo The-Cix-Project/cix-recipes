@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "66bcb738f1e19582c8b0761ef336e4bebc1cf5fe10090e7ada38552e298d41c8"
+        "artifact_sha256.cixctl" "4dbad39547d2f9ec408cb6903a94b31d13bd84d2bad1de954a7c35aa776a2810"
         "changelog" "0.2.57-647: cixd answers MCP clients at POST /v1/mcp, with twelve read-only tools generated from the contract (cix#391, ADR-0368 step 2)."
     }
 

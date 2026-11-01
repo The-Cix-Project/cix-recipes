@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "501f35a8cdc3de8b495d3c993cd501bbfce58b152dd8c7d7a3f5ff83cce0498c"
+        "artifact_sha256.cixctl" "a02c6709cb7452e9df7b39e9844782d86fd67e1983352a949e43450e75552384"
         "changelog" "0.2.57-646: every API operation declares whether an MCP client may call it, and an off-by-default MCP switch (cix#391, ADR-0368)."
     }
 
