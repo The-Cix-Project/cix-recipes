@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "6a197940591f8cb836cb506a64c2f76105346d0f1cf4b2b50c98a26eef28af38"
         "changelog" "0.2.57-686: compile and selftest probe of commit b927cbec: the MCP gateway, ADR-0368 step 2 (cix#391)."
     }
 
