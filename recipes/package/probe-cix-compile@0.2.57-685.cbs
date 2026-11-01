@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "e15b87ccb3d6e7e4eff1ddad94a624d9eadbc1d64b097261e7a6fa124eba8325"
         "changelog" "0.2.57-685: compile and selftest probe of commit d25e2715: x-cix-mcp, the MCP switch, and its completion (cix#391)."
     }
 
