@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ae793200b4fab2b54988f267fa3683f676d9f432d9eb9defe8ea01f1d6874d0b"
         "changelog" "0.2.57-689: compile and selftest probe of commit 8a000f4c: MCP tools can write, request bodies and the DNS records (cix#391)."
     }
 
