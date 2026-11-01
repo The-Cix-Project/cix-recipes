@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "39e74008e5fedfe4b06abe888da26c45a6fe74b0793bd5f5b025c8d54bd07579"
+        "artifact_sha256.cixctl" "edf456e02e96236e15ce496cc0fa8dec99c996017e40224afb45195293333b1d"
         "changelog" "0.2.57-648: an admin group keeps every permission as the vocabulary grows (cix#670, ADR-0369)."
     }
 

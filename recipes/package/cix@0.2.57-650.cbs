@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "c68c088799bce420e505a33dde706fc873d3d50b3cf2b52ba9f8f19b72ecb28c"
+        "artifact_sha256.cixctl" "a8d802b3664f88914c2c0d9531bdf04561458ac20690defc792639099509df1b"
         "changelog" "0.2.57-650: MCP tools can write, with request bodies and the DNS records as the first writes (cix#391, ADR-0368)."
     }
 
