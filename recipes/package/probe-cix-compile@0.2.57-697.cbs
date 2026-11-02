@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "bc316ad87b826e8170df15b89288e5eb795b439b4fd1c823502338ce8fe3a1c1"
         "changelog" "0.2.57-697: compile and selftest probe of commit 60daac25: a fetched source is flushed by the fetch child (cix#646)."
     }
 
