@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "980e25bf78bad15bd2c6228af1beb8ff1390cec8bddc0ea033d66fc2bca1a0ea"
         "changelog" "0.2.57-693: compile and selftest probe of commit 3d11759c: 327 operations are MCP tools, held by gates (cix#391)."
     }
 
