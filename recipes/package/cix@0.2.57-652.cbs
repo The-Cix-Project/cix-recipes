@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "08276b439b97516beb6600cdf7dded9c432e4bc1339dacb050ae1735ad17a867"
+        "artifact_sha256.cixctl" "8fa0908e01f1fa9bdb5a5601e1187da842362fc48ba13200027f3c9d7cff2ce8"
         "changelog" "0.2.57-652: MCP step 5, work that parks is served and a file answers in base64; 341 tools (cix#391, ADR-0368)."
     }
 
