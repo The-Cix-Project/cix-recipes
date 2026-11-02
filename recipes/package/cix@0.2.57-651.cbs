@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "ecf161aa3091193866ba7e0a355f798fdc2c749f5752181ce5b17bc6014f83fa"
+        "artifact_sha256.cixctl" "cbcebae7e0b61b103f76bbdc2736a2f4be46fd608811ca7f0197a5fb69231ffd"
         "changelog" "0.2.57-651: 327 of 356 operations are MCP tools, held by gates, with the request body in one body argument (cix#391, ADR-0368)."
     }
 
