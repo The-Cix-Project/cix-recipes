@@ -1,0 +1,120 @@
+#
+# probe-qemu-boot -- does the installer list a NIC it has a driver for?
+# (cix#442)
+#
+# #442: a bare-metal install on 2026-09-12 offered only `lo` while the
+# box's Ethernet worked once installed. Every cause that can be checked
+# without hardware was eliminated on the issue (the drivers and modprobe
+# are on the media, nothing probes asynchronously), and v2.57.199 made
+# the installer say which of three states an empty list is. What stays
+# open is a boot of current media with a NIC one of the five drivers
+# serves. This is that boot, emulated: Cix's own qemu and OVMF, the
+# newest published installer (0.2.57-585, sha256 from the cache's own
+# listing), and an Intel e1000e card on a user-mode network.
+#
+# `romfile=` is empty because qemu here carries no option ROMs (#587);
+# a card without one still enumerates on PCI, which is all the
+# installer's modprobe and /sys/class/net need. -vga none for the same
+# reason. The serial log, where the installer's console also goes, is
+# read in on_fail, and the run is expected to end by its timeout at the
+# installer's own prompt.
+#
+package "probe-qemu-boot" {
+    version "6"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-585-x86_64.iso"
+            sha256 "8dc0b4cf883e66b976a7876956b2c8f9d4ae601c9f963d15e01bd5d5438d71f7"
+        }
+    }
+
+    requires {
+        build {
+            tool "qemu"
+            tool "ovmf"
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "6: does the installer list a NIC it has a driver for? cix-installer-0.2.57-585 booted with an Intel e1000e card on a user-mode network; the serial log shows the interface list, or which of the three diagnoses an empty one gets (cix#442)."
+    }
+
+    prepare {
+        materialize $source.iso to "${build}/cix.iso"
+    }
+
+    build {
+        # That both halves are IN the composed build environment, and
+        # which build each is. `require file` cannot be used for this:
+        # it is confined to ${src}/${build}/${dest} and refuses an
+        # absolute system path outright -- "resolves outside the
+        # confined build roots", which is 1-1's whole failure. A run
+        # argument carries no such confinement.
+        run "ls" {
+            "-la"
+            "/usr/share/OVMF"
+        }
+
+        # That the emulator runs at all, and which build it is.
+        run "qemu-system-x86_64" {
+            "--version"
+        }
+
+        # The real thing. -display none because there is no graphics
+        # here; -no-reboot so a reset ends the run rather than looping;
+        # serial to a file rather than stdio, which needs no terminal
+        # and is readable afterwards whatever happened.
+        run "qemu-system-x86_64" {
+            "-machine"
+            "q35"
+            "-m"
+            "1024"
+            "-netdev"
+            "user,id=n0"
+            "-device"
+            "e1000e,netdev=n0,romfile="
+            "-vga"
+            "none"
+            "-display"
+            "none"
+            "-no-reboot"
+            "-bios"
+            "/usr/share/OVMF/OVMF.fd"
+            "-cdrom"
+            "${build}/cix.iso"
+            "-serial"
+            "file:${build}/serial.log"
+            timeout 4m
+        }
+
+        # Reached only if qemu exited by itself inside the window.
+        # Either way the phase must fail, so nothing is published.
+        run "false" {
+        }
+
+        on_fail {
+            run "ls" {
+                "-la"
+                "${build}"
+                allow_failure
+            }
+            run "cat" {
+                "${build}/serial.log"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-qemu-boot" parents
+    }
+}
