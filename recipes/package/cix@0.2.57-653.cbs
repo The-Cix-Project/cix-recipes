@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9ca783e56338d3f279e701bdae019b1b7e4d855cb5e2c1c4efaea5aa5aebd3a1"
+        "artifact_sha256.cixctl" "6d901ebe5d6e8459650e26357a54008617ab261616ad8dbb6238a21f8874c86c"
         "changelog" "0.2.57-653: an app password never writes identities (cix#391, ADR-0370)."
     }
 
