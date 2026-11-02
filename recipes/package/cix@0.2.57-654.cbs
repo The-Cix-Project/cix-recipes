@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "d8b58ad6d57b9c071c01f0cf5f5a3d2b19a8b06739dee56a6cea0ca4044fdb9a"
+        "artifact_sha256.cixctl" "86ddabfe832ae16178c49dc81e7957bb87c5c5c7f652346729164665f1c146e0"
         "changelog" "0.2.57-654: a fetched source is flushed by the fetch child, so build prep clones it at metadata cost (cix#646)."
     }
 
