@@ -59,6 +59,7 @@ package "ncurses" {
     }
 
     metadata {
+        "artifact_sha256.ncurses-dev" "a40e4e98375d71422ba728d8c95ddfb98aa189e86a40e61fd339b46c8d9f8be7"
         "changelog" "6.6-12: headers, pkg-config files, ncursesw6-config and the section 3 man pages move to an ncurses-dev output (ADR-0372, cix#350). tool \"ncurses\" still composes them; the libraries, the terminfo database and the programs stay in ncurses, so the control-plane root carries no headers (ADR-0371)."
     }
 
