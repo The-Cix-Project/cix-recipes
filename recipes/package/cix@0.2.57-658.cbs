@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "05ee931c5f677883d731b2fcf6f98c5b6c375a653cf3882885c6eea4d9e75fc1"
+        "artifact_sha256.cixd" "f3cdf693169d71cce99f9d53bb30c8b8897ef4a9f43dc8e560000018e51ab211"
+        "artifact_sha256.cixctl" "0ac34fc30bf0d57ff09a168cafa5bc7df57be1150a9b27e0b60cfe37b622de47"
         "changelog" "0.2.57-658: the root and the installer take their module tree from the kernel-modules output of the installed kernel hostbuild; a kernel hostbuild without one is refused (ADR-0371, cix#350)."
     }
 

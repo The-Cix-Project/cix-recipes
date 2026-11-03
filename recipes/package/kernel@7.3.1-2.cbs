@@ -98,6 +98,8 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256" "08ead58a1e1596c658a95979e04f5c323727008412596622016bdf1e6f11dd31"
+        "artifact_sha256.kernel-modules" "1ba12cb8d8a39eaac66dc00efec891f74b52e5fa300c4d2cfefd2b51fd73ac9a"
         "changelog" "7.3.1-2: the same kernel 7.3.1, with lib/modules moved into a kernel-modules output, which the control-plane root and the installer ISO take their module tree from (ADR-0371, cix#350). bzImage stays in the main package."
     }
 
