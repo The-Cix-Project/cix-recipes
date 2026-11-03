@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b438db40e112c0b96039939301a9ad7d63bc7b38fcb59bcdef368166fb0c2163"
+        "artifact_sha256.cixd" "23784b34d49a65fca6be01f2e44726d39fe3e8a27655bb16d02f6c17dc6defce"
+        "artifact_sha256.cixctl" "066ae7289bc79482419d477103399facf66ef29c72aa921a5e635eab9a956ea2"
         "changelog" "0.2.57-657: declares output cixd, which carries bin/cixd, bin/cix-init and web at their root paths; the 656 daemon assembles the root from it (ADR-0371, cix#350)."
     }
 
