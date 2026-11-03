@@ -86,6 +86,7 @@ package "curl" {
     }
 
     metadata {
+        "artifact_sha256" "2278cfe90bd4df1f10abbc0f3e195c26aa89cd03257c6e50260a87333f10b55c"
         "artifact_sha256.curl-dev" "fd736231316ef415a9ddedda57496a476bd80e454bcfa9edc3c9872c7368c5eb"
         "changelog" "8.21.0-8: headers and libcurl.m4 move to a curl-dev output (ADR-0372, cix#350). tool \"curl\" still composes them; the library and the CLI stay in curl, so the control-plane root carries no headers (ADR-0371)."
     }

@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "23b5d5b59541b279488f0b315fb9f88ba19c7219a6b00baf98575bb6684c5a6b"
+        "artifact_sha256.cixctl" "35e99ddb82ab185c7d1ae5bfb276c9e27c5f1c5c0e9280291100b26096f9ea84"
         "changelog" "0.2.57-656: the root takes cixd, cix-init and web from the cixd output of the same build, as it takes cixctl; this recipe is still flat, and the next declares output cixd (ADR-0371, cix#350)."
     }
 
