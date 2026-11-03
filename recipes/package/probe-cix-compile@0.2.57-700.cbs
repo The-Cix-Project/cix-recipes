@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "51572cfd06c931d423d786a4b4e32e7540a2bdf5d2c3acec97e35137e656041c"
         "changelog" "0.2.57-700: compile and selftest probe of commit ee3c213a: the root takes cixd from the cixd output, with test_pkg_cache serving it (ADR-0371, cix#350)."
     }
 
