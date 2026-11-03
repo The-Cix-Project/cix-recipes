@@ -90,6 +90,7 @@ package "openssl" {
     }
 
     metadata {
+        "artifact_sha256.openssl-dev" "7d1fef75f1d14f7eb096e3b5c023aadde91ff37573b8438afd8a210bb397a4d7"
         "changelog" "3.0.20-8: headers and pkg-config files move to an openssl-dev output (ADR-0372, cix#350). tool \"openssl\" still composes them; the libraries, the CLI and openssl.cnf stay in openssl, so the control-plane root carries no headers (ADR-0371)."
     }
 
