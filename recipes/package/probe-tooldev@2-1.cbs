@@ -1,0 +1,59 @@
+#
+# probe-tooldev -- does a declared build tool bring its whole build
+# (ADR-0372)? openssl 3.0.20-8, curl 8.21.0-8 and ncurses 6.6-12 moved
+# their headers and pkg-config files into -dev outputs (cix#350). This
+# recipe names only the main packages, and its build tests for files
+# that only the -dev outputs carry, so it builds only when composition
+# brings them.
+#
+package "probe-tooldev" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cix" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix/archive/0.2.57-655.tar.gz"
+            sha256 "fa022b9570dc965cae5be1465a3ca2d8d5696125c56506f8e646e4c103052821"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "openssl@3.0.20-8"
+            tool "curl@8.21.0-8"
+            tool "ncurses@6.6-12"
+        }
+    }
+
+    metadata {
+        "changelog" "2-1: the tools pinned to the split versions, whose main packages carry no headers, so the headers can only come from their -dev outputs (ADR-0372, cix#350). 1-1 passed its build but could have composed 3.0.20-7, which still had them."
+    }
+
+    build {
+        run "test" {
+            "-f" "/usr/include/openssl/ssl.h"
+        }
+        run "test" {
+            "-f" "/usr/lib/pkgconfig/openssl.pc"
+        }
+        run "test" {
+            "-f" "/usr/include/curl/curl.h"
+        }
+        run "test" {
+            "-f" "/usr/include/curses.h"
+        }
+        run "test" {
+            "-f" "/usr/lib/pkgconfig/ncursesw.pc"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-tooldev" parents
+        write "${dest}/usr/share/probe-tooldev/ok" """
+            composed
+            """
+    }
+}
