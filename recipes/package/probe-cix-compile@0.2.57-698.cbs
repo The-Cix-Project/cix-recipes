@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "67a43075f5e2360be0a5bdb5e4aca69900ef908d1489ca8f5bdb622b601ebea2"
         "changelog" "0.2.57-698: compile and selftest probe of commit 06ea5f00: a build tool brings its whole build (ADR-0372, cix#350)."
     }
 
