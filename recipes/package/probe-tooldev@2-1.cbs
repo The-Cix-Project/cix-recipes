@@ -29,6 +29,7 @@ package "probe-tooldev" {
     }
 
     metadata {
+        "artifact_sha256" "fa6e8c50a2fbb1bda88cede94ea9f321266081473af6d14f72c62d7895d4bbfc"
         "changelog" "2-1: the tools pinned to the split versions, whose main packages carry no headers, so the headers can only come from their -dev outputs (ADR-0372, cix#350). 1-1 passed its build but could have composed 3.0.20-7, which still had them."
     }
 
