@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "16fd9d47bd02cec1f65a166419fc0937ae10f74d8f7ea8b70dc8249c34bae1c6"
         "changelog" "v0.1.129-1: seven releases on v0.1.122. A package declares the ABI it offers (abi, cbs#312, for cix ADR-0373), and an output's own license, requires and replaces are validated (cbs#313). Also v0.1.123-v0.1.128: build stdin is /dev/null, the finalizer is bound by content, CPDL-E3xxx codes for upstream-block errors (cbs#307), links on non-ELF reports errno=8 (cbs#310). ABI unchanged at 6, exit codes, --output-dir, events and the artifact format unchanged."
     }
 
