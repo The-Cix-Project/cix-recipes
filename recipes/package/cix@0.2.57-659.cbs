@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "800f702998b4a6284e3e7b5da2453d8c59b99a7a4207a46f0ffa433514e27a72"
+        "artifact_sha256.cixd" "b05a710cfc879c1f45b4b4af4a7f40b828e5fec0e5ed6a53161c1f554a4dfeff"
+        "artifact_sha256.cixctl" "f398ebb0222f93ec2858fa1bd91cd8485de8bdfbd353ee25b08a64e686016b42"
         "changelog" "0.2.57-659: cixd reads the ABI a package or output offers (cbs_explain_abi), and the test floor moves to cbs v0.1.129 with the corpus pinned at 4c349b0b (ADR-0373, cix#672)."
     }
 
