@@ -1,0 +1,40 @@
+# probe-cbs-tarball -- the sha256 of a cix-build-system release archive,
+# measured by the box: the declared sha256 is zeroes, so the fetch fails
+# its checksum gate and pkg ls reports what the bytes hash to (the same
+# shape as probe-cix-tarball).
+#
+package "probe-cbs-tarball" {
+    version "129"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.129.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "129-1: the sha256 of cix-build-system v0.1.129's archive, for cbs@v0.1.129-1 (ADR-0373, cix#672)."
+    }
+
+    build {
+        # Never reached. Here so the recipe is complete, and so a
+        # revision that somehow gets past the checksum gate still
+        # publishes nothing.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-cbs-tarball"
+    }
+}
