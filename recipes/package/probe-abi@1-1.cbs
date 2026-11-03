@@ -1,0 +1,38 @@
+# probe-abi -- publish-only: proves the host root's cbs accepts `abi` (ADR-0373).
+#
+package "probe-abi" {
+    version "1"
+    release 1
+    format "cixpkg"
+    abi "1"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.129.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: publish-only proof that the root's cbs accepts an abi declaration (cbs v0.1.129, ADR-0373, cix#672). Never installed."
+    }
+
+    build {
+        # Never reached. Here so the recipe is complete, and so a
+        # revision that somehow gets past the checksum gate still
+        # publishes nothing.
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-abi"
+    }
+}
