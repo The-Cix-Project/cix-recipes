@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1e85897782626aafc0cbbe60ff88d6f3c53f3312e0d2b4c0374afd85c56dc62b"
         "changelog" "0.2.57-702: compile and selftest probe of commit 12cab435: cixd reads the ABI an entry offers, and the floor moves to cbs v0.1.129 with the corpus pinned at 4c349b0b (ADR-0373, cix#672)."
     }
 
