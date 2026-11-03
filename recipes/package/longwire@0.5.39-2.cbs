@@ -65,6 +65,7 @@ package "longwire" {
     }
 
     metadata {
+        "artifact_sha256" "f76e4c3af213978d887c8431edf59aad41e5ce33f88da5c16c17e5ae156909ba"
         "changelog" "0.5.39-2: the same longwire 0.5.39, rebuilt against hibr 0.99.432. The module takes its ABI from hibr.h at build time, so 0.5.39-1, built against hibr 0.99.431, is ABI 16, and hibr 0.99.432 (rolled into vpn on 2026-11-03) expects 17: vpn-1 exited at every start with \"hibr: mod: longwire: abi 16, shell expects 17\"."
     }
 
