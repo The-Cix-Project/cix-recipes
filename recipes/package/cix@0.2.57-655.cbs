@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "bf5d093daacd837b2fd358c8c78eed286109d8d8b2464fc80749ce0bd51dfc97"
         "artifact_sha256.cixctl" "9f51ce5a0181bd153cbf617cd0ef8dd3ba35d2c497f025fc2b64ff3efb346ade"
         "changelog" "0.2.57-655: a build tool brings its whole build -- its recipe's outputs at the same version (ADR-0372, cix#350)."
     }
