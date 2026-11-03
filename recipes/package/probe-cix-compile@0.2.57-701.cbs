@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "515bc31df4afde08c1f90f0c21f16ecda5d31be097896d35e18952c50bdd451d"
         "changelog" "0.2.57-701: compile and selftest probe of commit f8a2bf47: the root and the installer take modules from kernel-modules (ADR-0371, cix#350)."
     }
 
