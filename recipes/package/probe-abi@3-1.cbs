@@ -1,0 +1,33 @@
+# probe-abi -- an installable provider that declares an ABI (ADR-0373).
+#
+# 3-1 offers abi 2, so installing it where probe-abiuse@1-1 (built
+# against abi 1) is held, and elsewhere it is not (release C, cix#672).
+package "probe-abi" {
+    version "3"
+    release 1
+    format "cixpkg"
+    abi "2"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.129.tar.gz"
+            sha256 "88de6bb1b85cbd68582ca7ebae00d47996381d50d0a33b79af4cb44af5db76c2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "3-1: offers abi 2, for the ADR-0373 release C live gate: held from an image whose probe-abiuse was built against abi 1 (cix#672)."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-abi" parents
+        write "${dest}/usr/share/probe-abi/abi" "2\n"
+    }
+}
