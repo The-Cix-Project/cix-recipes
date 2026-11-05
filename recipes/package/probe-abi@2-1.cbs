@@ -25,6 +25,7 @@ package "probe-abi" {
     }
 
     metadata {
+        "artifact_sha256" "f07af99c961ec12bb98d2dd3a5d7c8809283c2d915234e9a71c5d2f49633c6a9"
         "changelog" "2-1: installable, declaring abi 1, for the ADR-0373 release B live gate (cix#672)."
     }
 
