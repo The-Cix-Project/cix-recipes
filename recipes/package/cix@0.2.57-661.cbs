@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0e48be8b68679c004cfa9cdd5e4958b7a4e4d1d1f4da2774f216f76a55ce5075"
+        "artifact_sha256.cixd" "02d9535723cf4f8c0de0a0ca5db3db6feb59638b388db12717e42371f1a714d1"
+        "artifact_sha256.cixctl" "64775af454731db781f21a34360614bd8b2a933dbb413ed0b00868ccc0446e07"
         "changelog" "0.2.57-661: the ABI hold over an image's target set (409, install/blocked), and follower containers roll only onto a settled image (ADR-0373 release C, ADR-0374, cix#672)."
     }
 
