@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "df4834b52a75dfc9767c992d6debc85e7b53fedc063862161fdb3f9b3613aa8a"
+        "artifact_sha256.cixd" "df8f9445d5fe5ced9ae503c4ea5017c34275a68acf5d7be89b3f821fdf5334ed"
+        "artifact_sha256.cixctl" "34755666594f073fdd44295bbe55eb45915ce8b47a890fcf6dd57bdef5d2b010"
         "changelog" "0.2.57-660: cixd records what each build was built against, as built_against beside its approval (ADR-0373 release B, cix#672)."
     }
 
