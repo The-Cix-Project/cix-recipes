@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f59b1d7fc022252659f8849236324475654be42a43641d1e9f93c8b14235f12d"
         "changelog" "0.2.57-703: compile and selftest probe of commit 84e8ea4f: cixd records what each build was built against, beside its approval (ADR-0373 release B, cix#672)."
     }
 
