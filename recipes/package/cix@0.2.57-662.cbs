@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "10ca330bb884e8db2bdf69e960a14f1b8cbcf9fbd2b917b56c0d58415ae58aa6"
+        "artifact_sha256.cixd" "2ccee34b4606f591a09d471396d59155a624b7e8968a131e5b2596691f1b0e3b"
+        "artifact_sha256.cixctl" "5f414a752467093011f07b565586f3c77db3d52eaa43b5c4e43cb0e8393b0f76"
         "changelog" "0.2.57-662: the ABI hold's sentence reaches the 409 and the log whole (cix#672)."
     }
 
