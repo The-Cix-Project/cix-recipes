@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "849ada9097d614a3214490d0c719cdf62d347485783719cd6b2bb073d5b53088"
         "changelog" "0.2.57-706: compile and selftest probe of commit 9d203fb1: test_container_stats commits the data directory before each disk read (cix#671)."
     }
 
