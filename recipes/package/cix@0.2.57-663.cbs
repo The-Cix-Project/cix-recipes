@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f35d349fd753bb4d376ad01f9ad8f67b12a80285f10df9fa39574d1f97510630"
+        "artifact_sha256.cixd" "51b9c9ece9369660634b619dd74586913069320bcb31098619839afd62fdac2e"
+        "artifact_sha256.cixctl" "3457ba8191a9f285c883da193b3fb755a7bdfe725dac2c0b56c32dea5356b811"
         "changelog" "0.2.57-663: cixd authors a consumer's rebuild when its provider's ABI moves, and the hold judges a consumer with no record yet by what it runs (ADR-0373 release D, cix#672); test_container_stats commits before each disk read (cix#671)."
     }
 
