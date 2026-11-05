@@ -23,6 +23,7 @@ package "probe-abi" {
     }
 
     metadata {
+        "artifact_sha256" "6874b451b3f5d9a277a36a0d3032e7436ca7de1c38d548d24c27357835098f13"
         "changelog" "3-1: offers abi 2, for the ADR-0373 release C live gate: held from an image whose probe-abiuse was built against abi 1 (cix#672)."
     }
 
