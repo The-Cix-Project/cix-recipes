@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "176a2643c8de393053780cc3a493fe19184df76009a03a415d5ccffe4bd86267"
         "changelog" "0.2.57-705: compile and selftest probe of commit ccdf356e: the ABI hold's sentence reaches the 409 whole (cix#672)."
     }
 
