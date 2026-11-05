@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "9d16f2d44aa3fe3d4784ea312834b90b714a9329b44c9a707c647f27746fea97"
         "changelog" "0.2.57-707: compile and selftest probe of commit a6c28650: cixd authors a consumer's rebuild when its provider's ABI moves (ADR-0373 release D, cix#672)."
     }
 
