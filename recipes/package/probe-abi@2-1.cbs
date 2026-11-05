@@ -1,0 +1,35 @@
+# probe-abi -- an installable provider that declares an ABI (ADR-0373).
+#
+# 2-1 installs one file, so probe-abiuse can compose it as a build tool
+# and its build records "probe-abi=1" beside its approval (release B,
+# cix#672). Its own build composes no ABI-declaring tool, so its recipe
+# gets an approval and no record.
+package "probe-abi" {
+    version "2"
+    release 1
+    format "cixpkg"
+    abi "1"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.129.tar.gz"
+            sha256 "88de6bb1b85cbd68582ca7ebae00d47996381d50d0a33b79af4cb44af5db76c2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "2-1: installable, declaring abi 1, for the ADR-0373 release B live gate (cix#672)."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-abi" parents
+        write "${dest}/usr/share/probe-abi/abi" "1\n"
+    }
+}
