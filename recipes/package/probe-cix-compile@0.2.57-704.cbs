@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "457ad5cf125ed9669c8358deeed7ee7457cca3fb5ff348c44767312cabafb1ab"
         "changelog" "0.2.57-704: compile and selftest probe of commit cabd04c3: the ABI hold over an image's target set, and containers roll once their image settles (ADR-0373 release C, ADR-0374, cix#672)."
     }
 
