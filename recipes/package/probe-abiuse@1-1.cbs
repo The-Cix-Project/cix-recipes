@@ -25,6 +25,8 @@ package "probe-abiuse" {
     }
 
     metadata {
+        "artifact_sha256" "54c64ce1837c6e928947a4bd7d6fae551ca557a3b297689eebd71e645dc81519"
+        "built_against" "probe-abi=1"
         "changelog" "1-1: composes probe-abi (abi 1), for the ADR-0373 release B live gate (cix#672)."
     }
 
