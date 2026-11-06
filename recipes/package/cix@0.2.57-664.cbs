@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "32243c6f350ed502adf3c61199b7f3746a160c727138eb5429b665dea38f2e54"
+        "artifact_sha256.cixd" "02c4255fcd401d56d9704d68db2a9bf59d448245074aedace3500cb063c94da4"
+        "artifact_sha256.cixctl" "8d1e298ed4c7aac04ae2ca721d2ec03bee2e534852a7b0df94f713a9fae6e5e1"
         "changelog" "0.2.57-664: the control plane upgrades in place: when the staged root carries the running kernel, the host roll switches the root into it and every container keeps running; a refused switch, or a kernel change, reboots as before (ADR-0375 phases 1-5, cix#673). This release itself reaches a host by reboot; the next is the first in-place switch."
     }
 
