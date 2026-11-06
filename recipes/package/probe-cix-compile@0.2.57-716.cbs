@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1585b65e85adc57d9d6d680311e0b0337887592f9c801efc9211573f576e94a2"
         "changelog" "0.2.57-716: compile and selftest probe of commit 0d3c4f56: an ESP rename fsyncs the renamed file (ADR-0375 phase 4, cix#673)."
     }
 
