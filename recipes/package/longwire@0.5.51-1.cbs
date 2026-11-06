@@ -65,6 +65,7 @@ package "longwire" {
     }
 
     metadata {
+        "artifact_sha256" "26bf450e52ca18e0c73d41541598ebf2185503ade90bf187e34743d26dd97982"
         "changelog" "0.5.51-1: longwire 0.5.51, sha256 660b4b2479d258c0156bebc4a5b3923c9995584046af4eb5a306a549427da2a9, verified by origin trust: the release archive fetched from trusted origin https://git.home.arpa at 2026-11-06T04:58:38Z. Written by cixd from 0.5.50-1 (ADR-0323)."
     }
 
