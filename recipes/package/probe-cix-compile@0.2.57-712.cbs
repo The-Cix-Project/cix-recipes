@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "9cfbd63a40a9a06e263dc673b0b9677e0dc8fa253a3fdb72abcb1dcf356dc62a"
         "changelog" "0.2.57-712: compile and selftest probe of commit 0fe8b2c0: the handover record and its kernel checks (ADR-0375 phase 2, cix#673)."
     }
 
