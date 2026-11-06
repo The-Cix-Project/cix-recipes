@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "8ca817147d4baf3043f63693039bee3568f5e9fbcb4501c0217956d942196967"
         "changelog" "0.2.57-710: compile and selftest probe of commit 826461ed: a container's network attachments are part of its plan (ADR-0375 phase 2a, cix#673)."
     }
 
