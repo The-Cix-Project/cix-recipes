@@ -1,0 +1,41 @@
+# probe-abiuse -- a consumer built against probe-abi (ADR-0373).
+#
+# 1-1 composes probe-abi, which declares abi "1", and checks that its
+# file is in the build. Once its artifact is pushed, cixd writes its
+# approval and "built_against" "probe-abi=1" into this recipe in one
+# edit, and the write-back brings both to git (release B, cix#672).
+package "probe-abiuse" {
+    version "1"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "cbs" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.129.tar.gz"
+            sha256 "88de6bb1b85cbd68582ca7ebae00d47996381d50d0a33b79af4cb44af5db76c2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "probe-abi"
+        }
+    }
+
+    metadata {
+        "changelog" "1-2: rebuilt from probe-abiuse@1-1, unchanged, because probe-abi's newest installed version offers ABI 2 and probe-abiuse@1-1 was built against another. Written by cixd (ADR-0373)."
+    }
+
+    build {
+        run "test" {
+            "-f" "/usr/share/probe-abi/abi"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-abiuse" parents
+        write "${dest}/usr/share/probe-abiuse/built" "probe-abi=1\n"
+    }
+}
