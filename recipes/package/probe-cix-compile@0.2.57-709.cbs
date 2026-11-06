@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1e0185ff8782953a53f0d34acd9a9bb0ec9ad9aeb322e42ea60987783634bc3a"
         "changelog" "0.2.57-709: compile and selftest probe of commit f509f2d2: the first slice of the container plan and one registry fill (ADR-0375 phase 2a, cix#673)."
     }
 
