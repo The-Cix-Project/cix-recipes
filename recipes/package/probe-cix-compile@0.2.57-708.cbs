@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f2d2a45e8c44866e2c8a1671329714b5caf792cde43b15fe6337c0b4b9f44a0b"
         "changelog" "0.2.57-708: compile and selftest probe of commit 876e6624: cixd can start again in the kernel it is running in (ADR-0375 phase 1, cix#673)."
     }
 
