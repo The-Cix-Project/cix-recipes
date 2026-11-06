@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "47d182f48133e5b8ced695e1916dbcdb5bd0bb1a856aaad15efddf28deca6418"
         "changelog" "0.2.57-711: compile and selftest probe of commit 17ccc847: a container's interface names are part of its plan (ADR-0375 phase 2a, cix#673)."
     }
 
