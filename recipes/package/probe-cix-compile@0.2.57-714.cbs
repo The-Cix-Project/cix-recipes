@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "968d039254eaa590d607fd024483933353fa539d80cac99bc56ca1a28a18002d"
         "changelog" "0.2.57-714: compile and selftest probe of commit 18b19c3e: a handover carries procfuse, console shells and half-written lines (ADR-0375 phase 3, cix#673)."
     }
 
