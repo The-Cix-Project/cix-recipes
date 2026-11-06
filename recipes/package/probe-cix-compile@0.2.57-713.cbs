@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "28bd5360ba0dd000e78b95d50bf9ca81b4fdd97c6a4740c634c67c54b86f4bbe"
         "changelog" "0.2.57-713: compile and selftest probe of commit 8088e7fc: cixd takes over its running containers across an in-place exec (ADR-0375 phase 2, cix#673)."
     }
 
