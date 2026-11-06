@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7852a39d7ea916b7ec89045eeb3016eb6626e4961e4f1568b7db9b37a9e20282"
         "changelog" "0.2.57-717: compile and selftest probe of commit b7093766: the host roll switches the root in place (ADR-0375 phase 5, cix#673)."
     }
 
