@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "685ad01ecfb19331b94c9b22e05365b3dc77e6608275843a19c099a86f980fef"
         "changelog" "0.2.57-719: compile and selftest probe of commit a2e36aa1, the candidate for the first live switch (ADR-0375, cix#673)."
     }
 
