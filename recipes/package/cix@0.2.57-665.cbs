@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "02d77825a241e57faed8441b806fedc933b90a9ad695f409a0529d9b944976ec"
+        "artifact_sha256.cixd" "bde5daab69ea8738201a6bb215e44cd79af836a407243cb77ab1b5be4abcdb2d"
+        "artifact_sha256.cixctl" "c28184cf90f0f4f5089f2fb24524316ca66b44aaf8bbf2116e34be9ad0fdeff2"
         "changelog" "0.2.57-665: documentation of the in-place upgrade (ROADMAP Part 360, guides); the first release the host roll can switch into in place, under the running kernel, with every container kept running (ADR-0375, cix#673)."
     }
 
