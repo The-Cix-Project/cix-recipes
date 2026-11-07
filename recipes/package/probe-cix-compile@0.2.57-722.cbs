@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "071731b3fdfb5d35793736600a77c51ddbb53a21aa5c5c8970f91b7c854b1f32"
         "changelog" "0.2.57-722: compile and selftest probe of commit f60595b5, the 0.2.57-666 release commit (ADR-0375, cix#673)."
     }
 
