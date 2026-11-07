@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "a45bb450b295cdc707501129c31c04d9fc3d95ff062eac66f72fc7f05cd5fef3"
         "changelog" "0.2.57-721: compile and selftest probe of commit 1ea52763: the restored kmod scan report is not overwritten at startup (ADR-0375, cix#673)."
     }
 
