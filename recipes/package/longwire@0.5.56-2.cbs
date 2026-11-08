@@ -65,6 +65,8 @@ package "longwire" {
     }
 
     metadata {
+        "artifact_sha256" "eae53f4a8b0df0171ad95c4125e3bbc10e096cb9fd539379aaf2a19d5c33a130"
+        "built_against" "hibr=17"
         "changelog" "0.5.56-2: rebuilt from 0.5.56-1, unchanged, so the build records the hibr ABI it was built against (hibr declares abi 17 since 0.99.471-2); from here an ABI move by hibr is held in vpn and cixd writes longwire's rebuild (ADR-0373, cix#672)."
     }
 
