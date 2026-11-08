@@ -86,6 +86,7 @@ package "hibr" {
     }
 
     metadata {
+        "artifact_sha256" "e4f737c57280dbc0678b2078b97958258bddb0b3ef57d2d91d7d9cd64eda3f78"
         "changelog" "0.99.471-2: declares abi \"17\" and checks it against the installed hibr.h, so the hold and the rebuild author protect its modules (ADR-0373 decision 6, cix#672)."
     }
 
