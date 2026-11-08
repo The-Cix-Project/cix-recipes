@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "949ba8a5b5cc06971fb0a07fbd267911eabbc68d8cd8d282f99f9bf639a687ca"
         "changelog" "0.2.57-723: compile and selftest probe of commit 17c8b88a: nothing keeps running from the old root after a switch (ADR-0375, cix#673)."
     }
 
