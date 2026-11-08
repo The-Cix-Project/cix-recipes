@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "300bd57001602cc794483afd0cf057a2040de6c956fa5fdfd03e50311bac76c1"
+        "artifact_sha256.cixd" "b7e23350bb94008f713fac7677a63365e2047e679c236e018d27341c3fe2df9b"
+        "artifact_sha256.cixctl" "b7bca11e46b5ce8df4d6ef468a1bf5bcccc460842ec5db85b7ae9b275aeca97c"
         "changelog" "0.2.57-666: a handover keeps the kernel module scan report, runs a schedule due during the exec, and does not overwrite the restored report at startup (ADR-0375, cix#673)."
     }
 
