@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "f43c8021a2240ad144ae7cdc7b9f82261aa6a54da603d4902196f26ad0698238"
+        "artifact_sha256.cixd" "b876314bf96705b7687404f8302497c87cc1abf2a3c720f27f9aea13d8aee65b"
+        "artifact_sha256.cixctl" "fd3f5ae06bd8efb0d4e7066eebf6f75d7fcd359c060c7815e1077d74188b2f4f"
         "changelog" "0.2.57-667: nothing keeps running from the old root after a root switch -- procfuse's server is replaced on the same FUSE connection and the console shells respawn -- so the slot left is free for the next update (ADR-0375, cix#674)."
     }
 
