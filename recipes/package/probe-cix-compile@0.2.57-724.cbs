@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2e241c65c50ad21504d3370934255c52f0cce072d60e65c75ca5c04fb7469953"
         "changelog" "0.2.57-724: compile and selftest probe of commit b0f7e3ed: the announcement self-check reads in a helper child (ADR-0376, cix#646)."
     }
 
