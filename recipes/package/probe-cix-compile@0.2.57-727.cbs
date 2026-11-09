@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "98b2552940d15ead854c2ffc4c78377b856e00029309ea22325f896d723cc5ca"
         "changelog" "0.2.57-727: compile and selftest probe of commit ccc2ea39: the disk snapshot, its touch announced and probed_at a moment (ADR-0377 part 1, cix#675)."
     }
 
