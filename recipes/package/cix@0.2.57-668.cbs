@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b4e4766e684023cdce594b9941de1d169296ee411306b5ac3537bb8e325f63e2"
+        "artifact_sha256.cixd" "2afe4d22f01fd95a730239e6236001db2cab8a394a5d630728f50254503c9105"
+        "artifact_sha256.cixctl" "573c7d06c43f0d1434fd53b1ebe6ef501e60e297ea2acf69c93943c918d284e9"
         "changelog" "0.2.57-668: the announcement self-check reads in a helper child, so no handler it runs holds the event loop -- the rolling check and POST /v1/events/verify, which parks and becomes an MCP tool; the baseline stays before serving (ADR-0376, cix#646)."
     }
 
