@@ -78,6 +78,7 @@ package "squashfs-tools" {
     }
 
     metadata {
+        "artifact_sha256.squashfs-tools-extra" "5119869fb4aa30a504507358791cd42896d4ca6053f618addb853a146689d7dc"
         "changelog" "4.7.5-14: sqfscat and sqfstar move to a squashfs-tools-extra output; squashfs-tools keeps mksquashfs and unsquashfs, the two the control-plane root runs (include/controlplane_programs.h), and libgcc_s.so.1 (ADR-0371 decision E and the owner's 2026-11-10 decision to split the tool packages, cix#350)."
     }
 
