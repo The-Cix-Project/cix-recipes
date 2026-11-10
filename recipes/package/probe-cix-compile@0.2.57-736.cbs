@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "15e151d37539bbeac39a461ad24c457b72c18bd4383f9ac50fa920e4b39be866"
         "changelog" "0.2.57-736: compile and selftest probe of commit e8039ead: a resumed build sets its job's upgrade flag (cix#678)."
     }
 
