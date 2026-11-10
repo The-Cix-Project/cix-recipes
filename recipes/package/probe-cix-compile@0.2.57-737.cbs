@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "aa584fff5a5043926277c48d10dc4e146593f3c4c4d96042ac31048e8b0138a4"
         "changelog" "0.2.57-737: compile and selftest probe of commit e8039ead (0.2.57-673), rerun to prove a cix build composes every tool after the squashfs-tools, dosfstools, curl, openssl and ncurses splits (ADR-0371 decision E, cix#350)."
     }
 
