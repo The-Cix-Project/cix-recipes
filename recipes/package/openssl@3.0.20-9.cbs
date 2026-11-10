@@ -90,6 +90,8 @@ package "openssl" {
     }
 
     metadata {
+        "artifact_sha256" "74e33791cd3dbbf5174813d6640c9811d3b38bf87ee0d80bcc3b4420d96b4167"
+        "artifact_sha256.openssl-tools" "c74c41343fdae35e860215b07e6f7083fc6aef95a1646196a83ad69f938b084f"
         "artifact_sha256.openssl-dev" "281ccc48fef345b76012b0b603a2db09f9db57a4a8ed9a888ba251d1b1d1e06c"
         "changelog" "3.0.20-9: the openssl command, misc/ (CA.pl, tsget) and the two .cnf.dist copies move to an openssl-tools output; openssl keeps libssl, libcrypto, openssl.cnf and ct_log_list.cnf, which a program linking the library reads (ADR-0371 decision E, cix#350). tool \"openssl\" still composes every output (ADR-0372); an image that runs the openssl command declares openssl-tools."
     }
