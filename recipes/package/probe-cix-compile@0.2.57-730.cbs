@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "2d331fc8cdcf2634a3bfb47a3a09c186095ebb6ff8de2702619a095f815e6016"
         "changelog" "0.2.57-730: compile and selftest probe of commit bd659b48: ADR-0377 part 2, no device read on the loop (cix#675)."
     }
 
