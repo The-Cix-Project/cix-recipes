@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7103662a0069ffb934ac225c1036c1b63c2f4d8d136b1d5b797e839fe44ae8bd"
         "changelog" "0.2.57-732: compile and selftest probe of commit 98d10a93: cixctl at /usr/bin in the root (ADR-0371 decision C, cix#350)."
     }
 
