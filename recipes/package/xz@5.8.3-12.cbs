@@ -52,6 +52,7 @@ package "xz" {
     }
 
     metadata {
+        "artifact_sha256.xz-tools" "e71f6fce5280eeebd301e97525933aeabca3726b91530bfc0787551ce50e6da8"
         "changelog" "5.8.3-12: the programs, scripts, man pages and message catalogues move to an xz-tools output, and the headers and pkg-config file to xz-dev; the xz package keeps liblzma (ADR-0371 decision E, cix#350). tool \"xz\" still composes both (ADR-0372); an image that runs xz declares xz-tools."
     }
 
