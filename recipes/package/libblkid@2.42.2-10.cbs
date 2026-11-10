@@ -75,6 +75,7 @@ package "libblkid" {
     }
 
     metadata {
+        "artifact_sha256" "14dffdcb6f394ff54240736d648330efb2ef86a1e838d5cfc63b6eec7fc98a20"
         "changelog" "2.42.2-10: pkgconf is no longer a runtime requirement. pkg-config reads blkid.pc when a consumer builds, and a consumer declares tool \"pkgconf\" for that; nothing here runs it at runtime, so requiring it put pkg-config and its tools into every image that holds libblkid, the control-plane root among them (ADR-0371 decision E, cix#350)."
     }
 
