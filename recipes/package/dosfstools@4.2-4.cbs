@@ -49,6 +49,7 @@ package "dosfstools" {
     }
 
     metadata {
+        "artifact_sha256" "803c68ceff63caaae2c838be6d215e0ab823ca3bfe6c41d7e04e5840fa01eef9"
         "artifact_sha256.dosfstools-extra" "01f98bd6aaa3b0cd3bb743a26a4332abcef65dfaadaafe84d30d21d9ae298ec1"
         "changelog" "4.2-4: mkfs.fat, fatlabel, their man pages and the docs move to a dosfstools-extra output; dosfstools keeps fsck.fat, the one the control-plane root runs (include/controlplane_programs.h). The installer ISO takes mkfs.fat from the iso-builder image, which declares dosfstools-extra (ADR-0371 decision E and the owner's 2026-11-10 decision to split the tool packages, cix#350)."
     }
