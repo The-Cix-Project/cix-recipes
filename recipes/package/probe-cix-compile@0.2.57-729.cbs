@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "f7a877ce86f2002b0a1d832fb62f7974278b0b8e3939c71bd48ae8c92219aed8"
         "changelog" "0.2.57-729: compile and selftest probe of commit 358dfc33: the cache walk, test_pkg_cache waiting one snapshot period (ADR-0377, cix#675)."
     }
 
