@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "a64ddf2250968271c6957bd555a84c3dd4d3798f896a4a4a9cacfa0b77a54ae7"
         "changelog" "0.2.57-731: compile and selftest probe of commit 767a4ff8: an output's build spends its recipe's repo token, build-events read tallied per call (cix#677, cix#676)."
     }
 
