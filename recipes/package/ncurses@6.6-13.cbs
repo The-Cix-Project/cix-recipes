@@ -59,6 +59,9 @@ package "ncurses" {
     }
 
     metadata {
+        "artifact_sha256" "aca7eec7949eeebb7b313bbb9147898e4ac1bb59ee2f33cbf495dfe23adb905a"
+        "artifact_sha256.ncurses-terminfo" "858fa90c6d6ab60ecf14b2078bf08095585dfa24779f61527ebd25e2105f058c"
+        "artifact_sha256.ncurses-tools" "7ff367f42c6569a155fecb2d8effcc82157e3a15dd1061a2b99888d2a35bdf84"
         "artifact_sha256.ncurses-dev" "2cc8625a4252e75a0a1b21a4376e145b0bbf18b7f72bb723ef28a4ac24c03049"
         "changelog" "6.6-13: the programs (tic, tput, clear, reset, ...) move to an ncurses-tools output and the terminfo database and tabset to ncurses-terminfo; ncurses keeps its libraries (ADR-0371 decision E, cix#350). ncurses-tools requires ncurses-terminfo, since the programs read it. tool \"ncurses\" still composes every output (ADR-0372); an image that runs a terminal program declares ncurses-terminfo, and one that runs the ncurses programs declares ncurses-tools."
     }

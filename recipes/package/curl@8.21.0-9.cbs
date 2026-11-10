@@ -86,6 +86,8 @@ package "curl" {
     }
 
     metadata {
+        "artifact_sha256" "7aa749d2c72b175a911a5a09d2320eeb22ad9b233d87f9d0ed8120065822d5bf"
+        "artifact_sha256.curl-tools" "15a93e6099b7da6eb4c4d52fb1545e3482ff718cf8b2586dfa27349d9983c8b1"
         "artifact_sha256.curl-dev" "65c7d93c2ab4291de315115f1de5a5904186fd362c70e769087365156278b115"
         "changelog" "8.21.0-9: the curl command moves to a curl-tools output; curl keeps libcurl (ADR-0371 decision E, cix#350). tool \"curl\" still composes every output (ADR-0372); an image that runs the curl command declares curl-tools."
     }
