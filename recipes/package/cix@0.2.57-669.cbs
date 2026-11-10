@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5334b807d4e11209559c7f11b78c3b9f16b41dfb7aa7e5ed14c0856239161edf"
+        "artifact_sha256.cixd" "12050d55f07d5653cc37c1d7dae9fceb3ed0f73f769e78467c7c4476269ab9fd"
+        "artifact_sha256.cixctl" "6e923324278b2280e0413b37013c11189a95211d0ef6a202a96b442fded49a2f"
         "changelog" "0.2.57-669: block devices are read only in a helper child, into a disk snapshot every storage, volume, quota and device read answers from -- unknown is null -- and the artifact cache is walked and evicted by the same child (ADR-0377, cix#675)."
     }
 
