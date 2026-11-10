@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "825b9ba2d2baca0b6e0bef86ac3577489c57161ac2d5ef206c9b2b0ee7eb58ff"
         "changelog" "0.2.57-735: compile and selftest probe of commit 9e27c42f: an upgrade is a property of each chain job (cix#678)."
     }
 
