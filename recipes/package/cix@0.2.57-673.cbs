@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0c2eb6097d7e4b11c119ec1239f52c111fc2ff16612920fa2eb0cb4d147b7c8a"
+        "artifact_sha256.cixd" "7374643a8d8198b90eb95fe0547feae4e4d15354f5b1678d46eb2bc963f8deff"
+        "artifact_sha256.cixctl" "f84e3677093ce1116292d5c9cb36f7551d64d11cd7a2057ab27deb027d5472e7"
         "changelog" "0.2.57-673: a recipe's packages move together in an image -- installing one output upgrades its siblings first, and an upgrade is a property of each chain job (cix#678)."
     }
 
