@@ -73,6 +73,7 @@ package "glibc" {
     }
 
     metadata {
+        "artifact_sha256" "0d6c8dd0128b4b2b9d4403a536d7392e2b76e8b85ed125d38cdc4e8f84bd7d4c"
         "artifact_sha256.glibc-dev" "7a116162f2237a0d703012fc413df38e040637ca0b586284d7e69e3798d69162"
         "changelog" "2.44-21: headers, CRT objects, linker scripts, static archives and unversioned link names move to a glibc-dev output; glibc keeps the loader, every SONAME, gconv, C.UTF-8 and the programs (ADR-0371 decision E, cix#350). A composed build gets glibc-dev with glibc (ADR-0372, cix 0.2.57-674). An image that compiles declares glibc-dev."
     }
