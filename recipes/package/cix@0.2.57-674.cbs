@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "2874b3d6519b73c893e6f96054f4c835a0db36d301dd6d48e8fc9d8d2e22b6ae"
+        "artifact_sha256.cixd" "95af9b9e9f963e33da9725382f371f0266f7e62b2d7f953f26ab26070d9ddbe5"
         "artifact_sha256" "d1fb1dcfa9037b416f22d8e11f4cac5c3b950a44ea1b3aed1e00767409fa1e9d"
         "changelog" "0.2.57-674: a composed build's C library is glibc's whole recipe, so glibc's headers can be their own output (ADR-0371 decision E, cix#350)."
     }
