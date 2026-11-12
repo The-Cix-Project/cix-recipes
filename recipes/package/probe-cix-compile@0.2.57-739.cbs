@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ed6cc0fe2c945c4018d95ed6b5ac5f87aee758c070fc38e51cfd184703100e43"
         "changelog" "0.2.57-739: compile and selftest probe of commit cfb1c837, rerun after the LAN cache answered 401 to 738: a composed build's C library is glibc's whole recipe (cix#350)."
     }
 
