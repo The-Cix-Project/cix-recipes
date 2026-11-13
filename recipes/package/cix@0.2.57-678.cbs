@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "18be6df4fca80258982e88072340e2ef9bcfb6bb32ed31fd2cc2aff38282b58e"
+        "artifact_sha256.cixd" "c735521af686a676f36f6b3abfbde84f37a4ee983592927a501a7a400fc9cf1e"
+        "artifact_sha256.cixctl" "ac2104e9f2bd73befe5771cc793f236b623579bc186684ae4070c445c6fe1e31"
         "changelog" "0.2.57-678: cixctl's prompts own the terminal, and a username echoes."
     }
 
