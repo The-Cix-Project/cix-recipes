@@ -1,0 +1,104 @@
+# zstd -- libzstd, which CIXPKG itself compresses with. Converted
+# from build.sh to build.cbs (ADR-0305 stage 4, #487).
+#
+# Library only: `make -C lib`, never the top-level target, so the
+# `zstd` command-line tool is not built or installed. Nothing here
+# needs it -- libarchive and cbs link the library.
+#
+# WHAT CHANGES: `rm -f usr/lib/*.a` is gone. ADR-0251's finalize drops
+# a static archive when a shared object sits beside it, and this
+# package installs libzstd.so.1.5.7, so the rule applies. Checked
+# rather than assumed, the same way libtool's was -- pkgconf is the
+# counter-example that keeps its own removal, being --disable-shared.
+#
+# The "was a shared library built at all" guard lives on the
+# INSTALLED tree, not the build tree, and 1.5.7-4 found out why the
+# hard way:
+#
+#   required file ${src}/.../lib/libzstd.so is a symbolic link;
+#   require file matches regular files only
+#
+# lib/libzstd.so in the build tree is the soname link, and `require
+# file` lstat()s and demands S_ISREG (cix-build-system#175) -- the
+# third time that rule has cost a build in this sitting, and the
+# second time in a recipe that applied it correctly one assertion
+# later. The install-tree assertion below answers the same question
+# strictly better: if no shared library was built, `make install`
+# puts none there.
+package "zstd" {
+    version "1.5.7"
+    release 6
+    format "cixpkg"
+
+    sources {
+        main "zstd" {
+            url "https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz"
+            sha256 "eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1.5.7-6: headers, pkg-config files and manuals move to a zstd-dev output; zstd keeps its runtime libraries (ADR-0371 decision E, cix#350). tool \"zstd\" still composes every output (ADR-0372); an image that compiles against zstd declares zstd-dev."
+    }
+
+    # ADR-0371 decision E (the owner, 2026-11-10): a library package's
+    # main output carries its runtime libraries only. Headers, pkg-config
+    # files and the section 3 and 5 manuals are a build's, so they are
+    # their own package; a recipe that declares tool "zstd" still composes
+    # them (ADR-0372), and the control-plane root, which builds nothing,
+    # carries none. Phase 3's comparison (probe-rootimage 4-1/5-1,
+    # 2026-11-13) found exactly these paths image-only.
+    output "zstd-dev" {
+        files {
+            "usr/include"
+            "usr/lib/pkgconfig"
+        }
+        requires { runtime { package "zstd" } }
+    }
+
+    build {
+        cd "${src}/zstd/zstd-1.5.7" {
+            run "make" {
+                "-C"
+                "lib"
+                "CC=tcc"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/zstd/zstd-1.5.7" {
+            run "make" {
+                "-C"
+                "lib"
+                "install"
+                "CC=tcc"
+                "PREFIX=/usr"
+                "LIBDIR=/usr/lib"
+                "DESTDIR=${dest}"
+            }
+        }
+        # The real file, never the soname link -- require file
+        # rejects a symlink as "does not exist"
+        # (cix-build-system#175), which mtools cost a build to relearn.
+        require file "${dest}/usr/lib/libzstd.so.1.5.7" {
+            exists
+            nonempty
+        }
+    }
+}
