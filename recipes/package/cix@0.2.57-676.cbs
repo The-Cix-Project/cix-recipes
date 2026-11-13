@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "81ece48aadce9b9c8d04315693ac7d758e94ae3970d69d0279e2fec7491a25f0"
+        "artifact_sha256.cixd" "aa9d624f41b4e8ef41474b60c10cfe15ebdf973ed882919840cfeded65bded51"
+        "artifact_sha256.cixctl" "20e20bc2968d4f30794b0a469a2d6e11339dddaa8a2fa6e12fe8be0b4d17decb"
         "changelog" "0.2.57-676: a recipe is built once when images name different packages of it (cix#681)."
     }
 

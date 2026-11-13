@@ -49,6 +49,7 @@ package "dosfstools" {
     }
 
     metadata {
+        "artifact_sha256" "5abf4d814994b5962ba23c222b2eca341171bbf7ea3b164316d7a6e3466ddde1"
         "artifact_sha256.dosfstools-extra" "9fd28017a438c9fc4cbf2665aa1ea0997fec1986d61d9ff7654796c2ff12ece5"
         "changelog" "4.2-5: dosfstools-extra takes every manual in man8, fsck.fat.8 included, so dosfstools carries fsck.fat and nothing else: the control-plane root runs fsck.fat and reads no manual (ADR-0371 decision E; probe-rootimage 5-1 found fsck.fat.8 image-only, cix#350)."
     }
