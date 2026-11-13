@@ -1,0 +1,21 @@
+{
+  "image": "cix-root",
+  "version": "1.1.0",
+  "notes": "1.1.0: cixd and cixctl move to 0.2.57-675 and kernel-modules to 7.3.4-1, the versions .95 runs, so phase 3 can compare this image with the root of cix-installer-0.2.57-675 now that the libraries and tool packages are split (ADR-0371 decisions C-E, cix#350). Still pinned: a followed cixd would start a cix build at every publish.\n\n1.0.0: cix-root -- the control-plane root, as one image (ADR-0371 phase 2, cix#350).\n\nWhole packages and nothing else (ADR-0333). The root's content is this\nimage's current version, plus what ADR-0333 says is not image content:\nthe mount points, /etc/resolv.conf and /etc/os-release, which mkbootroot\nadds. Until phase 3 nothing assembles a root from it; it exists so a\nprobe can compare its tree with the root mkbootroot assembles today,\npath by path and hash by hash.\n\nWhat it names, and why each:\n- cixd: the cix recipe's output carrying /bin/cixd, /bin/cix-init and\n  /web (ADR-0367, 0.2.57-657).\n- cixctl: the cix recipe's cixctl output.\n- kernel-modules: the kernel recipe's modules output (0.2.57-658,\n  kernel 7.3.1-2), never the kernel package, whose bzImage is not root\n  content.\n- kmod: modprobe and the module tools.\n- rtw88-firmware, wireless-regdb: today's cix-firmware image.\n- squashfs-tools, cbs, util-linux, e2fsprogs, btrfs-progs, dosfstools:\n  the tool packages include/controlplane_programs.h names.\n- ca-certificates: the root's public trust (ADR-0350).\n- glibc: named explicitly, because no runtime closure names it.\n\nThe libraries (xz, libarchive, zstd, zlib, ncurses, libblkid, libuuid,\nopenssl, curl and the rest) arrive through those packages' runtime\nclosures. No closure reaches bash, perl or coreutils, so the root keeps\nhaving no shell -- measured for ADR-0371 on 2026-11-02.\n\ncixd, cixctl and kernel-modules are PINNED in phase 2, to artifacts the\ncache already holds. Rolling, each new cix or kernel version would queue\na build of it for this image: a whole cix build per publish, and a\nkernel build beside the host roll's own -- two heavy builds at once,\nand a kernel rebuild nobody asked for (CLAUDE.md). Nothing reads this\nimage until phase 3, which decides how they follow (the owner chose\nthat cix is followed like any entry). The rest roll, as in\ncix-hosttools.\n\nVersions are those 192.168.15.95 runs on 2026-11-10: cix 0.2.57-669,\nkernel 7.3.3-1, and the cix-hosttools, cix-kmod and cix-firmware\nversions installed that day.",
+  "packages": [
+    { "package": "cixd", "mode": "pinned", "version": "0.2.57-675" },
+    { "package": "cixctl", "mode": "pinned", "version": "0.2.57-675" },
+    { "package": "kernel-modules", "mode": "pinned", "version": "7.3.4-1" },
+    { "package": "kmod", "mode": "rolling", "version": "34.2-7" },
+    { "package": "rtw88-firmware", "mode": "rolling", "version": "3-1" },
+    { "package": "wireless-regdb", "mode": "rolling", "version": "2026.09.03-3" },
+    { "package": "squashfs-tools", "mode": "rolling", "version": "4.7.5-13" },
+    { "package": "cbs", "mode": "rolling", "version": "v0.1.129-1" },
+    { "package": "util-linux", "mode": "rolling", "version": "2.42.2-4" },
+    { "package": "e2fsprogs", "mode": "rolling", "version": "1.47.4-9" },
+    { "package": "btrfs-progs", "mode": "rolling", "version": "7.1-12" },
+    { "package": "dosfstools", "mode": "rolling", "version": "4.2-3" },
+    { "package": "ca-certificates", "mode": "rolling", "version": "2026.09.03-2" },
+    { "package": "glibc", "mode": "rolling", "version": "2.44-20" }
+  ]
+}
