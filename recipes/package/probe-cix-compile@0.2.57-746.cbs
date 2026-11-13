@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "d8c28df1e6ef57b2b4a0322f41f86eeac77cf2d8a866c54bdce4f48233bf1a52"
         "changelog" "0.2.57-746: compile and selftest probe of commit bbbec82f: a composed build environment holds up to 128 packages, and a path moves between a recipe's packages in either install order (cix#682)."
     }
 
