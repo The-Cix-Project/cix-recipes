@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "7d388ca425e5aa2bbb87f0aad442d65a13df34fe410ebdc20c923f1938764c03"
         "changelog" "0.2.57-750: compile and selftest probe of commit 835cc1e1: the boot tests write their disk images under TMPDIR, on disk."
     }
 
