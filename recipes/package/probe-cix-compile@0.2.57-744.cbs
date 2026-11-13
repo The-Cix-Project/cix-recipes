@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "247f61ff8232cc1b27dec5e4d90b36ecb002a01f855b3f1f7594d390650fc5b6"
         "changelog" "0.2.57-744: compile and selftest probe of commit 86824b3b: a recipe is built once when images name different packages of it (cix#681)."
     }
 
