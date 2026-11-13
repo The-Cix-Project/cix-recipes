@@ -73,6 +73,7 @@ package "glibc" {
     }
 
     metadata {
+        "artifact_sha256" "7c6671f47d9f2d890731c803007bc6234d4e2b1a608a65eb53869f5f0ff8f588"
         "changelog" "2.44-22: the programs (ldd, locale, localedef, iconv, getconf, nscd, zic, ldconfig, ...), the i18n source data, locale.alias, /etc/rpc, ld.so.cache and var/db move to a glibc-tools output, and the gconv modules to glibc-gconv; glibc keeps the loader, every SONAME and C.UTF-8 (ADR-0371 decision E, the owner 2026-11-13, cix#350). An image that runs a glibc program declares glibc-tools; one that converts other charsets declares glibc-gconv."
     }
 
