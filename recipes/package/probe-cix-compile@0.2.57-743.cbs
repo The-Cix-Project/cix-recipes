@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "61e36b7514b53d15d64576a4994cc078c72b2ea9850718c630f29fb2fe88870d"
         "changelog" "0.2.57-743: compile and selftest probe of commit 4091eece, rerun once the host's quota accounting read ok again (742 failed only test_container_stats while it was stale)."
     }
 
