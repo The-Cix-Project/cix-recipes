@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "7152bd2433e71785713d860bc90fc1523a498f4196c67580e73aa3fc3d17622f"
+        "artifact_sha256.cixd" "a18ce794972b2c190669a4d44e48970665cf384e25081c9fc4806febfe7fbbfc"
+        "artifact_sha256" "206044a808a1fce9174bb17faac4845714e16f688d12fbcafb3145aa29b1c894"
         "changelog" "0.2.57-675: a helper child dies with its daemon, so a stopped daemon's long quota settle no longer outlives it (probes 740, 741)."
     }
 
