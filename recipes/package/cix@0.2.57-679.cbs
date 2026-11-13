@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "c4f5e3844e2fa1880201d74159ee944daa00afd8192b3f1a0941e181c78bb875"
+        "artifact_sha256.cixd" "caefde22698a1bf0b9638a9bbb5332a8b79ffee342a57883a6aae19a11fb168d"
+        "artifact_sha256" "d63219dff2e986a09d2228c7b3da8f7b7947837fb971790a0e1644a7edd442fe"
         "changelog" "0.2.57-679: a rolling image's dependencies roll with it (ADR-0378)."
     }
 
