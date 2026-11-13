@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "fed3e0013f030698fa289881f1a6a89e6db4200c84c35d85d43e368100bfb05f"
         "changelog" "0.2.57-747: compile and selftest probe of commit 8cbd6701: cixctl's prompts own the terminal, and a username echoes."
     }
 
