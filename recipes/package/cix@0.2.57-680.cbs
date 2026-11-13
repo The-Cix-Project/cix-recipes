@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b8987107471a48be994c2ec6a9f430e14080a636adb4bcd297978c0288ada6aa"
         "changelog" "0.2.57-680: a rolling image's dependencies roll with it (ADR-0378), and the boot tests write their disk images on disk, out of the build memory budget."
     }
 
