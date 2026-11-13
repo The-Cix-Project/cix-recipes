@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3d62b7e4312e6a3da704b4e73e3d9349ab3da77e3e3ab6f2a4b5c822d215cc8a"
         "changelog" "0.2.57-749: compile and selftest probe of commit 80415e27: a rolling image's dependencies roll with it (ADR-0378), its test waiting through depapp's 404."
     }
 
