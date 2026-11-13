@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "32906bc4b884f9ca4a349f3bcfd178e221e509145166752b7860849b4c062434"
         "changelog" "0.2.57-677: a path moves between a recipe's packages in either install order (cix#682), and a composed build environment holds up to 128 packages."
     }
 
