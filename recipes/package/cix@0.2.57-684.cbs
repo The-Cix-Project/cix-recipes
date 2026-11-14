@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5e4c40e3b54c3b80b7eabb7af76e791848c09dfd77c000ce4879a1db1428a643"
+        "artifact_sha256.cixd" "8c18f60ce1685936fe31e4ce7a88d8981a9148c8f5306932f9bbb32897dbfe3b"
+        "artifact_sha256.cixctl" "59bfd17edc40b4d598ca952ffa31eb0c44e0ccdfdba81ccf99f67f5ac13347f6"
         "changelog" "0.2.57-684: a root switch waits for every package job, and a cixd that reboots the host leaves its cause for the next boot (#686); carries 683 (ADR-0371 phase 4)."
     }
 
