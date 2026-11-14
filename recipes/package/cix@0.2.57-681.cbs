@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "bbf8150345603f177ee0fd5cc78c1b6bffad415416b63fa7f216501602d0024d"
         "changelog" "0.2.57-681: the control-plane root is the cix-root image tree (ADR-0371 phase 3a); an assembly installs the hostbuilds into cix-root first. This release still takes the ten-argument mkbootroot form for the daemon that assembles it."
     }
 
