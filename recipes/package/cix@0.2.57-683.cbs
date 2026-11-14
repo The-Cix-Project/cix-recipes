@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "35bba6d051542ff50b9b24bf4be55c0bece6dc8f6312b9093d6a216abd43a54f"
+        "artifact_sha256.cixd" "fd0c32f044baa8864587d5428601b9c4a29dfcb71f7c44cddb6ad59c84896a36"
         "artifact_sha256.cixctl" "a47e0154e71f0b5af6e3dded1b6f4faf9551da2cc9b869d9fcb4fd294c12ac27"
         "changelog" "0.2.57-683: nothing reads cix-hosttools, cix-firmware or cix-kmod (ADR-0371 phase 4); the installer ISO takes modprobe and modinfo from cix-root."
     }
