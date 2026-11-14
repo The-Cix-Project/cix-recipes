@@ -1,0 +1,93 @@
+#
+# probe-rootimage 10 -- ADR-0371 phase 3a (cix#350): does the root sealed
+# from cix-root carry FILES that no installed package owns, or only empty
+# directories?
+#
+# probe-rootimage 8-1 and 9-1 compared that root (inside
+# cix-installer-0.2.57-681) with cix-root's packages. They found ten
+# paths that no package has: lib/modules/7.3.3, usr/include,
+# usr/lib/{audit,gconv,pkgconfig,x86_64-linux-gnu} and
+# usr/share/{aclocal,i18n,tabset,terminfo}. Those are what the kernel,
+# glibc and ncurses splits moved into outputs cix-root does not install.
+# An upgrade unlinks the previous version's files and never removes a
+# directory (unlink_manifest_files()). This lists every non-directory
+# beneath them. Empty output means empty skeletons.
+#
+package "probe-rootimage" {
+    version "10"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-681-x86_64.iso"
+            sha256 "389130e353f494cf3ae1d7b404be286143f4c116f8bb4f107f7c652566747c44"
+        }
+    }
+
+    requires {
+        build {
+            tool "xorriso"
+            tool "squashfs-tools"
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "10: lists every non-directory under the ten paths probe-rootimage 8-1 and 9-1 found in the cix-root-sealed root with no owning package, to tell orphan files from empty directories (ADR-0371 phase 3a, cix#350)."
+    }
+
+    prepare {
+        materialize $source.iso to "${build}/cix.iso"
+    }
+
+    build {
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/cix.iso"
+            "-extract"
+            "/payload/cix-root.squashfs"
+            "${build}/cix-root.squashfs"
+        }
+        run "unsquashfs" {
+            "-d"
+            "${build}/root"
+            "${build}/cix-root.squashfs"
+        }
+        run "find" {
+            "${build}/root/lib/modules/7.3.3"
+            "${build}/root/usr/include"
+            "${build}/root/usr/lib/audit"
+            "${build}/root/usr/lib/gconv"
+            "${build}/root/usr/lib/pkgconfig"
+            "${build}/root/usr/lib/x86_64-linux-gnu"
+            "${build}/root/usr/share/aclocal"
+            "${build}/root/usr/share/i18n"
+            "${build}/root/usr/share/tabset"
+            "${build}/root/usr/share/terminfo"
+            "-not"
+            "-type"
+            "d"
+        }
+        run "find" {
+            "${build}/root/lib/modules/7.3.3"
+            "${build}/root/usr/include"
+            "${build}/root/usr/share/terminfo"
+            "-type"
+            "d"
+            "-empty"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rootimage" parents
+    }
+}
