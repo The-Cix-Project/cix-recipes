@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "62a5bdac70574ffd5112b888015720e244239e62626e7730ebe90a3e4467d67a"
+        "artifact_sha256.cixd" "452d5caad677365872742bb65c5fdf9e25df88c53a5a6c419c8e7c0b5f11276b"
+        "artifact_sha256" "7ac59d82e2d39781bab849ef84937c5003b89aeadf22ad6460ba8de0100bdb5f"
         "changelog" "0.2.57-682: mkbootroot takes only the image-tree form (ADR-0371 phase 3b); this is the first release whose root is the cix-root image tree."
     }
 
