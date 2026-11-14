@@ -1,0 +1,268 @@
+#
+# probe-rootimage -- ADR-0371 phase 3 (cix#350): is the cix-root image
+# the root mkbootroot assembles today, path by path and byte by byte,
+# now that the library and tool packages are split (decisions C-E)?
+#
+# Two trees, and a recursive diff between them:
+#   root   the control-plane root inside cix-installer-0.2.57-681, which
+#          .95 built on 0.2.57-681 from the root sealed from cix-root on
+#          2026-11-14 and published to the LAN cache;
+#   image  HALF B of the packages installed in the cix-root image on .95
+#          that day (cix-root@1.1.0 (cixd and cixctl at 0.2.57-681) and its runtime closure, 23 packages),
+#          each extracted from its cached .cixpkg and merged. One package
+#          owns a path, so the merge is the image.
+#
+# diff -rq --no-dereference prints one line per difference to the build
+# log. Its exit status is 1 when the trees differ, which they will: the
+# root adds mount points, resolv.conf and os-release, and each half holds
+# only its own packages. 0 would fail the build and say so.
+#
+package "probe-rootimage" {
+    version "9"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-681-x86_64.iso"
+            sha256 "389130e353f494cf3ae1d7b404be286143f4c116f8bb4f107f7c652566747c44"
+        }
+        extra "pwirelessregdb" {
+            url "http://192.168.15.31:8080/wireless-regdb-2026.09.03-3-x86_64.cixpkg"
+            sha256 "cdb02510fc19a93392c7dc6c5acce6e33086cbee6ea22795658c7d4b9bc96fa2"
+        }
+        extra "psquashfstools" {
+            url "http://192.168.15.31:8080/squashfs-tools-4.7.5-14-x86_64.cixpkg"
+            sha256 "c0afda703b3294f04dcbf4cf48e67770d057d2c2eda811334b4d086e0c313bdf"
+        }
+        extra "pcbs" {
+            url "http://192.168.15.31:8080/cbs-v0.1.129-1-x86_64.cixpkg"
+            sha256 "16fd9d47bd02cec1f65a166419fc0937ae10f74d8f7ea8b70dc8249c34bae1c6"
+        }
+        extra "pncurses" {
+            url "http://192.168.15.31:8080/ncurses-6.6-13-x86_64.cixpkg"
+            sha256 "aca7eec7949eeebb7b313bbb9147898e4ac1bb59ee2f33cbf495dfe23adb905a"
+        }
+        extra "putillinux" {
+            url "http://192.168.15.31:8080/util-linux-2.42.2-4-x86_64.cixpkg"
+            sha256 "8aca618395ce763eb4ea73a321df77cc0fd339d65d4f7c315dd6c56fab40b281"
+        }
+        extra "pe2fsprogs" {
+            url "http://192.168.15.31:8080/e2fsprogs-1.47.4-9-x86_64.cixpkg"
+            sha256 "883348390857373a501d610d7bbb9ff1a1983e22df3e5396363591eafe124959"
+        }
+        extra "plibuuid" {
+            url "http://192.168.15.31:8080/libuuid-2.42.2-9-x86_64.cixpkg"
+            sha256 "f2eb5d5c01e56870e32d7f408f816c13bf9fc6a05b128a33beca9ec432d815a8"
+        }
+        extra "plibblkid" {
+            url "http://192.168.15.31:8080/libblkid-2.42.2-11-x86_64.cixpkg"
+            sha256 "abec60e27887f12dbd1c82ed86b349f0f682e9690443299eb44d825c110d6e7d"
+        }
+        extra "pbtrfsprogs" {
+            url "http://192.168.15.31:8080/btrfs-progs-7.1-13-x86_64.cixpkg"
+            sha256 "a019870d6fb3e340b3c332888ab11363230fe880ec2646314a6bd81f1cdd9615"
+        }
+        extra "pdosfstools" {
+            url "http://192.168.15.31:8080/dosfstools-4.2-5-x86_64.cixpkg"
+            sha256 "5abf4d814994b5962ba23c222b2eca341171bbf7ea3b164316d7a6e3466ddde1"
+        }
+        extra "pcacertificates" {
+            url "http://192.168.15.31:8080/ca-certificates-2026.09.03-2-x86_64.cixpkg"
+            sha256 "3991f72010507492752af600166ba204e2b3807e59b8ee89b7ad66a152c93466"
+        }
+    }
+
+    requires {
+        build {
+            tool "xorriso"
+            tool "squashfs-tools"
+            tool "bash"
+            tool "coreutils"
+            tool "diffutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "9: half B of cix-root (wireless-regdb squashfs-tools cbs ncurses util-linux e2fsprogs libuuid libblkid btrfs-progs dosfstools ca-certificates) against the root in cix-installer-0.2.57-681, the first root sealed from the cix-root image tree (ADR-0371 phase 3a, cix#350)."
+    }
+
+    prepare {
+        mkdir "${build}/pkgs" parents
+        mkdir "${build}/x" parents
+        mkdir "${build}/image" parents
+        materialize $source.iso to "${build}/cix.iso"
+        materialize $source.pwirelessregdb to "${build}/pkgs/wireless-regdb.cixpkg"
+        materialize $source.psquashfstools to "${build}/pkgs/squashfs-tools.cixpkg"
+        materialize $source.pcbs to "${build}/pkgs/cbs.cixpkg"
+        materialize $source.pncurses to "${build}/pkgs/ncurses.cixpkg"
+        materialize $source.putillinux to "${build}/pkgs/util-linux.cixpkg"
+        materialize $source.pe2fsprogs to "${build}/pkgs/e2fsprogs.cixpkg"
+        materialize $source.plibuuid to "${build}/pkgs/libuuid.cixpkg"
+        materialize $source.plibblkid to "${build}/pkgs/libblkid.cixpkg"
+        materialize $source.pbtrfsprogs to "${build}/pkgs/btrfs-progs.cixpkg"
+        materialize $source.pdosfstools to "${build}/pkgs/dosfstools.cixpkg"
+        materialize $source.pcacertificates to "${build}/pkgs/ca-certificates.cixpkg"
+    }
+
+    build {
+        # mkinstalleriso puts the control-plane root at
+        # payload/cix-root.squashfs (image/src/mkinstalleriso.c).
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/cix.iso"
+            "-extract"
+            "/payload/cix-root.squashfs"
+            "${build}/cix-root.squashfs"
+        }
+        run "unsquashfs" {
+            "-d"
+            "${build}/root"
+            "${build}/cix-root.squashfs"
+        }
+
+        # The image: every package's tree merged into one.
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/wireless-regdb.cixpkg"
+            "--into"
+            "${build}/x/wireless-regdb"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/wireless-regdb/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/squashfs-tools.cixpkg"
+            "--into"
+            "${build}/x/squashfs-tools"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/squashfs-tools/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/cbs.cixpkg"
+            "--into"
+            "${build}/x/cbs"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/cbs/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/ncurses.cixpkg"
+            "--into"
+            "${build}/x/ncurses"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/ncurses/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/util-linux.cixpkg"
+            "--into"
+            "${build}/x/util-linux"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/util-linux/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/e2fsprogs.cixpkg"
+            "--into"
+            "${build}/x/e2fsprogs"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/e2fsprogs/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/libuuid.cixpkg"
+            "--into"
+            "${build}/x/libuuid"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/libuuid/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/libblkid.cixpkg"
+            "--into"
+            "${build}/x/libblkid"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/libblkid/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/btrfs-progs.cixpkg"
+            "--into"
+            "${build}/x/btrfs-progs"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/btrfs-progs/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/dosfstools.cixpkg"
+            "--into"
+            "${build}/x/dosfstools"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/dosfstools/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/ca-certificates.cixpkg"
+            "--into"
+            "${build}/x/ca-certificates"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/ca-certificates/."
+            "${build}/image/"
+        }
+
+        # The finding. One line per path only in one tree, and one per
+        # file whose bytes differ.
+        run "diff" {
+            "-rq"
+            "--no-dereference"
+            "${build}/root"
+            "${build}/image"
+            expect exit 1
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rootimage" parents
+    }
+}
