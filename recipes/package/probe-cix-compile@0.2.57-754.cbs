@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "6c44dc5628ce68ace05cf365c3ecc2aa243c8617f372d00326730528f8d162fa"
         "changelog" "0.2.57-754: compile and selftest probe of commit fa830688: a cixd that reboots the host leaves its cause for the next boot (#686)."
     }
 
