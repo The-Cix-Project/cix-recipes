@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "b5442fe8911f581d91e7a608d2054fcfa51f6d423a8105a0dc7c9361fe61fe1b"
         "changelog" "0.2.57-751: compile and selftest probe of commit d994c5f0: ADR-0371 phase 3a, mkbootroot seals the cix-root image tree."
     }
 
