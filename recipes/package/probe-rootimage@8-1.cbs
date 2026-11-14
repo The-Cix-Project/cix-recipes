@@ -1,0 +1,284 @@
+#
+# probe-rootimage -- ADR-0371 phase 3 (cix#350): is the cix-root image
+# the root mkbootroot assembles today, path by path and byte by byte,
+# now that the library and tool packages are split (decisions C-E)?
+#
+# Two trees, and a recursive diff between them:
+#   root   the control-plane root inside cix-installer-0.2.57-681, which
+#          .95 built on 0.2.57-681 from the root sealed from cix-root on
+#          2026-11-14 and published to the LAN cache;
+#   image  HALF A of the packages installed in the cix-root image on .95
+#          that day (cix-root@1.1.0 (cixd and cixctl at 0.2.57-681) and its runtime closure, 23 packages),
+#          each extracted from its cached .cixpkg and merged. One package
+#          owns a path, so the merge is the image.
+#
+# diff -rq --no-dereference prints one line per difference to the build
+# log. Its exit status is 1 when the trees differ, which they will: the
+# root adds mount points, resolv.conf and os-release, and each half holds
+# only its own packages. 0 would fail the build and say so.
+#
+package "probe-rootimage" {
+    version "8"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+        extra "iso" {
+            url "http://192.168.15.31:8080/cix-installer-0.2.57-681-x86_64.iso"
+            sha256 "389130e353f494cf3ae1d7b404be286143f4c116f8bb4f107f7c652566747c44"
+        }
+        extra "pglibc" {
+            url "http://192.168.15.31:8080/glibc-2.44-22-x86_64.cixpkg"
+            sha256 "7c6671f47d9f2d890731c803007bc6234d4e2b1a608a65eb53869f5f0ff8f588"
+        }
+        extra "popenssl" {
+            url "http://192.168.15.31:8080/openssl-3.0.20-9-x86_64.cixpkg"
+            sha256 "74e33791cd3dbbf5174813d6640c9811d3b38bf87ee0d80bcc3b4420d96b4167"
+        }
+        extra "pzlib" {
+            url "http://192.168.15.31:8080/zlib-1.3.2-17-x86_64.cixpkg"
+            sha256 "486d2fbfb96936b4bb66c110eb615ec8b63516db4d3d34d608067b5ccf44ab46"
+        }
+        extra "pxz" {
+            url "http://192.168.15.31:8080/xz-5.8.3-12-x86_64.cixpkg"
+            sha256 "5b98fd565e7dea816b1ec5ab49acac690ce24605e9dd70927df0d9b1e806cc0c"
+        }
+        extra "pzstd" {
+            url "http://192.168.15.31:8080/zstd-1.5.7-6-x86_64.cixpkg"
+            sha256 "c34d57da98db970a92f41424b1069d395d7820f7e88e2c0aec9ab31adfd3ef49"
+        }
+        extra "plibarchive" {
+            url "http://192.168.15.31:8080/libarchive-3.8.1-7-x86_64.cixpkg"
+            sha256 "a0d933c5dcef2cb72081275d964c16692e302809cb76f79d6e3ffefd3c07fa9b"
+        }
+        extra "pcurl" {
+            url "http://192.168.15.31:8080/curl-8.21.0-9-x86_64.cixpkg"
+            sha256 "7aa749d2c72b175a911a5a09d2320eeb22ad9b233d87f9d0ed8120065822d5bf"
+        }
+        extra "pcixd" {
+            url "http://192.168.15.31:8080/cixd-0.2.57-681-x86_64.cixpkg"
+            sha256 "239853c8723b622580a7440ce6d9e1270d7b6847d266663314b0124a45fd811c"
+        }
+        extra "pcixctl" {
+            url "http://192.168.15.31:8080/cixctl-0.2.57-681-x86_64.cixpkg"
+            sha256 "bbf8150345603f177ee0fd5cc78c1b6bffad415416b63fa7f216501602d0024d"
+        }
+        extra "pkernelmodules" {
+            url "http://192.168.15.31:8080/kernel-modules-7.3.4-1-x86_64.cixpkg"
+            sha256 "2d363b6d88329979866d2411bce0f23416bef3038d337ad7db406c56528bfda2"
+        }
+        extra "pkmod" {
+            url "http://192.168.15.31:8080/kmod-34.2-7-x86_64.cixpkg"
+            sha256 "6bac1972085db75ccc7fd3d997edd75778ba94c288b35065e59855e735225c79"
+        }
+        extra "prtw88firmware" {
+            url "http://192.168.15.31:8080/rtw88-firmware-3-1-x86_64.cixpkg"
+            sha256 "2956ead95de0fc268fa0d63cdd9f85bb4a1206c14e434fce4d98bcd1982a6758"
+        }
+    }
+
+    requires {
+        build {
+            tool "xorriso"
+            tool "squashfs-tools"
+            tool "bash"
+            tool "coreutils"
+            tool "diffutils"
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "8: half A of cix-root (glibc openssl zlib xz zstd libarchive curl cixd cixctl kernel-modules kmod rtw88-firmware, cixd and cixctl at 0.2.57-681) against the root in cix-installer-0.2.57-681, the first root sealed from the cix-root image tree (ADR-0371 phase 3a, cix#350). Expected: no file differs, and only mkbootroot additions are only in the root."
+    }
+
+    prepare {
+        mkdir "${build}/pkgs" parents
+        mkdir "${build}/x" parents
+        mkdir "${build}/image" parents
+        materialize $source.iso to "${build}/cix.iso"
+        materialize $source.pglibc to "${build}/pkgs/glibc.cixpkg"
+        materialize $source.popenssl to "${build}/pkgs/openssl.cixpkg"
+        materialize $source.pzlib to "${build}/pkgs/zlib.cixpkg"
+        materialize $source.pxz to "${build}/pkgs/xz.cixpkg"
+        materialize $source.pzstd to "${build}/pkgs/zstd.cixpkg"
+        materialize $source.plibarchive to "${build}/pkgs/libarchive.cixpkg"
+        materialize $source.pcurl to "${build}/pkgs/curl.cixpkg"
+        materialize $source.pcixd to "${build}/pkgs/cixd.cixpkg"
+        materialize $source.pcixctl to "${build}/pkgs/cixctl.cixpkg"
+        materialize $source.pkernelmodules to "${build}/pkgs/kernel-modules.cixpkg"
+        materialize $source.pkmod to "${build}/pkgs/kmod.cixpkg"
+        materialize $source.prtw88firmware to "${build}/pkgs/rtw88-firmware.cixpkg"
+    }
+
+    build {
+        # mkinstalleriso puts the control-plane root at
+        # payload/cix-root.squashfs (image/src/mkinstalleriso.c).
+        run "xorriso" {
+            "-osirrox"
+            "on"
+            "-indev"
+            "${build}/cix.iso"
+            "-extract"
+            "/payload/cix-root.squashfs"
+            "${build}/cix-root.squashfs"
+        }
+        run "unsquashfs" {
+            "-d"
+            "${build}/root"
+            "${build}/cix-root.squashfs"
+        }
+
+        # The image: every package's tree merged into one.
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/glibc.cixpkg"
+            "--into"
+            "${build}/x/glibc"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/glibc/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/openssl.cixpkg"
+            "--into"
+            "${build}/x/openssl"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/openssl/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/zlib.cixpkg"
+            "--into"
+            "${build}/x/zlib"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/zlib/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/xz.cixpkg"
+            "--into"
+            "${build}/x/xz"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/xz/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/zstd.cixpkg"
+            "--into"
+            "${build}/x/zstd"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/zstd/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/libarchive.cixpkg"
+            "--into"
+            "${build}/x/libarchive"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/libarchive/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/curl.cixpkg"
+            "--into"
+            "${build}/x/curl"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/curl/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/cixd.cixpkg"
+            "--into"
+            "${build}/x/cixd"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/cixd/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/cixctl.cixpkg"
+            "--into"
+            "${build}/x/cixctl"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/cixctl/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/kernel-modules.cixpkg"
+            "--into"
+            "${build}/x/kernel-modules"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/kernel-modules/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/kmod.cixpkg"
+            "--into"
+            "${build}/x/kmod"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/kmod/."
+            "${build}/image/"
+        }
+        run "cbs" {
+            "extract"
+            "${build}/pkgs/rtw88-firmware.cixpkg"
+            "--into"
+            "${build}/x/rtw88-firmware"
+        }
+        run "cp" {
+            "-a"
+            "${build}/x/rtw88-firmware/."
+            "${build}/image/"
+        }
+
+        # The finding. One line per path only in one tree, and one per
+        # file whose bytes differ.
+        run "diff" {
+            "-rq"
+            "--no-dereference"
+            "${build}/root"
+            "${build}/image"
+            expect exit 1
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rootimage" parents
+    }
+}
