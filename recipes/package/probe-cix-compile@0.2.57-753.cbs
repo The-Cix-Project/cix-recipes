@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "02a018de952d26d0e04efaa13096d31490eccef29daf98c2d4690d20949c7fbf"
         "changelog" "0.2.57-753: compile and selftest probe of commit ed3036f0: ADR-0371 phase 4, nothing reads cix-hosttools, cix-firmware or cix-kmod."
     }
 
