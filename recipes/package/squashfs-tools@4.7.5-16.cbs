@@ -83,6 +83,7 @@ package "squashfs-tools" {
     }
 
     metadata {
+        "artifact_sha256.squashfs-tools-extra" "c9ca67fc471e11fc2a6a61aba273502be2a64d177889bc17078e4e163679a55b"
         "changelog" "4.7.5-16: declares gcc-libs as a build tool: the check runs the mksquashfs just built, which threads, and a package's own runtime requirements are not in its build environment, so 4.7.5-15 aborted there with \"libgcc_s.so.1 must be installed for pthread_exit to work\" (192.168.15.95, 2026-11-15). 4.7.5-15: no longer ships libgcc_s.so.1, and requires gcc-libs, gcc's runtime-library output, which owns it (cix#680). The copy kept squashfs-tools out of every image with gcc, cix-builder among them."
     }
 
