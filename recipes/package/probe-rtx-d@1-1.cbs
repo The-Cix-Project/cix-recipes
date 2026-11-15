@@ -1,0 +1,38 @@
+#
+# probe-rtx-d 1 -- throwaway (cix#680): declares probe-rtx-c as a build
+# tool, as cix declares gcc, and fails unless the composed environment
+# carries the output's files (ADR-0372).
+#
+package "probe-rtx-d" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "probe-rtx-c"
+        }
+    }
+
+    metadata {
+        "changelog" "1: throwaway for cix#680, composition of a tool whose libraries are an output."
+    }
+
+    build {
+        run "ls" { "-l" "/usr/lib/rtx-c.1" "/usr/lib/rtx-c.6" "/usr/lib/rtx-c.6.0.9" "/usr/bin/rtx-c" }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rtx-d" parents
+        run "touch" { "${dest}/usr/share/probe-rtx-d/ok" }
+    }
+}
