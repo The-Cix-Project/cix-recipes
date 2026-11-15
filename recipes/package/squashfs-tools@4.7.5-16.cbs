@@ -1,0 +1,181 @@
+# squashfs-tools -- mksquashfs and unsquashfs, which build and read
+# the control-plane root image this platform boots from.
+#
+# Converted from build.sh to build.cbs (ADR-0305 stage 4, cix#487).
+#
+# THE GATE IS THE REASON THIS RECIPE IS INTERESTING, and it exists
+# because a zero-byte image once reached a deploy. An exit status
+# cannot tell you that mksquashfs wrote an image, only that it
+# stopped. So the build makes a small tree, packs it, and checks
+# three things an exit status cannot:
+#
+#   - the image is non-empty
+#   - its first four bytes are "hsqs". Not "sqsh": that spelling is
+#     the byte-order bug this recipe already fixed once, where
+#     -Dlinux=1 was missing and every multi-byte on-disk field came
+#     out swapped while mksquashfs still reported success
+#   - unsquashfs can read back what mksquashfs just wrote
+#
+# IN CPDL EACH OF THOSE IS ONE OPERATION. The shell form needed a
+# rm -rf, two mkdir -p, two echoes, an "|| { cat log; exit 1; }", a
+# "[ ! -s ]", a three-armed case on head -c 4, an od for the failure
+# path and a second "|| { }". Here: require file nonempty, head -c 4
+# into a file plus contains "hsqs" -- exact for a four-byte file --
+# and a bare run, whose nonzero exit fails the build with CBS
+# printing the command itself.
+#
+# The scratch tree moves from /run/sqcheck into the build root. CPDL
+# paths are confined, and the build root is the right place for
+# scratch anyway: /run was only ever chosen because this platform's
+# minimal images have no /tmp.
+#
+# libgcc_s.so.1 IS GCC'S, AND THIS PACKAGE REQUIRES IT (cix#680).
+# mksquashfs aborts the moment glibc needs to unwind a thread without
+# it. Until 4.7.5-14 this recipe took a copy out of the build sandbox
+# ("stage library", cbs#178) and shipped it, because a composed build
+# environment carried no declared tool's runtime dependencies
+# (cix#510). That made two packages own one path, so squashfs-tools
+# could never be installed beside gcc (cix#553), and cix-builder could
+# not carry it. gcc 16.2.0-20 gives the library its own output,
+# gcc-libs, and the runtime requirement below brings it wherever this
+# is installed.
+package "squashfs-tools" {
+    version "4.7.5"
+    release 16
+    format "cixpkg"
+
+    sources {
+        main "squashfs-tools" {
+            url "https://github.com/plougher/squashfs-tools/archive/refs/tags/4.7.5.tar.gz"
+            sha256 "547b7b7f4d2e44bf91b6fc554664850c69563701deab9fd9cd7e21f694c88ea6"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "xz"
+            tool "zlib"
+            # The check below runs the mksquashfs just built, which
+            # threads, so it needs libgcc_s.so.1 here too: a package's
+            # own runtime requirements are not in its build environment.
+            tool "gcc-libs"
+        }
+        runtime {
+            package "xz"
+            # cix#680: libgcc_s.so.1, which pthread_exit() and
+            # pthread_cancel() dlopen() by name -- mksquashfs threads, so
+            # without it it aborts at its own normal exit. gcc's own
+            # output owns the library; this package used to stage a copy,
+            # which kept it out of every image that has gcc.
+            package "gcc-libs"
+        }
+    }
+
+    metadata {
+        "changelog" "4.7.5-16: declares gcc-libs as a build tool: the check runs the mksquashfs just built, which threads, and a package's own runtime requirements are not in its build environment, so 4.7.5-15 aborted there with \"libgcc_s.so.1 must be installed for pthread_exit to work\" (192.168.15.95, 2026-11-15). 4.7.5-15: no longer ships libgcc_s.so.1, and requires gcc-libs, gcc's runtime-library output, which owns it (cix#680). The copy kept squashfs-tools out of every image with gcc, cix-builder among them."
+    }
+
+    # The owner's 2026-11-10 decision to split the tool packages too
+    # (ADR-0371): the control-plane root runs mksquashfs and unsquashfs
+    # only, so these two are their own package. The requirement is a
+    # real one: squashfs-tools requires gcc-libs, which carries
+    # libgcc_s.so.1, which pthread_exit() dlopen()s by name, and these
+    # two are threaded as mksquashfs is. dosfstools-extra has no such
+    # link and requires nothing.
+    output "squashfs-tools-extra" {
+        files {
+            "usr/bin/sqfscat"
+            "usr/bin/sqfstar"
+        }
+        requires { runtime { package "squashfs-tools" } }
+    }
+
+    build {
+        cd "${src}/squashfs-tools/squashfs-tools-4.7.5/squashfs-tools" {
+            # -Dlinux=1 is load-bearing and not cosmetic. TCC never
+            # predefines the bare "linux" macro GCC always does on a
+            # Linux target, and endian_compat.h branches its entire
+            # byte-order detection on exactly that -- so without this
+            # every TCC build silently computed the host's endianness
+            # wrong and byte-swapped every multi-byte on-disk field,
+            # while mksquashfs reported a clean success throughout.
+            # __STDC_NO_VLA__ steers glibc's <regex.h> onto its own
+            # no-VLA branch, which TCC can parse.
+            run "make" {
+                "CC=tcc"
+                "GZIP_SUPPORT=0"
+                "XZ_SUPPORT=1"
+                "LZO_SUPPORT=0"
+                "LZ4_SUPPORT=0"
+                "ZSTD_SUPPORT=0"
+                "XATTR_SUPPORT=0"
+                "COMP_DEFAULT=xz"
+                "EXTRA_CFLAGS=-D__STDC_NO_VLA__=1 -Dlinux=1"
+                "DONT_USE_ATOMIC_EXCHANGE_N=1"
+                "SINGLE_READER_THREAD=1"
+                jobs $jobs
+            }
+
+            # RUN IT. A subdirectory and two files, so the image has
+            # something to contain and a directory entry to get wrong.
+            mkdir "${build}/sqcheck/src/sub"
+            write "${build}/sqcheck/src/hello.txt" "cix squashfs build gate\n"
+            write "${build}/sqcheck/src/sub/two.txt" "second\n"
+            run "./mksquashfs" {
+                "${build}/sqcheck/src"
+                "${build}/sqcheck/out.squashfs"
+                "-noappend"
+            }
+            require file "${build}/sqcheck/out.squashfs" {
+                exists
+                nonempty
+            }
+            # "hsqs" is correct. "sqsh" means the endianness bug is
+            # back. A four-byte file that CONTAINS the four bytes IS
+            # them, so this is exact rather than a substring search.
+            run "head" {
+                "-c"
+                "4"
+                "${build}/sqcheck/out.squashfs"
+                stdout file "${build}/sqcheck/magic"
+            }
+            require file "${build}/sqcheck/magic" {
+                exists
+                nonempty
+                contains "hsqs"
+            }
+            # And that the tool can read back what it wrote.
+            run "./unsquashfs" {
+                "-s"
+                "${build}/sqcheck/out.squashfs"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin"
+        copy "${src}/squashfs-tools/squashfs-tools-4.7.5/squashfs-tools/mksquashfs" to "${dest}/usr/bin/mksquashfs"
+        copy "${src}/squashfs-tools/squashfs-tools-4.7.5/squashfs-tools/unsquashfs" to "${dest}/usr/bin/unsquashfs"
+        copy "${src}/squashfs-tools/squashfs-tools-4.7.5/squashfs-tools/sqfscat" to "${dest}/usr/bin/sqfscat"
+        copy "${src}/squashfs-tools/squashfs-tools-4.7.5/squashfs-tools/sqfstar" to "${dest}/usr/bin/sqfstar"
+        require file "${dest}/usr/bin/mksquashfs" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/unsquashfs" {
+            exists
+            executable
+        }
+    }
+}
