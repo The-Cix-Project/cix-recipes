@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "4ab17962af25f30c49846393417c2a1c8a5d22519a557ea6552950183fbebbce"
         "changelog" "0.2.57-757: compile and selftest probe of commit 78eefe01: the first after cix-builder carries squashfs-tools again (cix#680), with the 32-source limit (cix#684), the uninstall guard and output replaces reader (cix#680), empty-directory pruning (cix#687) and the roll's failure sentence (cix#683)."
     }
 
