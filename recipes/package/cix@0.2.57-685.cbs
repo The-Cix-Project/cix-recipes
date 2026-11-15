@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "a6fb37faa124712fa917cd7d5a59f685ee421dfde5bddf59305972479ccc9cd9"
+        "artifact_sha256.cixd" "f7f48b2298a23d6cb9c06df66d6216b740d9a2b5986ca59bd6d025897564af3d"
+        "artifact_sha256" "ae85a8b382430ec23ed1f60573e3c474899206f55cd2654c2169883ce65d2675"
         "changelog" "0.2.57-685: an uninstall never strands a tool's output and an output's replaces is read (cix#680), a recipe may declare 32 sources (cix#684), upgrades remove the directories they empty (cix#687), and the host roll names what it retries (cix#683)."
     }
 
