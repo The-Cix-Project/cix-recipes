@@ -1,0 +1,50 @@
+#
+# probe-rtx-a 1 -- throwaway (#680): plays gcc 16.2.0-20. Its output rtx-a-libs
+# owns usr/lib/rtx-lib.1 (as gcc-libs will own libgcc_s.so.1) and a
+# versioned file named by a glob (as libstdc++.so.6.0.*). It replaces
+# rtx-b, which ships that path, and its main package requires its own
+# output, so the output always lands with it.
+#
+package "probe-rtx-a" {
+    version "1"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+        runtime {
+            package "probe-rtx-a-libs"
+        }
+    }
+
+    replaces {
+        package "probe-rtx-b"
+    }
+
+    metadata {
+        "changelog" "1-2: declares bash, which a build phase needs to start. 1: throwaway for cix#680, a main package requiring its own output, an output owning another recipe's path by replaces, and an output file named by a glob."
+    }
+
+    output "probe-rtx-a-libs" {
+        files {
+            "usr/lib/rtx-lib.1"
+            glob "usr/lib/rtx-ver.6.0.*"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/lib" parents
+        mkdir "${dest}/usr/bin" parents
+        run "touch" { "${dest}/usr/lib/rtx-lib.1" "${dest}/usr/lib/rtx-ver.6.0.36" "${dest}/usr/bin/rtx-a" }
+    }
+}
