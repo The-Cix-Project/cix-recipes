@@ -22,6 +22,7 @@ package "probe-rtx-c" {
     }
 
     metadata {
+        "artifact_sha256" "b3d6a70bf0f8b2bfc78cf4873c19c365acb1b2d791f8110325dfc428c93cbd36"
         "changelog" "1: throwaway for cix#680, gcc 16.2.0-19's shape."
     }
 

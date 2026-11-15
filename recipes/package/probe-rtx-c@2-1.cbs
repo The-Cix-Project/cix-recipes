@@ -26,6 +26,8 @@ package "probe-rtx-c" {
     }
 
     metadata {
+        "artifact_sha256.probe-rtx-c-libs" "5352b1acf2bfe3bd701c1a8131f9584f9ddcb636c6ecba732f51fac19f4f8dfc"
+        "artifact_sha256" "626880e1f72a9ddbf4cf5b09193b5d824e4a2c168cc13caa1028cbd85e99b70d"
         "changelog" "2: throwaway for cix#680, gcc 16.2.0-20's shape: the libraries in an output the main package requires."
     }
 
