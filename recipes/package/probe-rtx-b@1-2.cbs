@@ -1,0 +1,33 @@
+#
+# probe-rtx-b 1 -- throwaway (#680): plays squashfs-tools 4.7.5-14, a package
+# that ships a path (usr/lib/rtx-lib.1) another recipe will own.
+#
+package "probe-rtx-b" {
+    version "1"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-2: declares bash, which a build phase needs to start. 1: throwaway for cix#680, ships usr/lib/rtx-lib.1 as squashfs-tools ships libgcc_s.so.1."
+    }
+
+    install {
+        mkdir "${dest}/usr/lib" parents
+        mkdir "${dest}/usr/bin" parents
+        run "touch" { "${dest}/usr/lib/rtx-lib.1" "${dest}/usr/bin/rtx-b" }
+    }
+}
