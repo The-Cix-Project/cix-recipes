@@ -22,6 +22,7 @@ package "probe-rtx-b" {
     }
 
     metadata {
+        "artifact_sha256" "a2fa9f9c46071c03a80c89b6d092da246db13ca37ca1cd2a82d65deaa70851d6"
         "changelog" "1-2: declares bash, which a build phase needs to start. 1: throwaway for cix#680, ships usr/lib/rtx-lib.1 as squashfs-tools ships libgcc_s.so.1."
     }
 
