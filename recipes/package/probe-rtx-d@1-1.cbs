@@ -24,6 +24,7 @@ package "probe-rtx-d" {
     }
 
     metadata {
+        "artifact_sha256" "05608244d175b073d30459004a47c9ec255874b3e8f76eabf976306f09018382"
         "changelog" "1: throwaway for cix#680, composition of a tool whose libraries are an output."
     }
 
