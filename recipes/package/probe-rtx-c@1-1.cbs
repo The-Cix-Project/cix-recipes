@@ -1,0 +1,34 @@
+#
+# probe-rtx-c 1 -- throwaway (cix#680): plays gcc 16.2.0-19, whose main
+# package ships a library, a symlink and a versioned file.
+#
+package "probe-rtx-c" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz"
+            sha256 "974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: throwaway for cix#680, gcc 16.2.0-19's shape."
+    }
+
+    install {
+        mkdir "${dest}/usr/lib" parents
+        mkdir "${dest}/usr/bin" parents
+        run "touch" { "${dest}/usr/lib/rtx-c.1" "${dest}/usr/lib/rtx-c.6.0.9" "${dest}/usr/bin/rtx-c" }
+        symlink "rtx-c.6.0.9" to "${dest}/usr/lib/rtx-c.6"
+    }
+}
