@@ -115,6 +115,7 @@ package "gcc" {
     }
 
     metadata {
+        "artifact_sha256.gcc-libs" "6a17ba08ab5dd00c4816159f8691179b588764e8f0e6f97312362a77fe35231e"
         "artifact_sha256" "e4daa40fd7a30ef62c8da990cd83549c4e128d1797e7e5fdba104e040edfb50c"
         "changelog" "16.2.0-20: libgcc_s.so.1 and libstdc++ move to a gcc-libs output that gcc requires, so a program needing them at run time requires gcc-libs instead of the compiler, and one package owns each path (cix#680). gcc-libs replaces squashfs-tools, which shipped libgcc_s.so.1 itself, and libgcc-s, which republished gcc's bytes (cix#639)."
     }
