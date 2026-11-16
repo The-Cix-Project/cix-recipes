@@ -1,0 +1,49 @@
+#
+# probe-outrepl -- cix#680 / cix-build-system#314: what does cbs v0.1.130's
+# explain emit for an output's own replaces? Runs `cbs explain RECIPE --json`,
+# the argv cixd uses (run_cbs_explain(), daemon/src/pkg.c), on gcc@16.2.0-20,
+# whose gcc-libs output declares replaces { squashfs-tools libgcc-s }. The
+# answer is the build log. A throwaway; nothing reads the package.
+#
+package "probe-outrepl" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "filler" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-build-system/archive/v0.1.130.tar.gz"
+            sha256 "4d9a6af5768da5b135193ffb6564f81a27ae3bbff012004f7f7fc66f5b357501"
+        }
+        extra "gcc" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-recipes/raw/recipes/package/gcc%4016.2.0-20.cbs?ref=2da181729f10b52a31f150c84dcd4b4876a0d0c7"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "cbs"
+        }
+    }
+
+    metadata {
+        "changelog" "1: cbs explain --json on gcc@16.2.0-20 with cbs v0.1.130, for the shape of an output's replaces (cix#680, cix-build-system#314)."
+    }
+
+    prepare {
+        materialize $source.gcc to "${build}/gcc.cbs"
+    }
+
+    build {
+        run "cbs" {
+            "explain"
+            "${build}/gcc.cbs"
+            "--json"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-outrepl" parents
+    }
+}
