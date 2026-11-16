@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "c513138ed20664f5c00dc1c8a3406b33b580be8d56c0128413b884bd59df4bd1"
+        "artifact_sha256.cixd" "e6a89144a3f787c4cf9a861aeb52091901939567185acbd8bda9e9f002e97378"
+        "artifact_sha256" "590281f30837f1f8a6df76cd2ca4700f079e80bcaf92e465d7f666741c479450"
         "changelog" "0.2.57-687: a quota check never waits in a helper, so it cannot hold an in-place switch (cix#689), and a handover does not store the kernel log twice (cix#690)."
     }
 
