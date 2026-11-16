@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "92f7d55c9436e2340dd4c92a343d2d042f834831c87d181e28fe96a08e4f64be"
         "changelog" "0.2.57-686: test_cli waits for the exit it checks, which failed the 685 selftest; carries 685: an uninstall never strands a tool's output and an output's replaces is read (cix#680), a recipe may declare 32 sources (cix#684), upgrades remove the directories they empty (cix#687), and the host roll names what it retries (cix#683)."
     }
 
