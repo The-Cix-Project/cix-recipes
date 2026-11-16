@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "4ef4697cec1594132f8b787c254c69c534d7a5d6c92af1abbea78bd24c924a16"
         "changelog" "v0.1.130-1: explain reports each output's own replaces (cbs#314, for cix#680), and a gate holds every output item to a stated decision per consumer. Additive: one new key per outputs[] entry. ABI, exit codes, events and the artifact format unchanged."
     }
 
