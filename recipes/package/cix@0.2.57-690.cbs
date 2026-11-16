@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "75c9304b567f765bdb8f1cb9077963a91ac97fd0e0f4c6b5fb7c05b5d5acc807"
         "artifact_sha256.cixd" "08f524f85fc1ceb5bdce67f0654ee359b3adc29e4bcc89d4d0d6f2064de22a37"
         "artifact_sha256" "174cba3cd2ac7935f8192dbd1dfcd74cf54b54f4c7d3b9600b2a8e8938c4ef02"
         "changelog" "0.2.57-690: a hostbuild runs alone: while one runs the rolling drain starts nothing, and the roll's next hostbuild goes first (cix#693). Its root carries cbs v0.1.130 from cix-root, which reports an output's own replaces (cix#680)."
