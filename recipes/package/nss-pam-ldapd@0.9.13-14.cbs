@@ -76,6 +76,7 @@ package "nss-pam-ldapd" {
     }
 
     metadata {
+        "artifact_sha256" "b14fbb60bc3960266ade360ac875e032ec082711dbd370d944570b6488e4e29d"
         "changelog" "0.9.13-14: requires gcc-libs, gcc's own output, for libgcc_s.so.1 instead of the libgcc-s package, which republished gcc's bytes and is retired (cix#680). Otherwise as 0.9.13-13."
     }
 
