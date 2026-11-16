@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "35949321ea466d15b8ebefb0fb69465d37045273e42c7ed82221273e2b39c18f"
         "artifact_sha256.cixd" "65f90b59ac69bded312c27f614a37951e7d6b325ee78d4eb649d94734e56db53"
         "artifact_sha256" "33fbc46bfd2d515296d477127ed5ad1d9be8e1c3e7b32e6da00e42b7a043a17d"
         "changelog" "0.2.57-689: schedule show host-roll follows the roll through every step, and a confirmed switch records its release (cix#692)."

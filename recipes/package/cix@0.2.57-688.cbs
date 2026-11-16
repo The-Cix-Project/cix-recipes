@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "38febe7f6403feecb1aa585bf440b64a247b50aea8e8fdd102e5db402bbf17af"
+        "artifact_sha256.cixd" "3520682edb5e85a1c9d26b0cdfa8679e7c31febde7b550fc760e670e52a721e2"
         "artifact_sha256.cixctl" "0f257141969a7526311037ee1743c379bb05ec917003bd80d3c614d460bd6fcf"
         "changelog" "0.2.57-688: the host roll waits for every package job before it starts, and gives up without staging when its window ends (cix#688)."
     }
