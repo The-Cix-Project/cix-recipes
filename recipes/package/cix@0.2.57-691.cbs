@@ -248,6 +248,8 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "17975c922e36abf5e9b782b440ca75935fc02932a8bd7f2a592b7a31cdd2b3bb"
+        "artifact_sha256.cixd" "e86b98b5ce7f753d9b268c96aeb82dd1fc99df6d78ed2bd7c0e781feb3c6666e"
         "artifact_sha256" "9935556f92e257b33ff1e0858f9d1d7b1f0abb1777842f368457b0dc8eb7fadc"
         "changelog" "0.2.57-691: the root follows cix-root as soon as it settles, by a root-only roll that switches in place (ADR-0379), configurable by system.roll params {\"root\":\"settled\"|\"window\"}; a schedule read carries its params."
     }
