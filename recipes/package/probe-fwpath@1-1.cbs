@@ -1,0 +1,117 @@
+#
+# probe-fwpath 1 -- how does kernel 7.3.5 find firmware outside
+# /lib/firmware, and can cixd point it somewhere at runtime? (cix#685)
+#
+# WHY IT DECIDES SOMETHING. The owner asked for firmware to arrive after
+# install, never on the ISO or in the root. The shape being tested keeps
+# firmware as packages in an image and points the loader's one extra
+# search path at it. Three things decide whether that is sound:
+#
+#   1. whether firmware_class.path can be set at runtime, and how long it
+#      may be (drivers/base/firmware_loader/main.c);
+#   2. in whose root the loader resolves a path -- the caller's, or init's
+#      -- which decides what an in-place root switch does to it
+#      (fs/kernel_read_file.c);
+#   3. what the image store path would have to fit in.
+#
+# THE SOURCE MATCHES THE BOOTED KERNEL: cixctl boot reports 7.3.5, and
+# kernel@7.3.5-1.cbs declares exactly this tarball and sha256.
+#
+# Every grep carries '#include', which cannot miss in a C file, so no
+# grep ends the phase by finding nothing. NOTHING IS COMPILED. The phase
+# fails deliberately at the end so the log is kept and nothing publishes.
+#
+package "probe-fwpath" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz"
+            sha256 "8f293f83d54f0b7b9be56863ebc5e4ea79d73e530b4ae55c572be97ef39f0990"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: can firmware_class.path be set at runtime, how long may it be, and in whose root does the loader resolve it? Decides how firmware reaches the host after install (cix#685)."
+    }
+
+    build {
+        # 1. The extra path: its parameter, permissions and size.
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "4"
+            "-e"
+            "fw_path_para"
+            "-e"
+            "module_param_string"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.3.5/drivers/base/firmware_loader/main.c"
+        }
+        # How the search list is built and read.
+        run "grep" {
+            "-n"
+            "-B"
+            "2"
+            "-A"
+            "40"
+            "-e"
+            "const fw_path\\["
+            "-e"
+            "#include <linux/module.h>"
+            "${src}/linux/linux-7.3.5/drivers/base/firmware_loader/main.c"
+        }
+        # 2. Which kernel_read_file variant the loader calls.
+        run "grep" {
+            "-n"
+            "-e"
+            "kernel_read_file_from_path"
+            "-e"
+            "#include"
+            "${src}/linux/linux-7.3.5/drivers/base/firmware_loader/main.c"
+        }
+        run "grep" {
+            "-n"
+            "-B"
+            "4"
+            "-A"
+            "30"
+            "-e"
+            "kernel_read_file_from_path_initns"
+            "-e"
+            "#include <linux/fs.h>"
+            "${src}/linux/linux-7.3.5/fs/kernel_read_file.c"
+        }
+        # 3. The user helper, which a FW_LOADER_USER_HELPER kernel would
+        # have, so the log shows whether that door is relevant.
+        run "grep" {
+            "-n"
+            "-e"
+            "FW_LOADER_USER_HELPER"
+            "-e"
+            "config FW_LOADER"
+            "${src}/linux/linux-7.3.5/drivers/base/firmware_loader/Kconfig"
+        }
+
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-fwpath" parents
+        write "${dest}/usr/share/probe-fwpath/probe" "${version}-${release}\n"
+    }
+}
