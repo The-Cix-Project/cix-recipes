@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "0b3387268b55c4ce8e467e7a324378920da62aef5174988a167e3ee0338197f1"
         "changelog" "0.2.57-692: a roll that finds a root-only roll in progress is owed, not lost, carried across the switch (cix#694); a job that fails at its fetch asks for the root-only roll too (ADR-0379)."
     }
 
