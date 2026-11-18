@@ -189,6 +189,7 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "5883eb2869d9e17944e6143ce94bdecd3c9aed88c6591344e1a9ef5c8456fa12"
         "changelog" "0.2.57-758: compile and selftest probe of commit ab9c33c5: test_cli waits for the exit it checks."
     }
 
