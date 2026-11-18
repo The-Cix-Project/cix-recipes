@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "7c77aa9b3e9666262ae8e160ff46cbaf8eeffade8b032085b0461b22f647da27"
         "changelog" "0.2.57-693: ADR-0380 release A. The assembly runs usr/libexec/cix/mkbootroot from the cix-root tree it seals, shipped in the cixd output; the installer tools are a new output, cix-installer-tools, which POST /v1/system/iso reads from iso-builder and refuses unless it is cix-root cixd release; a bad root mark carries its cixd so a rejected release stays off; a kernel only published no longer holds a root-only roll. The flat host-tool copies stay for this release only."
     }
 
