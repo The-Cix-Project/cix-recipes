@@ -1,0 +1,53 @@
+#
+# probe-dnsrelay 1 -- what dnsmasq 2.90 does as a DHCPv4 relay and as a
+# server answering relayed requests: the --dhcp-relay syntax, whether a
+# relayed subnet's dhcp-range needs its netmask, how a relayed request is
+# matched to a range (giaddr), and where the reply goes. Read from the
+# packaged tarball's own source and manual; nothing is compiled. Every
+# grep carries a pattern that cannot miss, and the phase fails at the end
+# on purpose so the log is kept.
+#
+package "probe-dnsrelay" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "dnsmasq" {
+            url "https://deb.debian.org/debian/pool/main/d/dnsmasq/dnsmasq_2.90.orig.tar.xz"
+            sha256 "8e50309bd837bfec9649a812e066c09b6988b73d749b7d293c06c57d46a109e4"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: dnsmasq 2.90 as a DHCPv4 relay and as a server for relayed subnets (DHCP relay design, cores to dns-1/dns-2)."
+    }
+
+    build {
+        run "ls" { "-1" "${src}/dnsmasq" }
+        # The manual: --dhcp-relay, and dhcp-range's netmask for a relayed net.
+        run "grep" { "-r" "-n" "-B" "2" "-A" "30" "-e" "^\\.B \\\\-\\\\-dhcp\\\\-relay" "-e" "^\\.TH" "${src}/dnsmasq/dnsmasq-2.90/man/dnsmasq.8" }
+        run "grep" { "-n" "-i" "-e" "relay" "-e" "^\\.TH" "${src}/dnsmasq/dnsmasq-2.90/man/dnsmasq.8" }
+        run "grep" { "-n" "-i" "-B" "1" "-A" "3" "-e" "netmask" "-e" "^\\.TH" "${src}/dnsmasq/dnsmasq-2.90/man/dnsmasq.8" }
+        # The server side: giaddr selecting the context, and the reply's destination.
+        run "grep" { "-n" "-e" "giaddr" "-e" "#include" "${src}/dnsmasq/dnsmasq-2.90/src/rfc2131.c" }
+        run "grep" { "-n" "-e" "giaddr" "-e" "relay" "-e" "#include" "${src}/dnsmasq/dnsmasq-2.90/src/dhcp.c" }
+        # The relay side.
+        run "grep" { "-n" "-B" "3" "-A" "60" "-e" "^static int relay_upstream4" "-e" "^int relay_upstream4" "-e" "#include" "${src}/dnsmasq/dnsmasq-2.90/src/dhcp.c" }
+        run "grep" { "-n" "-B" "2" "-A" "40" "-e" "LOPT_RELAY" "-e" "#include" "${src}/dnsmasq/dnsmasq-2.90/src/option.c" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-dnsrelay" parents
+        write "${dest}/usr/share/probe-dnsrelay/probe" "${version}-${release}\n"
+    }
+}
