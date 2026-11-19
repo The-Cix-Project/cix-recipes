@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "0cb6cd9325186ba8bebb2f7621183de2e4e827888bdf160f0ceac82bb404fccf"
+        "artifact_sha256.cix-installer-tools" "342ccdac0953e1b1e7583bf2d17b3c861d94c9c4a1f77ef49342b9059e8fb89e"
+        "artifact_sha256.cixd" "684a0c1f0f07f5f1772b0dc578995984d63662fc65b137f435babbe06bd5cc61"
         "artifact_sha256" "67928051f137315f754c1de1f708ba52594687dc2601ff73582bd04ec7d5c1f2"
         "changelog" "0.2.57-695: the code of 694, whose recipe still gated cix-boot.efi at its old flat path and failed at install. ADR-0380 release B. Nothing hostbuilds cix: POST /v1/pkg/hostbuild refuses it, the bridge keeps only kernel-modules, the roll decides on the kernel and the root. The installer ISO compares its tools with the release the assembled root records. Every file of this recipe is an output now; the flat host-tool copies are gone."
     }

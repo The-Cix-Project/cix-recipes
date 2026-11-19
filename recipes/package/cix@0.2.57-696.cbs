@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cix-installer-tools" "a5ce4d14e734b785ef26033f37d6db26e05b09a89f0055e4b119d1b50978bdd6"
+        "artifact_sha256" "7322baf56175bd410ea8b223b831980983c4eed5363b9e677343a4de7a25e197"
+        "artifact_sha256.cixd" "650c0d57eae3edeaee24f62cb195eb6b77dc32ff2d71912ce22b9f9b6304f7b0"
         "artifact_sha256.cixctl" "3b94075c3515376e897c4b9ffc9802195613635f1988ca81c625b8e3864d79eb"
         "changelog" "0.2.57-696: the code of 694 (ADR-0380 release B: nothing hostbuilds cix). Its recipe gated cix-boot.efi at the old flat path (fixed in 695), and the main package staged nothing, which cixd refuses (#486), so it now carries the licence."
     }
