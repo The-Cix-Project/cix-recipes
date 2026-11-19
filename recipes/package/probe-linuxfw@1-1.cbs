@@ -1,0 +1,34 @@
+#
+# probe-linuxfw 1 -- the sha256 of kernel.org's linux-firmware-20261019
+# release tarball (ADR-0381 release 2, cix#685). The sha256 below is
+# deliberately wrong: the fetch fails and pkg ls names the real hash,
+# so this costs one fetch and no build.
+#
+package "probe-linuxfw" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "fw" {
+            url "https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-20261019.tar.xz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the sha256 of linux-firmware-20261019.tar.xz, by a deliberately wrong pin (ADR-0381 release 2, cix#685)."
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-linuxfw" parents
+        write "${dest}/usr/share/probe-linuxfw/probe" "${version}-${release}\n"
+    }
+}
