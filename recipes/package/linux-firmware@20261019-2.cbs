@@ -50,6 +50,9 @@ package "linux-firmware" {
     build_image "cix-builder"
 
     metadata {
+        "artifact_sha256.rtw88-firmware" "5f17f00b2f350d090386674eee12be322fef4127ff6fb8e2739a2a3bbff64a5a"
+        "artifact_sha256.amdgpu-firmware" "3cf177154c0603d27fb71030ea70a27dd9aa0aa4507cb6c62693aed815c47a3a"
+        "artifact_sha256" "e155bfe9b85f361b62b8144c4bae14d6f33e8f21176c075ee596d6d1be808110"
         "changelog" "20261019-2: adds the rtw88 family as the rtw88-firmware output, with its licence, retiring the rtw88-firmware recipe (ADR-0381 release 3, cix#685); its rtw8822b_fw.bin is 161,240 bytes against rtw88-firmware@3-1's 150,984."
     }
 
