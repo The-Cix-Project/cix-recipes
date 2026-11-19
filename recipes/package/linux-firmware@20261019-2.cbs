@@ -1,0 +1,94 @@
+# linux-firmware -- device firmware from kernel.org's signed release, one
+# output per driver family (ADR-0381, cix#685).
+#
+# THIS PACKAGE IS AN EXPLICIT, OWNER-APPROVED EXCEPTION TO THE BUILD
+# PROVENANCE MANDATE, on the terms rtw88-firmware set and the owner
+# approved again for this recipe on 2026-11-18 ("Approve"). Nothing here
+# is compiled, and nobody can compile it: it is vendors' microcode, run
+# on the device (a GPU, a radio), never on the host CPU, and linked into
+# nothing Cix builds. Without it a driver loads and its device never
+# comes up.
+#
+# What makes it acceptable rather than a hole:
+#   - The source is kernel.org's release tarball, pinned by content: the
+#     sha256 approves those exact 672,694,092 bytes (measured by
+#     probe-linuxfw@1-1 on 192.168.15.95, 2026-11-19). kernel.org also
+#     publishes a .tar.sign for it.
+#   - Each output ships upstream's own licence for what it carries.
+#   - The main package keeps WHENCE, upstream's record of where every
+#     file came from and under which licence.
+#
+# WHY OUTPUTS. cixd finds which package provides a firmware file a
+# driver declares from these outputs' files selectors (ADR-0381): one
+# output per driver family, claiming that family's directory. A new
+# family is a new output here, never a recipe of its own beside this one.
+#
+# Measured by probe-linuxfw@2-1 and @3-1 (2026-11-19): WHENCE has no
+# Link: entries under amdgpu/ or rtw88/, so the directories copy as they
+# are; amdgpu/ is 699 files, 115,672,486 bytes, under LICENSE.amdgpu;
+# rtw88/ is 12 files and a README, 881,557 bytes, under
+# LICENCE.rtlwifi_firmware.txt. Both licences are in LICENSES/.
+package "linux-firmware" {
+    version "20261019"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "fw" {
+            url "https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-20261019.tar.xz"
+            sha256 "a10d1ab5baf2c74ba92e8c7cf313e691696c26bddfa6df00db795e48d70cd4ca"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    build_image "cix-builder"
+
+    metadata {
+        "changelog" "20261019-2: adds the rtw88 family as the rtw88-firmware output, with its licence, retiring the rtw88-firmware recipe (ADR-0381 release 3, cix#685); its rtw8822b_fw.bin is 161,240 bytes against rtw88-firmware@3-1's 150,984."
+    }
+
+    output "amdgpu-firmware" {
+        files {
+            "lib/firmware/amdgpu"
+            "usr/share/licenses/amdgpu-firmware"
+        }
+    }
+
+    # rtw88 (ADR-0381 release 3, the owner's "Go ahead now", 2026-11-19).
+    # The rtw88-firmware recipe is retired in the same change: one name,
+    # one recipe (ADR-0324). This release's rtw8822b_fw.bin is 161,240
+    # bytes, against the 150,984 rtw88-firmware@3 pinned.
+    output "rtw88-firmware" {
+        files {
+            "lib/firmware/rtw88"
+            "usr/share/licenses/rtw88-firmware"
+        }
+    }
+
+    install {
+        mkdir "${dest}/lib/firmware" parents
+        copy tree "${src}/fw/linux-firmware-20261019/amdgpu" to "${dest}/lib/firmware/amdgpu"
+        copy tree "${src}/fw/linux-firmware-20261019/rtw88" to "${dest}/lib/firmware/rtw88"
+        mkdir "${dest}/usr/share/licenses/amdgpu-firmware" parents
+        copy "${src}/fw/linux-firmware-20261019/LICENSES/LICENSE.amdgpu" to "${dest}/usr/share/licenses/amdgpu-firmware/LICENSE.amdgpu"
+        mkdir "${dest}/usr/share/licenses/rtw88-firmware" parents
+        copy "${src}/fw/linux-firmware-20261019/LICENSES/LICENCE.rtlwifi_firmware.txt" to "${dest}/usr/share/licenses/rtw88-firmware/LICENCE.rtlwifi_firmware.txt"
+        mkdir "${dest}/usr/share/licenses/linux-firmware" parents
+        copy "${src}/fw/linux-firmware-20261019/WHENCE" to "${dest}/usr/share/licenses/linux-firmware/WHENCE"
+
+        require file "${dest}/lib/firmware/amdgpu/navi10_sos.bin" {
+            exists
+            nonempty
+        }
+        require file "${dest}/lib/firmware/rtw88/rtw8822b_fw.bin" {
+            exists
+            nonempty
+        }
+    }
+}
