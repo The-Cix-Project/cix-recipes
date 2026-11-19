@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "3b94075c3515376e897c4b9ffc9802195613635f1988ca81c625b8e3864d79eb"
         "changelog" "0.2.57-696: the code of 694 (ADR-0380 release B: nothing hostbuilds cix). Its recipe gated cix-boot.efi at the old flat path (fixed in 695), and the main package staged nothing, which cixd refuses (#486), so it now carries the licence."
     }
 
