@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "07e49a07279a0d836065965ac52c104e402edcfedda706ee17d2920b7122abdc"
         "changelog" "0.2.57-698: a built-in driver's firmware declarations come from modules.builtin.modinfo, so its device record is complete (ADR-0381 1b, cix#685)."
     }
 
