@@ -1,0 +1,49 @@
+#
+# probe-reprobe 1 -- what writing a device's name to its bus's
+# drivers_probe does in kernel 7.3.5, and whether it reaches a device
+# whose earlier probe failed (ADR-0381 re-probe, cix#685). Read from the
+# booted kernel's own source; nothing is compiled. Every grep carries a
+# pattern that cannot miss, and the phase fails at the end on purpose so
+# the log is kept.
+#
+package "probe-reprobe" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz"
+            sha256 "8f293f83d54f0b7b9be56863ebc5e4ea79d73e530b4ae55c572be97ef39f0990"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: what drivers_probe does in 7.3.5, and whether a device whose probe failed can be probed again (ADR-0381, cix#685)."
+    }
+
+    build {
+        # The sysfs file: which function, and what it calls.
+        run "grep" { "-n" "-B" "2" "-A" "20" "-e" "drivers_probe_store" "-e" "#include <linux/device.h>" "${src}/linux/linux-7.3.5/drivers/base/bus.c" }
+        # bus_rescan_devices_helper and device_reprobe, the other ways in.
+        run "grep" { "-n" "-B" "2" "-A" "22" "-e" "static int __must_check bus_rescan_devices_helper" "-e" "^int device_reprobe" "-e" "#include <linux/device.h>" "${src}/linux/linux-7.3.5/drivers/base/bus.c" }
+        # device_attach / __device_attach: does a device with no driver,
+        # whose last probe failed, get tried again?
+        run "grep" { "-n" "-B" "2" "-A" "40" "-e" "^static int __device_attach(" "-e" "#include <linux/device.h>" "${src}/linux/linux-7.3.5/drivers/base/dd.c" }
+        run "grep" { "-n" "-e" "deferred_probe" "-e" "dev->p->dead" "-e" "can_match" "-e" "#include <linux/device.h>" "${src}/linux/linux-7.3.5/drivers/base/dd.c" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-reprobe" parents
+        write "${dest}/usr/share/probe-reprobe/probe" "${version}-${release}\n"
+    }
+}
