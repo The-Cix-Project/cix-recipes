@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8496b52d33bc6af099d74fa6af460097461f3c616927afb08cd2cf188462f2ff"
         "changelog" "0.2.57-700: ADR-0381 release 3, acquisition: a device whose driver declares firmware the firmware image lacks gets the providing output declared into that image for the drain to install, from trusted sources only; device records gain provided_by and unprovided."
     }
 
