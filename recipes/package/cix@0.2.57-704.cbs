@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "eb8059667eb6c8d25da761565d91d0a5d1779b812726aafec7881340f30880ac"
         "changelog" "0.2.57-704: #697 and ADR-0384: a DNS server's files are staged at create and written only on a change; a service declares reload_signal and cix-init delivers it, since a SIGHUP to a container's pid 1 was discarded."
     }
 
