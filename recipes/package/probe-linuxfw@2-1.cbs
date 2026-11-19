@@ -1,0 +1,48 @@
+#
+# probe-linuxfw 2 -- what ADR-0381's linux-firmware recipe needs to know
+# about linux-firmware-20261019 (cix#685): WHENCE's Link: entries and
+# licence lines for amdgpu and rtw88, and the size and file count of each
+# family. Nothing is compiled; the phase fails at the end on purpose so
+# the log is kept. The source verifies against its sha256, so it is kept
+# in the source cache (ADR-0382) and the recipe's build will not fetch it.
+#
+package "probe-linuxfw" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "fw" {
+            url "https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-20261019.tar.xz"
+            sha256 "a10d1ab5baf2c74ba92e8c7cf313e691696c26bddfa6df00db795e48d70cd4ca"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: WHENCE's links and licences for amdgpu and rtw88, and each family's size (ADR-0381 release 2, cix#685)."
+    }
+
+    build {
+        run "ls" { "-1" "${src}/fw" }
+        run "grep" { "-c" "" "${src}/fw/linux-firmware-20261019/WHENCE" }
+        run "grep" { "-n" "-e" "^Link: amdgpu/" "-e" "^Link: rtw88/" "-e" "^File: rtw88/" "-e" "^Driver: amdgpu" "-e" "^Driver: rtw88" "-e" "^Licen[cs]e: .*amdgpu" "-e" "^Licen[cs]e: .*rtw88" "-e" "^Licen[cs]e: .*Realtek" "-e" "^Licen[cs]e: .*AMD" "${src}/fw/linux-firmware-20261019/WHENCE" }
+        run "du" { "-sb" "${src}/fw/linux-firmware-20261019/amdgpu" "${src}/fw/linux-firmware-20261019/rtw88" }
+        run "ls" { "-1" "${src}/fw/linux-firmware-20261019/rtw88" }
+        run "grep" { "-c" "^File: amdgpu/" "${src}/fw/linux-firmware-20261019/WHENCE" }
+        run "ls" { "-1" "${src}/fw/linux-firmware-20261019" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-linuxfw" parents
+        write "${dest}/usr/share/probe-linuxfw/probe" "${version}-${release}\n"
+    }
+}
