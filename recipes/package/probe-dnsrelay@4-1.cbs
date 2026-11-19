@@ -1,0 +1,47 @@
+#
+# probe-dnsrelay 1 -- what dnsmasq 2.90 does as a DHCPv4 relay and as a
+# server answering relayed requests: the --dhcp-relay syntax, whether a
+# relayed subnet's dhcp-range needs its netmask, how a relayed request is
+# matched to a range (giaddr), and where the reply goes. Read from the
+# packaged tarball's own source and manual; nothing is compiled. Every
+# grep carries a pattern that cannot miss, and the phase fails at the end
+# on purpose so the log is kept.
+#
+package "probe-dnsrelay" {
+    version "4"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "dnsmasq" {
+            url "https://deb.debian.org/debian/pool/main/d/dnsmasq/dnsmasq_2.90.orig.tar.xz"
+            sha256 "8e50309bd837bfec9649a812e066c09b6988b73d749b7d293c06c57d46a109e4"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "4: dhcp_packet()'s order: interface checks against relay_reply4 and relay_upstream4 (ADR-0383)."
+    }
+
+    build {
+        # dhcp_packet(): where the interface checks sit against relay_reply4
+        # (a reply from a server) and relay_upstream4 (a client request).
+        run "sed" { "-n" "/^void dhcp_packet(/,/^}/p" "${src}/dnsmasq/dnsmasq-2.90/src/dhcp.c" }
+        run "grep" { "-n" "-B" "2" "-A" "30" "-e" "^static int relay_reply4" "-e" "#include \"dnsmasq.h\"" "${src}/dnsmasq/dnsmasq-2.90/src/dhcp.c" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-dnsrelay" parents
+        write "${dest}/usr/share/probe-dnsrelay/probe" "${version}-${release}\n"
+    }
+}
