@@ -1,0 +1,41 @@
+#
+# probe-dhcphelper 1 -- the sha256 of dhcp-helper 1.2's Debian orig
+# tarball, learned from the fetch (the declared sha256 is deliberately
+# wrong). ADR-0383: the owner chose dhcp-helper for the cores' relay.
+#
+package "probe-dhcphelper" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "dhcp-helper" {
+            url "https://deb.debian.org/debian/pool/main/d/dhcp-helper/dhcp-helper_1.2.orig.tar.gz"
+            sha256 "ae9e589ec50f1b5be302e7ebb8111ad734a11e2422a9cf61d08f7858ea2366ad"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: read dhcp-helper 1.2's manual and source: options, giaddr, servers per interface, config file (ADR-0383)."
+    }
+
+    build {
+        run "ls" { "-lR" "${src}/dhcp-helper" }
+        run "cat" { "${src}/dhcp-helper/dhcp-helper-1.2/dhcp-helper.8" }
+        run "grep" { "-n" "-e" "getopt" "-e" "case '" "-e" "giaddr" "-e" "SO_BINDTODEVICE" "-e" "IP_PKTINFO" "-e" "ifr_addr" "-e" "struct server" "-e" "#include" "${src}/dhcp-helper/dhcp-helper-1.2/dhcp-helper.c" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-dhcphelper" parents
+        write "${dest}/usr/share/probe-dhcphelper/probe" "${version}-${release}\n"
+    }
+}
