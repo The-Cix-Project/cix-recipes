@@ -50,6 +50,8 @@ package "linux-firmware" {
     build_image "cix-builder"
 
     metadata {
+        "artifact_sha256.amdgpu-firmware" "87c58a0ba12f38704e039f6ae019c4fb90ea4a7a55287e5bcefc2ddb0c3bfd48"
+        "artifact_sha256" "45d4811092f1bcc55956c81bcdb6a002e64ced5991fa4e2e292e85b329ddebfc"
         "changelog" "20261019-1: the amdgpu family of kernel.org's linux-firmware-20261019 as the amdgpu-firmware output, with its licence; WHENCE in the main package (ADR-0381 release 2, cix#685)."
     }
 
