@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "6d168947b7107ea74d1d3f1ba5014f8e16cde2f905244240f523ba0f48cbb455"
+        "artifact_sha256.cix-installer-tools" "2e75b86e3acb1c61140d03d8d827d1d3511975bcafed31f2d98d007bbe96d909"
+        "artifact_sha256.cixd" "3eb040f84d76e0d5a73aa86cc131236cb77c67b5df8e3d04f4b39cbcfc2ef50f"
         "artifact_sha256" "0c36ef84c520e7af2f93d6e5d9742a313b0eb011f8af3c719a3f34a9d030e2af"
         "changelog" "0.2.57-703: ADR-0383, a DHCP range may be relayed to its servers: relays registered like servers, cixd renders their dnsmasq relay file and restarts only the relay service; a relayed range carries its netmask."
     }
