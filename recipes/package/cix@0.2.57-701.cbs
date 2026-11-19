@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "5c870a51b0b24ba7e4f2cff0a3f54eb6b8268d1c61463704ef89b2eb1fb2ff33"
+        "artifact_sha256.cix-installer-tools" "2f90c2f3138890e93b26fe88a61d6d9c58fb0a73789216b1334e9f9627e5307c"
+        "artifact_sha256.cixd" "245fc2578cf0f7e90e9013c3b86865dbd49ee1c11dca4af70b31137987399f6d"
         "artifact_sha256" "2d634062e124caa574031be236ce12f9b00cac7c51ec691742f423bf001164e5"
         "changelog" "0.2.57-701: ADR-0381 release 3, re-probe: when the firmware image moves, an unbound device whose driver declares firmware is probed again through its bus's drivers_probe; a bound device is never touched."
     }

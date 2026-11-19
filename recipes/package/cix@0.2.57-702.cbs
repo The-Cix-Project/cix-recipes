@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "f49e1a5c4cfd151fcf39efd6cd4d4cfceba054d9c08c43934106f0ad34660756"
+        "artifact_sha256.cix-installer-tools" "4ec5b9649ac2140ed19886adbbfb8b1794eece70f5d3ff548490be4f76ea4d46"
+        "artifact_sha256.cixd" "7bcb2da72f0ba558983eb4948a707d541a9c4c195bcd8bda71a8f8bf0b0b5093"
         "artifact_sha256" "e8bc3623556e4c59a29d8aefe61d7365bc3191b65d03dab68f85bbfb5efca039"
         "changelog" "0.2.57-702: a change to the recipe store asks for a firmware scan, so a published or synced firmware output is acquired at once (ADR-0381)."
     }
