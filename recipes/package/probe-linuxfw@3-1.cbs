@@ -1,0 +1,46 @@
+#
+# probe-linuxfw 2 -- what ADR-0381's linux-firmware recipe needs to know
+# about linux-firmware-20261019 (cix#685): WHENCE's Link: entries and
+# licence lines for amdgpu and rtw88, and the size and file count of each
+# family. Nothing is compiled; the phase fails at the end on purpose so
+# the log is kept. The source verifies against its sha256, so it is kept
+# in the source cache (ADR-0382) and the recipe's build will not fetch it.
+#
+package "probe-linuxfw" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "fw" {
+            url "https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-20261019.tar.xz"
+            sha256 "a10d1ab5baf2c74ba92e8c7cf313e691696c26bddfa6df00db795e48d70cd4ca"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "3: the rtw88 and amdgpu WHENCE sections whole, and the LICENSES directory (ADR-0381 release 2, cix#685). Its source comes from the source cache (ADR-0382)."
+    }
+
+
+    build {
+        run "sed" { "-n" "2215,2235p;2915,2930p;3520,3550p" "${src}/fw/linux-firmware-20261019/WHENCE" }
+        run "ls" { "-1" "${src}/fw/linux-firmware-20261019/LICENSES" }
+        run "ls" { "-l" "${src}/fw/linux-firmware-20261019/amdgpu/navi10_sos.bin" "${src}/fw/linux-firmware-20261019/rtw88/rtw8822b_fw.bin" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-linuxfw" parents
+        write "${dest}/usr/share/probe-linuxfw/probe" "${version}-${release}\n"
+    }
+}
