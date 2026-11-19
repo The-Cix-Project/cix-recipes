@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "9d8a8d75040c899c2eb4367b38115a6a5fef28824c544ca0bb3af07d3fcf6fb6"
         "changelog" "0.2.57-699: ADR-0382: a source that verified against its sha256 is kept by it and served to any later fetch declaring it; the fetch child hashes sources, off the loop; DELETE /v1/pkg/cache clears both caches."
     }
 
