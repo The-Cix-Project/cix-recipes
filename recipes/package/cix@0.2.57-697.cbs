@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "63075eb1df4714b71829f2ca927dd9305f9ad5ae53798c151b00a2d200dad13c"
         "changelog" "0.2.57-697: ADR-0381 releases 1a and 1b (cix#685): a per-host firmware image the kernel reads through one stable link, and device records that say which firmware their driver declares and the host lacks. The first release deployed by publishing alone (ADR-0380)."
     }
 
