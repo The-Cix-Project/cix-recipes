@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "95472e98c150ec9784510895afb7c37a2af282deb83787dbbec26ad8e3646323"
+        "artifact_sha256.cix-installer-tools" "79a70f93a6836bec7ff71327ced6a014a5b499eab8ca66b77faa5313bc673ea4"
+        "artifact_sha256.cixd" "9d56c5d81b49530b19adfe87a6acfe1cd6a570b37147135f68ade572f6f474ff"
         "artifact_sha256" "d2aa206afb2262a8ad8b962243ceb35bd4877e14a4254c9159338cfc84a130b5"
         "changelog" "0.2.57-706: ADR-0385, a roll group restarts one member at a time: containers declaring the same roll_group are never restarted together by the daemon."
     }
