@@ -1,0 +1,38 @@
+#
+# probe-iscdhcp-tarball -- the sha256 of ISC dhcpd 4.4.3-P1's release
+# tarball, measured by the box (the probe-cix-tarball method: a zero
+# sha256 fails the fetch, and the row reports what the bytes hash to).
+# For cix#107: DHCP failover is ISC dhcpd in load-balancing mode.
+#
+package "probe-iscdhcp-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "isc-dhcp" {
+            url "https://downloads.isc.org/isc/dhcp/4.4.3-P1/dhcp-4.4.3-P1.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: the sha256 of dhcp-4.4.3-P1.tar.gz (cix#107)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-iscdhcp-tarball"
+    }
+}
