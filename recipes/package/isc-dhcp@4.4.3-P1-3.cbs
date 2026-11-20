@@ -47,6 +47,7 @@ package "isc-dhcp" {
     }
 
     metadata {
+        "artifact_sha256" "50986af50e3e5bd2d29ac7b2aa5e9e02d78b5b1fe339dabe75ec1fd2bcc4610c"
         "changelog" "4.4.3-P1-3: declares perl, which the bundled BIND 9.11's configure needs for its internal symbol table, and unpacks bind/bind.tar.gz with tar -z before make (cix#107)."
     }
 
