@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "103b636c7c732bf0f62cec41e7be70fe8c3229cb04821d42a74679dbb1e4eaee"
+        "artifact_sha256.cix-installer-tools" "0b5a1e33355e934dc6a196cb2f73b9034248de102c9abeb902aa3f6e772039e7"
+        "artifact_sha256.cixd" "e87df5f82f3f52784da6a635900e2b7900c0a8833effb5f6d0c8684e48ac8cb6"
         "artifact_sha256" "ed82ebb81f6a25b0db71565a27789e177f95e795039de3fcf47a4d9e61d59d04"
         "changelog" "0.2.57-705: #696, a deployment missing a secret is refused instead of created with the placeholder; #698, DHCP leases live on a volume at /var/lib/dnsmasq, so a server restart keeps them."
     }
