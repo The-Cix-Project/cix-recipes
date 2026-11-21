@@ -1,0 +1,42 @@
+{
+  "name": "dhcp-1",
+  "image": "dhcp",
+  "services": [
+    {
+      "name": "dhcpd",
+      "cmd": [
+        "/usr/sbin/dhcpd",
+        "-f",
+        "-cf",
+        "/etc/dhcpd.conf",
+        "-lf",
+        "/var/lib/dhcp/dhcpd.leases",
+        "--no-pid"
+      ],
+      "on_exit": "fail-container"
+    }
+  ],
+  "networks": [
+    {
+      "name": "services",
+      "ip": "192.168.150.111"
+    }
+  ],
+  "volumes": [
+    {
+      "name": "dhcp-1-state",
+      "path": "/var/lib/dhcp"
+    }
+  ],
+  "roll_group": "dhcp",
+  "restart": "always",
+  "follow_rolling": true,
+  "capture_output": true,
+  "routes": [
+    {
+      "dest": "0.0.0.0",
+      "prefix_len": 0,
+      "via": "192.168.150.254"
+    }
+  ]
+}

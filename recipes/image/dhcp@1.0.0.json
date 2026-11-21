@@ -1,0 +1,9 @@
+{
+  "image": "dhcp",
+  "version": "1.0.0",
+  "notes": "dhcp -- the image dhcp-1/dhcp-2 run from: ISC dhcpd, serving every DHCP range as a load-balancing failover pair (ADR-0386, cix#107). glibc is named because a named image gets only what its manifest names; dhcpd links it and nothing else (its BIND 9.11 libraries are linked statically from the tarball's own copy).\n\nISC ended maintenance of ISC DHCP with 4.4.3-P1 in 2022; the owner chose it over Kea on 2026-11-20 as the one small server with a real active-active failover protocol. A security fix is a patch in the isc-dhcp recipe.",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "isc-dhcp", "mode": "rolling", "version": "4.4.3-P1" }
+  ]
+}
