@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "ded925c5a1cb1354b8d4caf26632ad93c6b069dc8492c90074b9c877d66b2fdf"
+        "artifact_sha256.probe-cix-compile-installer-tools" "01869b111901ae061fde7ccd1d6f63947753fccb6444c88f1e2c589ee10cef4d"
+        "artifact_sha256.probe-cix-compile-cixd" "0ae607019b96aaf925c161e922502223e8feb524c27cf5c596a0024805750973"
+        "artifact_sha256.probe-cix-compile-cixctl" "c5f9a6521219d94856747e975b12cbcbf51948037b4d39961372258e2339cdf8"
         "changelog" "0.2.57-791: the 0.2.57-708 release draft renamed (#695), at commit f660119a."
     }
 
