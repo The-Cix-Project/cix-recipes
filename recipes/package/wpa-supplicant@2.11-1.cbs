@@ -1,0 +1,130 @@
+# wpa_supplicant -- the 802.11 client daemon: what a container runs to
+# join someone else's WiFi network with a passed-through radio (br-1 on
+# the owner's bare-metal box joins the site uplink this way, 2026-11-21).
+#
+# Built the way hostapd@2.11-17 is, from the same upstream (w1.fi, one
+# hostap tree), against OpenWrt libnl-tiny at the same pinned commit,
+# with tcc, and with hostapd's one edit to src/build.rules (tcc rejects
+# -MMD; -MD is what it accepts).
+#
+# TWO DIFFERENCES FROM HOSTAPD, BOTH DELIBERATE.
+#
+# libnl-tiny is linked STATICALLY. hostapd ships /usr/lib/libnl-tiny.so,
+# and one package owns a path (cix #553), so a second package shipping
+# it would be refused at install the moment both share an image. Built
+# as one relocatable object (tcc -r) archived with ar, it is in no file
+# list at all, and `-lnl-tiny` (which src/drivers/drivers.mak adds for
+# CONFIG_LIBNL_TINY) finds the archive because no .so sits beside it.
+#
+# The .config is WRITTEN WHOLE rather than edited from defconfig.
+# wpa_supplicant's defconfig turns on the D-Bus control interface, which
+# needs libdbus that no container here has; editing it line by line
+# would assert facts about upstream's file that this recipe cannot see
+# until a build fails. A written file states exactly what is built:
+# nl80211, the unix control socket for wpa_cli, WPA2-PSK and WPA3-SAE
+# over OpenSSL, nothing else.
+#
+package "wpa-supplicant" {
+    version "2.11"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "wpasupplicant" {
+            url "https://w1.fi/releases/wpa_supplicant-2.11.tar.gz"
+            sha256 "912ea06f74e30a8e36fbb68064d6cdff218d8d591db0fc5d75dee6c81ac7fc0a"
+        }
+        extra "libnltiny" {
+            url "https://codeload.github.com/openwrt/libnl-tiny/tar.gz/40493a655d8caa2ccf5206dde1e733abe2920432"
+            sha256 "a3f0456006b72352f0ccc9a653eb2428a03bc3ff3c6987a858b0c060ac19b181"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "bash"
+            tool "linux-headers"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "openssl"
+        }
+        runtime {
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "2.11-1: first build. nl80211, wpa_cli's control socket, WPA2-PSK and WPA3-SAE over OpenSSL; libnl-tiny linked statically so its .so stays hostapd's."
+    }
+
+    build {
+        extract $source.libnltiny into "${src}" as "nltiny"
+        mkdir "${src}/nltiny/build" parents
+        cd "${src}/nltiny" {
+            run "tcc" {
+                "-r"
+                "-Wall"
+                "-Iinclude"
+                args glob "${src}/nltiny/*.c"
+                "-o"
+                "build/nl-tiny.o"
+            }
+            run "ar" {
+                "rcs"
+                "build/libnl-tiny.a"
+                "build/nl-tiny.o"
+            }
+        }
+        require file "${src}/nltiny/build/libnl-tiny.a" {
+            exists
+            nonempty
+        }
+        write "${src}/wpasupplicant/wpa_supplicant-2.11/wpa_supplicant/.config" """
+CONFIG_DRIVER_NL80211=y
+CONFIG_LIBNL_TINY=y
+CONFIG_CTRL_IFACE=y
+CONFIG_BACKEND=file
+CONFIG_TLS=openssl
+CONFIG_SAE=y
+CONFIG_IEEE80211AC=y
+CFLAGS += -I${src}/nltiny/include -D_GNU_SOURCE
+LDFLAGS += -L${src}/nltiny/build
+"""
+        replace "${src}/wpasupplicant/wpa_supplicant-2.11/src/build.rules" {
+            from "-MMD"
+            to "-MD"
+            exactly 1
+        }
+        cd "${src}/wpasupplicant/wpa_supplicant-2.11/wpa_supplicant" {
+            run "make" {
+                "CC=tcc"
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/wpasupplicant" allow_failure }
+            run "ls" { "-1" "${src}/wpasupplicant/wpa_supplicant-2.11/wpa_supplicant" allow_failure }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/wpasupplicant/wpa_supplicant-2.11/wpa_supplicant/wpa_supplicant" to "${dest}/usr/bin/wpa_supplicant"
+        copy "${src}/wpasupplicant/wpa_supplicant-2.11/wpa_supplicant/wpa_cli" to "${dest}/usr/bin/wpa_cli"
+        copy "${src}/wpasupplicant/wpa_supplicant-2.11/wpa_supplicant/wpa_passphrase" to "${dest}/usr/bin/wpa_passphrase"
+        require file "${dest}/usr/bin/wpa_supplicant" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/bin/wpa_cli" {
+            exists
+            executable
+        }
+    }
+}
