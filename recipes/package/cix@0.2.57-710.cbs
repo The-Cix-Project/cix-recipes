@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "8c618e85913badda091475bbcfb76cbd89d69c21a4aa70846ce9473e3c0ca71f"
         "changelog" "0.2.57-710: the management address survives a reboot on a fresh install (#702); a kernel rebuilt at the same upstream version is deployed by the roll (#703); a network delete releases only its own bridge's ports and a failed re-attach at startup is logged (#700); an install sharing a dependency another in-flight install in the same image still has to install is deferred instead of installing it twice (#701)."
     }
 
