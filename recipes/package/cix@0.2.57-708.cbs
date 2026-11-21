@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "fafb39a68c123c012bc62f1f1513d5b7879397cbb20e8d2873f58fe420a327a7"
+        "artifact_sha256.cix-installer-tools" "a255fea0e3f1f4fff8e3989a16f98ef54500f3a41ec2f89d5e2ad84ab900160c"
+        "artifact_sha256.cixd" "ecf842fa22f5d0585eac947b0c768d0d1b2a832804e41583a40541816528a418"
         "artifact_sha256" "b208e994179fa135d1d3dca24e22bcd97e2b563307c0aaee90c962138fa8f241"
         "changelog" "0.2.57-708: a DHCP server or relay can be registered while it is down -- a dhcpd container cannot start until it is registered (ADR-0386)."
     }

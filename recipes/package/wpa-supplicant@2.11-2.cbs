@@ -61,6 +61,7 @@ package "wpa-supplicant" {
     }
 
     metadata {
+        "artifact_sha256" "6570bdf620a1eacb3e1030d099560bcd70fa75980ce1398aa2a42ee57cc2acca"
         "changelog" "2.11-2: the .config is an ordinary string, so libnl-tiny's include path reaches the compile (2.11-1 never built: netlink/genl/genl.h not found)."
     }
 

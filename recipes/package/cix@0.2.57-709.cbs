@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "4202d042e3efc4f0dac4c73433d5b0a27e851315389a451b429bf7201e233a09"
+        "artifact_sha256.cix-installer-tools" "1d898c5a4f71ad8609e1e939b93709f9a8e9226e8199308a25889321a002a7ca"
+        "artifact_sha256.cixd" "7671bbd53adbb78cd3150773f71f73b6742261a71d79382a41e57ff6335c3a68"
         "artifact_sha256" "173dc30a36e3210f25bfd0d309886aec8917450d7c6c214a326c4305f7e6ad39"
         "changelog" "0.2.57-709: ADR-0386 completed -- both members of a DHCP pair load-balance; a container delete keeps a DHCP server's or relay's registration and ranges; a sync that changes a server's dhcpd.conf restarts it, once after every daemon start too; lease names leave DNS when the lease ends; an installer build or publish finishing is announced, so the dashboard can publish it."
     }
