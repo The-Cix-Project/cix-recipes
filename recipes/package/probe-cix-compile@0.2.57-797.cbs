@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "470a3e1f5a620cdabfcbcab66950c6485d386758be71572c4803413660323ba7"
+        "artifact_sha256.probe-cix-compile-installer-tools" "d50854885ff4258dc2f859172a900788a8773d3cfb56cd9f5f1707426583ef0f"
+        "artifact_sha256.probe-cix-compile-cixd" "92de3995b11bfbb9e2fb2b4f94df1e05680f34b47165ba5ff46f8277604e1162"
+        "artifact_sha256.probe-cix-compile-cixctl" "6dba4cc10395f89888ea3785ca07ffab57808feab70311e7dfc65185ccb7317a"
         "changelog" "797: compile and selftest commit 33c12047 (#715, ADR-0387: the uplink and default route survive a reboot)."
     }
 
