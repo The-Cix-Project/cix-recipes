@@ -1,0 +1,15 @@
+{
+  "image": "border_router",
+  "version": "1.0.2",
+  "notes": "1.0.2: iproute2, because a passed-through interface comes up with no address and addressing it is the container's own job (br-2 addresses its eth0 uplink).\n\n1.0.1: nftables in place of iptables -- the masquerade is one nft ruleset, and iptables-legacy, which br-1 1.0.0 ran by default, needs legacy tables this kernel does not build.\n\n1.0.0: border_router -- the image br-1 runs on the owner's bare-metal box (2026-11-21): a router whose uplink is someone else's WiFi network, joined with a passed-through radio.\n\nwpa-supplicant joins the network, dhcpcd takes the uplink's address and default route from it, nft masquerades what leaves through the radio, and bird speaks RIPv2 on the border network so the cores learn the default route. bash is here for the same reason as the router image's: a service's cmd that needs a shell has nothing else to run it.\n\nRolling throughout, as every image here is by charter.",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "wpa-supplicant", "mode": "rolling", "version": "2.11" },
+    { "package": "dhcpcd", "mode": "rolling", "version": "10.5.2" },
+    { "package": "nftables", "mode": "rolling", "version": "1.1.1" },
+    { "package": "bird", "mode": "rolling", "version": "2.19.1" },
+    { "package": "iw", "mode": "rolling", "version": "6.17" },
+    { "package": "iproute2", "mode": "rolling", "version": "6.18.0" },
+    { "package": "bash", "mode": "rolling", "version": "5.2.37" }
+  ]
+}
