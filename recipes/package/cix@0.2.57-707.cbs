@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "22adb3d5c37b62e9c32af253cb83281694cd93fd214b363eaf2433f01baf2606"
         "changelog" "0.2.57-707: ADR-0386, DHCP is served by an ISC dhcpd failover pair: one server or a load-balancing pair per range, cixd seeding the lease file, lease names written into the DNS servers, and split scope removed (#107)."
     }
 
