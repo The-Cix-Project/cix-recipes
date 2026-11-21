@@ -147,6 +147,7 @@ package "cbs" {
     }
 
     metadata {
+        "artifact_sha256" "66f9014cdfa1cac35a0dd8fd22bd6de42b842f20bfce0b2ef68f7179e816e49b"
         "changelog" "v0.1.134-1: ${jobs} is the CPU the build may use, detected from the cgroup quota and the affinity mask (it was always 1, cbs#320), and cbs build takes --jobs N, used exactly as given."
     }
 
