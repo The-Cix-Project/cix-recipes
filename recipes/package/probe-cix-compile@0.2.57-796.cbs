@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "cfc1c426017db2d903cba8164418c53dba1ead644ae23d06ea140afdd0e994a5"
+        "artifact_sha256.probe-cix-compile-installer-tools" "126dc7db613183c551f077c292395d3ae53de1e70e82fc43429f37dc500adfe5"
+        "artifact_sha256.probe-cix-compile-cixd" "20ef04374f66bc82700c988a202b913b1c2091a9fb5e932109742de9f0630c36"
+        "artifact_sha256.probe-cix-compile-cixctl" "9c98f8713aa6ca8fdb2ba36272bc1c27c8ba509051b02f59639551a645a71edd"
         "changelog" "796: compile and selftest commit 0bdb4043 (#702 management address, #703 rebuilt kernel, #701 test)."
     }
 
