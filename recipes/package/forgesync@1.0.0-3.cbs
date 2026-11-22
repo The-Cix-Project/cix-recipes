@@ -29,6 +29,7 @@ package "forgesync" {
     }
 
     metadata {
+        "artifact_sha256" "6d6d6b11607aed2eea5b2ef5984d1226b55783a3a86e7a9ee815752ce224b522"
         "changelog" "1.0.0-3: declares bash as a build tool, without which a build phase cannot start (-2: killed by signal 14). First version: organisations, repository settings and push mirrors from forge.json; --export, --dry-run."
     }
 
