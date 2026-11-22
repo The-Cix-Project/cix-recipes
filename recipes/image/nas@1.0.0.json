@@ -5,6 +5,6 @@
   "packages": [
     { "package": "glibc", "mode": "rolling", "version": "2.44" },
     { "package": "lighttpd", "mode": "rolling", "version": "1.4.79" },
-    { "package": "hibr", "mode": "rolling" }
+    { "package": "hibr", "mode": "rolling", "version": "0.99.557" }
   ]
 }
