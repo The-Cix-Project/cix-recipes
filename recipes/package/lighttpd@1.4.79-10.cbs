@@ -1,0 +1,129 @@
+# lighttpd -- the web server the nas container runs, for its WebDAV
+# share (the owner's request of 2026-11-22: "a really robust" WebDAV
+# server in C that plays nice with LDAP). mod_webdav with properties
+# and locks (sqlite, libxml2), so macOS Finder and Windows Explorer
+# mount it read-write; mod_authn_ldap against the site's glauth pair;
+# TLS through OpenSSL. Built with tcc. sha256 measured on gibsson-1 by
+# probe-cix-tarball@874-1.
+package "lighttpd" {
+    version "1.4.79"
+    release 10
+    format "cixpkg"
+    license "BSD-3-Clause"
+
+    sources {
+        main "lighttpd" {
+            url "https://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-1.4.79.tar.xz"
+            sha256 "3b29a625b3ad88702d1fea4f5f42bb7d87488f2e4efc977d7f185329ca6084bd"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "pkgconf"
+            tool "openssl"
+            tool "openldap-client"
+            tool "sqlite"
+            tool "libxml2"
+            tool "pcre2"
+            tool "zlib"
+            tool "libuuid"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            tool "perl"
+            tool "diffutils"
+        }
+        runtime {
+            package "openssl"
+            package "openldap-client"
+            package "sqlite"
+            package "libxml2"
+            package "pcre2"
+            package "zlib"
+            package "libxcrypt"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "mod_authn_ldap.so links openldap-client's gcc-built static libldap.a and liblber.a into a shared module. Built with tcc, lighttpd died with signal 11 or 4 on every LDAP login before any bind reached glauth, with the archives non-PIC (1.4.79-7) and PIC (1.4.79-9), measured on gibsson-1 on 2026-11-22; the cause in the tcc link is not established. nss-pam-ldapd, the other package linking these archives into a shared object, is gcc too. Re-measure when the compiler changes."
+    }
+
+    metadata {
+        "changelog" "1.4.79-10: built with gcc against openldap-client 2.6.14-8's position-independent archives. With tcc (1.4.79-7 and -9) lighttpd died with signal 11 or 4 on every LDAP login before any bind reached glauth; with gcc (1.4.79-8) the link refused the then non-PIC libldap.a."
+    }
+
+    prepare {
+        require directory "${src}/lighttpd/lighttpd-1.4.79" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/lighttpd/lighttpd-1.4.79" {
+            run "./autogen.sh" { }
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib/lighttpd"
+                "--sbindir=/usr/sbin"
+                "--with-openssl"
+                "--with-ldap"
+                "--with-webdav-props"
+                "--with-webdav-locks"
+                "--with-pcre2"
+                "--with-zlib"
+                "--without-mysql"
+                "--without-pgsql"
+                "--without-dbi"
+                "--without-lua"
+                "--without-brotli"
+                "--without-zstd"
+                "--without-bzip2"
+                env "CC" = "/usr/bin/gcc"
+                env "CC_FOR_BUILD" = "/usr/bin/gcc"
+                env "LIBS" = "-llber -lssl -lcrypto"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/lighttpd/lighttpd-1.4.79" allow_failure }
+        }
+    }
+
+    install {
+        cd "${src}/lighttpd/lighttpd-1.4.79" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/sbin/lighttpd" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/lib/lighttpd/mod_webdav.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/lighttpd/mod_authn_ldap.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/lighttpd/mod_openssl.so" {
+            exists
+            nonempty
+        }
+    }
+}
