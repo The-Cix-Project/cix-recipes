@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b3a3cc7b3dea86ad3cdc8ad0bf1629b5ceb4a21de3231a409dbaf9df4d812af3"
         "changelog" "0.2.57-716: a refused partition operation reports the end of sfdisk's output, where its reason is, instead of the disk banner (#729)."
     }
 
