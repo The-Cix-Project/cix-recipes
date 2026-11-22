@@ -56,6 +56,7 @@ package "lighttpd" {
     }
 
     metadata {
+        "artifact_sha256" "ba5623c582caf32e2450806d031e54b490c1977f3a8a9ccdf887adea09d2019c"
         "changelog" "1.4.79-7: requires libxcrypt at run time, for mod_authn_file's libcrypt.so.2 (1.4.79-6 was refused at install for it). 1.4.79-6: modules in /usr/lib/lighttpd (libdir is the module directory). 1.4.79-5: autogen.sh generates configure (the tarball ships none); CC and CC_FOR_BUILD are tcc; LIBS names liblber, libssl and libcrypto because openldap-client is static only; diffutils for cmp. For the nas container's WebDAV share."
     }
 
