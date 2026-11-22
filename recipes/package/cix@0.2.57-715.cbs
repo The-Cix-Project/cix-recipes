@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "dc91eb19f7263b25b143b0a5e6db65c87f45dbcab39cf6f5199b84edddffb4ec"
         "changelog" "0.2.57-715: a partition's Grow opens the generated form instead of a native prompt(), which a browser could suppress silently (#728)."
     }
 
