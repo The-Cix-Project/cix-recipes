@@ -39,6 +39,9 @@ package "libxml2" {
     }
 
     metadata {
+        "artifact_sha256" "7a7937a3a5eaa6586755d2ad0db40d61bf92b5b330a6beea4cde611844ef7702"
+        "artifact_sha256.libxml2-tools" "dd6523de58135d977358beaea83d2d124b39dea82b1f9a81322d0d33a92acdd9"
+        "artifact_sha256.libxml2-dev" "f4053f70e345fb570a4cde3d1670cdce0c76be670c66c36c97016dd7a4c80901"
         "changelog" "2.14.5-1: first revision, for lighttpd's WebDAV request bodies (the nas container). No Python, ICU or lzma. Shared library only in the main package; libxml2-dev and libxml2-tools as outputs."
     }
 
