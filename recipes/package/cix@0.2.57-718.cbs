@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "69625cf3f577f1a24fbc5e2d8292600adfc7b981f6e754786d7e61f24c24f828"
         "changelog" "0.2.57-718: a container's LDAP account is staged before it starts, and its files can name it as {{LDAP:PROVISIONED_DN}} and {{LDAP:PROVISIONED_SECRET}} (#733, ADR-0389). Fetched from the new forge, git.uk.home.arpa."
     }
 
