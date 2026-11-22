@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "9ae7cbab09c61f2ed0e0529de45b7a19e4134cae5b2a59ae2d4fc9665e1b6b05"
+        "artifact_sha256.probe-cix-compile-installer-tools" "1305de688ed64b1e5a0238d3bfe4446483a14354501c9ae63dfa4cd34ddc2010"
+        "artifact_sha256.probe-cix-compile-cixd" "01d76f45d36560616a19c3061408c140e2ebc0380e1fbd44699e2d5e1876c1c8"
+        "artifact_sha256.probe-cix-compile-cixctl" "9cf76af9e1d721c0e622384a08b9391522dec3ca6195680537d89a5486cdf85d"
         "changelog" "803: compile and selftest commit 88fbdcd1 (#729: a grow reads an NVMe table back)."
     }
 
