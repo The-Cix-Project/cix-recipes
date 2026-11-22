@@ -1,0 +1,111 @@
+# libxml2 -- the XML parser. First consumer: lighttpd's mod_webdav,
+# which parses PROPFIND/PROPPATCH/LOCK request bodies with it (the nas
+# container, the owner's request of 2026-11-22). Built with tcc, without
+# Python bindings, ICU or lzma: none of them is needed to parse a WebDAV
+# body. sha256 measured on gibsson-1 by probe-cix-tarball@873-1.
+#
+# Outputs as ADR-0371 asks of a library: the main package carries the
+# shared library only; libxml2-dev the headers, pkg-config/cmake files
+# and xml2-config; libxml2-tools xmllint and xmlcatalog.
+package "libxml2" {
+    version "2.14.5"
+    release 1
+    format "cixpkg"
+    license "MIT"
+
+    sources {
+        main "libxml2" {
+            url "https://download.gnome.org/sources/libxml2/2.14/libxml2-2.14.5.tar.xz"
+            sha256 "03d006f3537616833c16c53addcdc32a0eb20e55443cba4038307e3fa7d8d44b"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "zlib"
+        }
+        runtime {
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "changelog" "2.14.5-1: first revision, for lighttpd's WebDAV request bodies (the nas container). No Python, ICU or lzma. Shared library only in the main package; libxml2-dev and libxml2-tools as outputs."
+    }
+
+    output "libxml2-dev" {
+        files {
+            "usr/include"
+            "usr/lib/pkgconfig"
+            "usr/lib/cmake"
+            "usr/bin/xml2-config"
+            "usr/share/aclocal"
+        }
+        requires { runtime { package "libxml2" } }
+    }
+    output "libxml2-tools" {
+        files {
+            "usr/bin/xmllint"
+            "usr/bin/xmlcatalog"
+            "usr/share/man"
+        }
+        requires { runtime { package "libxml2" } }
+    }
+
+    prepare {
+        require directory "${src}/libxml2/libxml2-2.14.5" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/libxml2/libxml2-2.14.5" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                "--without-python"
+                "--without-icu"
+                "--without-lzma"
+                "--with-zlib"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/libxml2" allow_failure }
+        }
+    }
+
+    install {
+        cd "${src}/libxml2/libxml2-2.14.5" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/pkgconfig/libxml-2.0.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/libxml2/libxml/parser.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/xmllint" {
+            exists
+            executable
+        }
+    }
+}
