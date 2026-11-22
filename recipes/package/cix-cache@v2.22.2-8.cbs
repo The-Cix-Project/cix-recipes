@@ -45,6 +45,7 @@ package "cix-cache" {
     }
 
     metadata {
+        "artifact_sha256" "dbc039c83b4f0028d8fac1d1347f0a98be7515acf22aca814b8eac5c66752918"
         "changelog" "v2.22.2-8: the source sha256, measured by -7's fetch on gibsson-1. First Cix package of the artifact cache, for the cache container on gibsson-1: main at 03e3bfe8, with HTTPS (cix-cache#23)."
     }
 
