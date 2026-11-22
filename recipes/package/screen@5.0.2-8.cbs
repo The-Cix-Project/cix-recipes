@@ -80,6 +80,7 @@ package "screen" {
     }
 
     metadata {
+        "artifact_sha256" "01bb06eed9a7f0dd4c4cb963a2cf3aeca9402241226b2a61826ee10b2088ab3b"
         "changelog" "5.0.2-8: requires ncurses-terminfo at run time, so a terminal description exists wherever it is installed; without it every TERM was refused (cix#730)."
     }
 
