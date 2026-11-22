@@ -105,7 +105,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.45-1: the first engine since v0.1.34 whose own suite passes here. Brings cbs#219 tool policies, which retire the seven shell shims four recipes fabricate, and cbs#216, the block-string write fix that was silently emptying dollar-brace. v0.1.39 through v0.1.44 are all skipped and none reached a host: each failed make test in this recipe check phase, which is that phase working as intended. The prepare phase seeds the upstream cache, without which the end-to-end zstd test skips."
     }
 

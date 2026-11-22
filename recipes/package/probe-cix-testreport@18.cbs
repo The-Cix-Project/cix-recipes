@@ -120,7 +120,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "18: 17 with the recipes archive moved to bd2c3d83, which carries cbs@v0.1.55-1 and its artifact_sha256 -- the floor seeder verifies every artifact against the checksum its own recipe approves, and the pinned tree predated that recipe (cix#517)."
     }
 

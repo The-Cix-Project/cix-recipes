@@ -61,7 +61,6 @@ package "linux-headers" {
     }
 
     metadata {
-        "artifact_sha256" "4816447bc9f1c3812f3fc2a3a78dfd43c7528fc8bf374bfd82c292b62f6c9922"
         "changelog" "6.18.40-8: uses copy tree (cix-build-system#186) instead of run cp. 6.18.40-7 shipped a shell escape with a comment saying CPDL had no recursive copy and that ten packages here would each need one; cbs v0.1.31 has it. The spec is explicit that copy tree preserves regular-file modes and copies symlinks without dereferencing, which is what cp -a was relied on for. The mkdir goes too, copy tree creating the destination when absent."
     }
 

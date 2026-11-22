@@ -146,7 +146,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "102: test_pkg at cix v2.57.322 -- stallpkg and midfail on the CPDL scaffold (cix#516)."
     }
 

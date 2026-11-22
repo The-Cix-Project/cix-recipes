@@ -147,7 +147,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "54: test_pkg_build_log at cix v2.57.290, whose slowbuild fixture is now CPDL (cix#516)."
     }
 

@@ -137,7 +137,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "29: the full suite at cix v2.57.277, which raises the composed build environment past 32 -- so bzip2 is declared here for the first time and test_installer has what it needs (cix#485, cix#519, cix#521)."
     }
 

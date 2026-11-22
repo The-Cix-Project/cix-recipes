@@ -61,7 +61,6 @@ package "linux-headers" {
     }
 
     metadata {
-        "artifact_sha256" "4816447bc9f1c3812f3fc2a3a78dfd43c7528fc8bf374bfd82c292b62f6c9922"
         "changelog" "6.18.40-9: restores the mkdir of ${dest}/usr. 6.18.40-8 dropped it because the CPDL spec says copy tree creates the destination directory when absent; it creates the leaf, not its parent, and the build failed with errno=2 naming the unexpanded path, which reads as a missing source. 6.18.40-8: uses copy tree (cix-build-system#186) in place of the run cp escape 6.18.40-7 carried, the spec being explicit that it preserves modes and copies symlinks without dereferencing."
     }
 

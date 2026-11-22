@@ -95,7 +95,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.42-1: CBS-owned compiler tool policies (cbs#219) and a filesystem fixture that reports operation context again (cbs#218). The tools block replaces the seven shell shims four recipes fabricate. Two verbs, not three: the via verb was deleted by measurement -- probe-autotools-exec@3 showed aclocal, automake and libtoolize are ordinary files that exec directly, so libuv premise about dangling Debian symlinks has not been true since ADR-0199. v0.1.39 and v0.1.40 are skipped; both failed their own suite."
     }
 

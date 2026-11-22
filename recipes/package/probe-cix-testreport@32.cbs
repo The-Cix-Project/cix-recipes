@@ -147,7 +147,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "32: the full suite with bind-utils added for dig, the last declarable tool a failing test named. test_installer needs no tool at all -- it fails on mkbootroot dev-host fallback, which wants a cix-hosttools host_tools_dir (cix#485)."
     }
 

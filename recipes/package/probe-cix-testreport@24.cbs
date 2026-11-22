@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "24: cix v2.57.273, whose test_kmod_build prints the daemon own log store as well. 23 carried the unpack diagnostic and none of it reached the output, because logstore_write does not echo to stderr (cix#485)."
     }
 

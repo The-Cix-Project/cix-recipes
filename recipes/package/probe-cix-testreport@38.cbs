@@ -147,7 +147,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "38: test_pkg_build_log ten times at cix v2.57.282, which prints every named run.s log. Two of five failed at v2.57.279 before the live-tail reader kept the bytes the handshake read took past the header terminator; five of five passed at v2.57.281 (cix#519)."
     }
 

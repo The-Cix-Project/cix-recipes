@@ -133,7 +133,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "28: the full suite at cix v2.57.276, which gives the floor glibc version one definition again. 27 was the first full run since the cix#485 floor work: 104 tests, 92 pass, and test_rolling_restart failed on a version literal that had drifted."
     }
 

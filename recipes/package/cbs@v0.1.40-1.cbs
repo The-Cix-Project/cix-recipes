@@ -111,7 +111,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.40-1: carries cbs#216 and cbs#217. #216: #208 fixed the validator and not the runtime, so fs.c resolved a write content with the PATH token kind and a block string containing dollar-brace was silently substituted to empty -- hostapd wrote exec tcc with an empty argument and died inside make four operations later. #217: v0.1.39 carried that fix and failed its own suite, allow_failure no longer tolerating a zero-match glob, which openssl, iptables and libcap all rely on. v0.1.39 is skipped."
     }
 

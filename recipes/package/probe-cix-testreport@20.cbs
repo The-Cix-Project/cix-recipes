@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "20: cix v2.57.269, which installs cbs closure (xz, zstd, libarchive) explicitly and in dependency order, so each is logged by name. 19 reached cbs installed and then the build container pid 1 exited 127 after 0s with nothing saying whether those libraries arrived (cix#485, cix#517)."
     }
 

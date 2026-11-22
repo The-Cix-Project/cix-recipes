@@ -147,7 +147,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "34: test_pkg_build_log five times over at cix v2.57.278, which prints the job state at attach and at the moment the read gives up. The failure is intermittent -- it passed in 29, 30 and 33 and failed in 32 -- so one run proves nothing (cix#519)."
     }
 

@@ -86,7 +86,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.32-1: carries the seven operations filed from this corpus after v0.1.31 -- allow_failure on copy and remove (cbs#188), executable file assertions (#189), path accessors on each bindings (#190), exact source truncation (#191), confined glob path bindings (#192), glob count assertions (#193) and declarative ELF linkage checks (#194). #194 reaches furthest: 25 recipes here inspect their own output with readelf, ldd or nm. #192 unblocks packages outright, being the commonest substitution left after nproc."
     }
 

@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "23: cix v2.57.272, whose cixpkg unpack logs the destination, its parent and the rmdir before forking cbs. 22 failed with CIXPKG-E4001, which cbs answers for a destination fault while naming the artifact (cix#485, cbs#233)."
     }
 

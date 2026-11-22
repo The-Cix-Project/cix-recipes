@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "26: 25 plus test_pkg and test_pkg_cache, which share the ADR-0209 floor test_kmod_build now runs on. Whether the same fixes unblocked them is untested (cix#485)."
     }
 

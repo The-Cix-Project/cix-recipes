@@ -147,7 +147,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "57: test_system_backup at cix v2.57.293, which now names the recipe keys the backup holds (cix#516)."
     }
 

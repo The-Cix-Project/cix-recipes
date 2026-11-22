@@ -142,7 +142,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "31: test_daemon_devices alone, twice over, to tell a flake from a regression: it passed in 27, 28 and 29 and failed in 30 with POST devmapgood status=409 (cix#485)."
     }
 

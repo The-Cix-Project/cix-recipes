@@ -133,7 +133,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "27: the FULL suite at cix v2.57.275, no TESTREPORT_ONLY. The floor work of cix#485 landed since the last full run, and the three floor tests now gate a release, so this is the first whole-suite number that includes them."
     }
 

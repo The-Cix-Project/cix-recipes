@@ -142,7 +142,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "30: 29 plus dnsmasq, the second tool the 32-package cap had been keeping out, and the first suite run with e2fsprogs 1.47.4-9 shipping resize2fs and e2fsck (cix#485, cix#522)."
     }
 

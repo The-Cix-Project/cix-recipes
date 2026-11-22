@@ -98,7 +98,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.44-1: the filesystem fixture reports what it failed on (cbs#218) and the upstream test is cache-backed by contract (cbs#220), on top of v0.1.42 tool policies (cbs#219) and the block-string write fix (cbs#216). The prepare phase still seeds the upstream cache: cbs#220 makes the test SKIP without one rather than fetch, so seeding is what turns a skip into a real run. v0.1.39 through v0.1.43 are skipped; each failed its own suite in this recipe check phase."
     }
 

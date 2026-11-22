@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "19: cix v2.57.268, whose floor seeds cbs and its runtime closure (libarchive, zstd, xz) so a CPDL fixture recipe can build there: test_kmod_build must pass, exercising the kmod_extra input (cix#517)."
     }
 

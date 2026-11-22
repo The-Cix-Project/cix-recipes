@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "21: cix v2.57.270, whose test_kmod_build prints the failing build own log. 20 got the kmod-build running and it failed with exit status 3 and no cause anywhere (cix#485, cix#517)."
     }
 

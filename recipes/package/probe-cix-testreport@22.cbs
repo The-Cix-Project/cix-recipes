@@ -132,7 +132,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "22: cix v2.57.271, whose floor glibc is 2.44-19 and ships C.UTF-8. 21 printed the failing build log for the first time and it named the cause: CPDL-E6001, cannot initialize a UTF-8 archive locale (cix#485, cix#517)."
     }
 

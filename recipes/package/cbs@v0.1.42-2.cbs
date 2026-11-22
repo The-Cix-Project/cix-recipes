@@ -95,7 +95,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.42-2: seeds the upstream test cache so make test never reaches the network. The recipe has set CBS_UPSTREAM_CACHE for a long time and nothing ever wrote to that directory -- no mkdir, no copy, no reference to the declared extra source -- so the test fetched zstd from github and failed once the build container had no resolver. The path also moves to ${build}/cbscache, the old one being outside CPDL confined roots, and the entry is named by sha256 as src/source.c expects."
     }
 

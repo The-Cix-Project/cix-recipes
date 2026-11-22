@@ -93,7 +93,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.39-1: carries cbs#216, the block-string runtime fix. #208 fixed the validator and not the runtime: fs.c resolved a write content with the PATH token kind, so a block string containing dollar-brace published and was silently substituted to empty. hostapd@2.11-13 wrote exec tcc \"\" and died four operations later inside make on file not found. A silent wrong file rather than a refusal is worse than the bug it replaced. Also carries v0.1.34 seven operations."
     }
 

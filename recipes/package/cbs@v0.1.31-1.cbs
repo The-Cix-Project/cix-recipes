@@ -94,7 +94,6 @@ package "cbs" {
     }
 
     metadata {
-        "artifact_sha256" "4973529c7b3db712dd83f11215365270ce1d16c5d59a2ec59737d7deaa401817"
         "changelog" "v0.1.31-1: carries cix-build-system#185 (stdout file -- capture a process stdout to a confined file, so a command printing more than one line can be asserted on) and #186 (copy tree -- recursive copy). These unblock the last of the ADR-0305 stage 4 conversions: six packages whose readelf/ldd guards had no CPDL form and stayed on build.sh rather than convert and lose them, and ten that copy a whole tree, glibc and tcc among them. Built from the v0.1.31 TAG, VERSION having moved with it."
     }
 

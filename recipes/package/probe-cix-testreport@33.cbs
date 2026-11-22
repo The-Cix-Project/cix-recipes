@@ -147,7 +147,6 @@ package "probe-cix-testreport" {
     }
 
     metadata {
-        "artifact_sha256" "6ddf7e8652201d08d750cbf7c991d01bfa96efeb6c33eb2160b37cf462f593eb"
         "changelog" "33: 32 re-run against the same cix v2.57.277 with no code change, to isolate the recipe fixes: bind-utils@9.18.30-10 ships a real dig rather than a libtool wrapper (cix#523), and the five cix#509 workarounds are gone."
     }
 
