@@ -1,0 +1,95 @@
+# cix-cache -- the artifact cache server (cixcached) and its client
+# (cix-cache), for the `cache` container on gibsson-1 (the owner,
+# 2026-11-22: "cache please rebuild it"). Until now the cache ran
+# outside Cix on 192.168.15.31; this is its first Cix package.
+#
+# The source is the owner's forge's archive of main at 03e3bfe8, the
+# commit that carries HTTPS (cix-cache#23, ADR-0015 there) and the
+# refusal fixes after it (#24-#26). It is six commits past v2.22.2, so
+# its own identity rule (Makefile, version.h) names it
+# cix-cache-v2.22.2-8-x86_64; an archive has no .git for that rule to
+# read, so the identity is passed as CIXCACHE_VERSION, carrying this
+# recipe's release (8: -7 shipped a placeholder checksum).
+#
+# Installed under /opt/cixcache, upstream's own prefix: its web root is
+# share/web, a name too generic to put in /usr/share.
+package "cix-cache" {
+    version "v2.22.2"
+    release 8
+    format "cixpkg"
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "cix-cache" {
+            url "https://osakka:{{REPO_TOKEN}}@git.home.arpa/api/v1/repos/itdlabs/cix-cache/archive/03e3bfe8a906315a7b1260321f5dd05317a72e2c.tar.gz"
+            sha256 "f181d842cd19fd4aefa42b555b0ad2bf92895a9f04f1dae8aa30eeb780c357b7"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "openssl"
+        }
+        runtime {
+            package "openssl"
+        }
+    }
+
+    metadata {
+        "changelog" "v2.22.2-8: the source sha256, measured by -7's fetch on gibsson-1. First Cix package of the artifact cache, for the cache container on gibsson-1: main at 03e3bfe8, with HTTPS (cix-cache#23)."
+    }
+
+    prepare {
+        require directory "${src}/cix-cache/cix-cache" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/cix-cache" allow_failure }
+        }
+    }
+
+    build {
+        cd "${src}/cix-cache/cix-cache" {
+            run "make" {
+                "build/cixcached"
+                "build/cix-cache"
+                "CIXCACHE_VERSION=cix-cache-v2.22.2-8-x86_64"
+                jobs $jobs
+            }
+            run "./build/cixcached" {
+                "--version"
+                expect {
+                    stdout contains "cix-cache-v2.22.2-8"
+                }
+            }
+        }
+    }
+
+    install {
+        cd "${src}/cix-cache/cix-cache" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "PREFIX=/opt/cixcache"
+                "CIXCACHE_VERSION=cix-cache-v2.22.2-8-x86_64"
+            }
+        }
+        require file "${dest}/opt/cixcache/bin/cixcached" {
+            exists
+            executable
+        }
+        require file "${dest}/opt/cixcache/share/web/index.html" {
+            exists
+            nonempty
+        }
+    }
+}
