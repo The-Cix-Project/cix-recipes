@@ -49,6 +49,7 @@ package "less" {
     }
 
     metadata {
+        "artifact_sha256" "093e85330a2316538ef60f6fc31e6edb4e502c96ce1a5024b9fea124e1873764"
         "changelog" "710-2: requires ncurses-terminfo at run time, so a terminal description exists wherever it is installed; without it every TERM was refused (cix#730). 710-1: first revision. jumpbox and agent set PAGER=less and cixctl pages through less, and no less package existed (cix#378)."
     }
 
