@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "df771fb9c886d75eff5e02f7da862cf48ababbc8760cc2479473a0c9449cb798"
+        "artifact_sha256.probe-cix-compile-installer-tools" "42405fed0424800815bf8eb484c8514ea132d42bbcd3cf9b7aefae06cc4eed6b"
+        "artifact_sha256.probe-cix-compile-cixd" "be75cbe208dfda2d9f542d4cec841d123a20533bb792bbf036ec13329aa092a5"
+        "artifact_sha256.probe-cix-compile-cixctl" "f1dc1c3296ea8292cc7860f018c07dacfc88f4ed2d1de9be9e9c1a788deb465e"
         "changelog" "800: compile and selftest commit 130e98c5 (#727: a pki_issue certificate carries the site-qualified name)."
     }
 
