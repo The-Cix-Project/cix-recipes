@@ -87,6 +87,7 @@ package "git" {
     }
 
     metadata {
+        "artifact_sha256" "828efe0bb7ee610cc0041a0b612fc4eb2df240ce5bc51f1221605afa3614f8e8"
         "changelog" "2.55.0-13: CURL_LDFLAGS=-lcurl, since no curl-config is installed and git's Makefile otherwise asks it (-12: unresolved curl_* at link). 2.55.0-12: built with libcurl, so git can fetch and push over HTTPS (git-remote-https; gated). -11 had no curl among its tools, so configure left it out, and gitea on gibsson-1 could not migrate a repository: git: 'remote-https' is not a git command (2026-11-22). 2.55.0-11: NO_INSTALL_HARDLINKS=1 on install."
     }
 
