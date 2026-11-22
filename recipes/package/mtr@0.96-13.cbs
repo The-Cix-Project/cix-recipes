@@ -53,6 +53,7 @@ package "mtr" {
     }
 
     metadata {
+        "artifact_sha256" "43a5e7a518609c169d0f9c4373d86eccba7f872afa23324cfab5154d61c16911"
         "changelog" "0.96-13: declares libcap, build and run time. configure finds it in the composed build environment and links it to drop privileges, and the install gate refused 0.96-12 for the undeclared link (cix#730)."
     }
 
