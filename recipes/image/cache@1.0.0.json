@@ -1,0 +1,10 @@
+{
+  "image": "cache",
+  "version": "1.0.0",
+  "notes": "1.0.0: the artifact cache on gibsson-1 (the owner, 2026-11-22), cixcached serving the LAN's package and installer artifacts over HTTP and HTTPS. hibr for the console; no bash.\n\nRolling throughout, as every image here is by charter.",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "cix-cache", "mode": "rolling", "version": "v2.22.2" },
+    { "package": "hibr", "mode": "rolling", "version": "0.99.557" }
+  ]
+}
