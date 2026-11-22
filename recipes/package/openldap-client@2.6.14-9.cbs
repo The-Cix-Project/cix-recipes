@@ -77,6 +77,7 @@ package "openldap-client" {
     }
 
     metadata {
+        "artifact_sha256" "b9533e6b3526dce945bda9e3d10b6da3ce2742fb222c8066f39a1732ff87f3b8"
         "changelog" "2.6.14-9: configured with --sysconfdir=/etc, so libldap reads /etc/openldap/ldap.conf. Until now it read /usr/etc/openldap/ldap.conf, and the /etc files the package shipped were ignored (measured on gibsson-1, 2026-11-22). 2.6.14-8: static archives built with --with-pic."
     }
 
