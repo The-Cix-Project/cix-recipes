@@ -1,0 +1,96 @@
+# dash -- the Debian Almquist shell: a small POSIX sh. First consumer:
+# the gitea image, whose git hooks are shell scripts git runs on every
+# push (gitea's SCRIPT_TYPE), in an image the owner wants without bash
+# (2026-11-22: "I want to move away from ever needing to install
+# bash"). The main package installs only /usr/bin/dash; /bin/sh is the
+# dash-sh output, for images without bash, since bash owns it too (#553).
+package "dash" {
+    version "0.5.13.6"
+    release 4
+    format "cixpkg"
+    license "BSD-3-Clause"
+
+    sources {
+        main "dash" {
+            url "https://git.kernel.org/pub/scm/utils/dash/dash.git/snapshot/dash-0.5.13.6.tar.gz"
+            sha256 "7cf031480d46e0dd45a42a7c951e482dc850ae63106dc39821350e133d9fe73e"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "autoconf"
+            tool "automake"
+            tool "m4"
+            tool "perl"
+        }
+    }
+
+    metadata {
+        "changelog" "0.5.13.6-4: a dash-sh output provides /bin/sh, for images without bash: git runs a local clone's upload-pack through /bin/sh, so gitea's file API failed with cannot exec git-upload-pack (gibsson-1, 2026-11-22). bash owns /bin/sh too, so an image cannot hold both, by the one-owner rule."
+    }
+
+    output "dash-sh" {
+        files {
+            "bin/sh"
+        }
+        requires { runtime { package "dash" } }
+    }
+
+    prepare {
+        require directory "${src}/dash/dash-0.5.13.6" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/dash" allow_failure }
+        }
+    }
+
+    build {
+        cd "${src}/dash/dash-0.5.13.6" {
+            run "./autogen.sh" { }
+            run "./configure" {
+                "--prefix=/usr"
+                "--bindir=/usr/bin"
+                env "CC" = "tcc"
+                env "CC_FOR_BUILD" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        # Run what was built, on the constructs gitea's hooks use:
+        # command substitution, a for loop and a test. A script whose
+        # interpreter is the new dash, since CPDL runs no interpreter
+        # by name (CPDL-E3006).
+        write "${build}/dashcheck" "#!${src}/dash/dash-0.5.13.6/src/dash\nx=$(echo ok)\nfor i in 1 2; do [ \"$x\" = ok ] || exit 3; done\nexit 7\n"
+        chmod 0755 "${build}/dashcheck"
+        run "${build}/dashcheck" {
+            expect exit 7
+        }
+    }
+
+    install {
+        cd "${src}/dash/dash-0.5.13.6" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        mkdir "${dest}/bin" parents
+        symlink "../usr/bin/dash" to "${dest}/bin/sh"
+        require file "${dest}/usr/bin/dash" {
+            exists
+            executable
+        }
+    }
+}
