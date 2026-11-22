@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "44da8e195dcfafd5fd9d5164e15c4a3d1f73dfb102ef0269532cd8c9e1806862"
+        "artifact_sha256.probe-cix-compile-installer-tools" "4fc4027f2191acd57ea8df4b8cc4b42a02abaffcb34e7f2b6b7f615fc32b361a"
+        "artifact_sha256.probe-cix-compile-cixd" "fe01b8f0aa0dae286b4620ca74c66e4bb40ae7084dc97639d3cbeb5a8a52d6c9"
+        "artifact_sha256.probe-cix-compile-cixctl" "b70c5cb8224c1bac3fef6f78b850e6af0aea3bc5f4957641b09372b1cec8686b"
         "changelog" "801: compile and selftest commit 230509bc (#728: Grow opens the generated form)."
     }
 
