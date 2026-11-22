@@ -1,0 +1,11 @@
+{
+  "image": "nas",
+  "version": "1.0.1",
+  "notes": "1.0.1: coreutils, for diagnosing the share from the console (ls -n, stat).\n\n1.0.0: nas -- the WebDAV file server the owner mounts from their desktop (2026-11-22): lighttpd with mod_webdav (properties and locks, so Finder and Explorer mount it read-write), logins checked against the site's LDAP pair, TLS with a certificate from the site CA.\n\nhibr and no bash, at the owner's request (\"I want to move away from ever needing to install bash\"): nothing here needs a shell, cix-init starts lighttpd itself, and hibr is there for a console.\n\nRolling throughout, as every image here is by charter.",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "lighttpd", "mode": "rolling", "version": "1.4.79" },
+    { "package": "coreutils", "mode": "rolling", "version": "9.11" },
+    { "package": "hibr", "mode": "rolling", "version": "0.99.557" }
+  ]
+}
