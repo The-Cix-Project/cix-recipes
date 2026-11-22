@@ -60,6 +60,7 @@ package "lighttpd" {
     }
 
     metadata {
+        "artifact_sha256" "bd99540b3cdc59ff61e620872ce0d1420d8decb9604d1fdbfd9e98f6496dc0ab"
         "changelog" "1.4.79-11: rebuilt against openldap-client 2.6.14-9, whose static libldap reads /etc/openldap/ldap.conf (it read /usr/etc before). 1.4.79-10: gcc, against PIC archives."
     }
 
