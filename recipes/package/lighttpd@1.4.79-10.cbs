@@ -60,6 +60,7 @@ package "lighttpd" {
     }
 
     metadata {
+        "artifact_sha256" "7ddd8db366c72bfc94bbe2421f3779cb39a435d0d98a689f2aca9dad92a756dc"
         "changelog" "1.4.79-10: built with gcc against openldap-client 2.6.14-8's position-independent archives. With tcc (1.4.79-7 and -9) lighttpd died with signal 11 or 4 on every LDAP login before any bind reached glauth; with gcc (1.4.79-8) the link refused the then non-PIC libldap.a."
     }
 
