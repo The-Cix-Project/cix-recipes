@@ -36,6 +36,8 @@ package "dash" {
     }
 
     metadata {
+        "artifact_sha256" "a3613ac07570f33a98987a505f084fa444caa8c80af9d2183a25676585e91d55"
+        "artifact_sha256.dash-sh" "a409b2b5690d311297073a2b871f1e0df322d3bf4029192e1b6435692153439a"
         "changelog" "0.5.13.6-4: a dash-sh output provides /bin/sh, for images without bash: git runs a local clone's upload-pack through /bin/sh, so gitea's file API failed with cannot exec git-upload-pack (gibsson-1, 2026-11-22). bash owns /bin/sh too, so an image cannot hold both, by the one-owner rule."
     }
 

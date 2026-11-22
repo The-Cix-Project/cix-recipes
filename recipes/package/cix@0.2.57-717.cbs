@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "a9f0bcd4e487bcc40d824195e8ab6ea91b51f93ba8638ab95ebd706a00ade264"
+        "artifact_sha256.cix-installer-tools" "ba1f178965ebf0133671579e6594586e239c9566b49a55d7d7a34bef1a228945"
+        "artifact_sha256.cixd" "b9c6ca26f62efaed51015ab6b89bfd8089595e4324d6ffddcfb183c904ff1ec4"
         "artifact_sha256" "f0cd20d09aa57fbe5388aaa141aad02f357471ecf0bbbb6abd2b66d0126c6403"
         "changelog" "0.2.57-717: a partition grow on an NVMe disk reads its own table entry back (nvme0n1p5), and continues from the table when a previous grow left the kernel behind it (#729)."
     }
