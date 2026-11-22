@@ -1,0 +1,98 @@
+# cix-cache -- the artifact cache server (cixcached) and its client
+# (cix-cache), for the `cache` container on gibsson-1 (the owner,
+# 2026-11-22: "cache please rebuild it"). Until now the cache ran
+# outside Cix on 192.168.15.31; this is its first Cix package.
+#
+# The source is the owner's forge's archive of the v2.23.0 tag, which
+# points at 03e3bfe8, the commit that carries HTTPS (cix-cache#23,
+# ADR-0015 there) and the refusal fixes after it (#24-#26). The
+# maintainer's own build of the tag reports cix-cache-v2.23.0-1-x86_64;
+# an archive has no .git for the Makefile's identity rule to read, so
+# that identity is passed as CIXCACHE_VERSION. v2.22.2-7 to -9 built
+# the same commit from its main archive, before the tag existed.
+#
+# Installed under /opt/cixcache, upstream's own prefix: its web root is
+# share/web, a name too generic to put in /usr/share.
+package "cix-cache" {
+    version "v2.23.0"
+    release 1
+    format "cixpkg"
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "cix-cache" {
+            url "https://claude:{{REPO_TOKEN}}@git.uk.home.arpa/api/v1/repos/itdlabs/cix-cache/archive/v2.23.0.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "openssl"
+        }
+        runtime {
+            package "openssl"
+            # cixcached hashes every upload with /usr/bin/sha256sum
+            # (STORE_SHA256SUM_BIN, include/store.h).
+            package "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "v2.23.0-1: the v2.23.0 tag (annotated, on 03e3bfe8, the same commit v2.22.2-9 built). Requires coreutils at run time for sha256sum."
+    }
+
+    prepare {
+        require directory "${src}/cix-cache/cix-cache" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/cix-cache" allow_failure }
+        }
+    }
+
+    build {
+        cd "${src}/cix-cache/cix-cache" {
+            run "make" {
+                "build/cixcached"
+                "build/cix-cache"
+                "CIXCACHE_VERSION=cix-cache-v2.23.0-1-x86_64"
+                jobs $jobs
+            }
+            run "./build/cixcached" {
+                "--version"
+                expect {
+                    stdout contains "cix-cache-v2.23.0-1"
+                }
+            }
+        }
+    }
+
+    install {
+        cd "${src}/cix-cache/cix-cache" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+                "PREFIX=/opt/cixcache"
+                "CIXCACHE_VERSION=cix-cache-v2.23.0-1-x86_64"
+            }
+        }
+        require file "${dest}/opt/cixcache/bin/cixcached" {
+            exists
+            executable
+        }
+        require file "${dest}/opt/cixcache/share/web/index.html" {
+            exists
+            nonempty
+        }
+    }
+}
