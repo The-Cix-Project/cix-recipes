@@ -67,6 +67,7 @@ package "go" {
     }
 
     metadata {
+        "artifact_sha256" "fc5bb08f540b94c23e369d4bd92910eab9b5bdb6b909e3ee1eadb7e5dbbc07cb"
         "changelog" "1.25.14-1: Go 1.25, for gitea 1.25.5 (go.mod: go 1.25.0), built by 1.24.9. Otherwise the 1.24.9-4 recipe: cgo and -race gates, testdata and foreign .syso removed."
     }
 
