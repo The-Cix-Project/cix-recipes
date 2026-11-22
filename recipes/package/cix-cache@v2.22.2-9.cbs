@@ -48,6 +48,7 @@ package "cix-cache" {
     }
 
     metadata {
+        "artifact_sha256" "4d3aae986384bc3db66446154359a821bcf97c1b18ebc7ccd24ea0209ff9b492"
         "changelog" "v2.22.2-9: requires coreutils at run time: cixcached hashes every upload with /usr/bin/sha256sum, and -8 answered every PUT with could not hash uploaded body. v2.22.2-8: first Cix package of the artifact cache (main at 03e3bfe8, with HTTPS)."
     }
 
