@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "dbdfe099cf2298b18cae5812628f82186758a5e000a77dfbb068878fdc177c94"
+        "artifact_sha256.probe-cix-compile-installer-tools" "b7b3a5b7cf59408699bafb5e25e789d059bc842e1c49f2c018c0623ffa9a8cdb"
+        "artifact_sha256.probe-cix-compile-cixd" "ac034329cad440e73a96096663c93d8df52d769e3b480781bfa2004f7d027407"
+        "artifact_sha256.probe-cix-compile-cixctl" "64c69fa9b280601fdda77185951e1f441b4022d971b6d016b37b54a65d03fd02"
         "changelog" "802: compile and selftest commit 217db65d (#729: a refused partition operation reports sfdisk's reason)."
     }
 
