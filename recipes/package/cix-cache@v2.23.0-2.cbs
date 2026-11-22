@@ -48,6 +48,7 @@ package "cix-cache" {
     }
 
     metadata {
+        "artifact_sha256" "1fab5402eac0f78eeb7198955117ccc1b2fb06d70e3c68d52a6a2cd7d956c5ea"
         "changelog" "v2.23.0-2: the tag archive's sha256, measured by -1 (identical to the main@03e3bfe8 archive, the same commit). v2.23.0-1: the v2.23.0 tag (annotated, on 03e3bfe8, the same commit v2.22.2-9 built). Requires coreutils at run time for sha256sum."
     }
 
