@@ -63,6 +63,7 @@ package "htop" {
     }
 
     metadata {
+        "artifact_sha256" "a30ffa45dc9ba2c88a8d485a1fbe5d2c3007b7c341632c8e1ac72bb69246bd0b"
         "changelog" "3.5.2-11: requires ncurses-terminfo at run time, so a terminal description exists wherever it is installed; without it every TERM was refused (cix#730)."
     }
 
