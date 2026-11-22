@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "524e33855cfaf7387c3cde0b755cade92a4bc4e4f3d8783dace7381acc753cf6"
         "changelog" "0.2.57-712: a staged slot outranks a boot entry written by a fast clock, so a reboot after an in-place switch comes back on the switched release (#723); with 0.2.57-711's kept routes and late interfaces (#715, ADR-0387)."
     }
 
