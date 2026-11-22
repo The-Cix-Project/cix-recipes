@@ -1,0 +1,100 @@
+# sqlite -- the embedded SQL database. First consumer: lighttpd's
+# mod_webdav, which keeps WebDAV properties and locks in it (the nas
+# container, the owner's request of 2026-11-22). The amalgamation
+# tarball, built with tcc. sha256 measured on gibsson-1 by
+# probe-cix-tarball@872-1.
+#
+# Outputs as ADR-0371 asks of a library: the main package carries the
+# shared library only; sqlite-dev the header and pkg-config file;
+# sqlite-tools the sqlite3 command-line shell.
+package "sqlite" {
+    version "3.50.4"
+    release 1
+    format "cixpkg"
+    license "blessing"
+
+    sources {
+        main "sqlite" {
+            url "https://sqlite.org/2025/sqlite-autoconf-3500400.tar.gz"
+            sha256 "a3db587a1b92ee5ddac2f66b3edb41b26f9c867275782d46c3a088977d6a5b18"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "3.50.4-1: first revision, for lighttpd's WebDAV properties and locks (the nas container). Shared library only in the main package; sqlite-dev and sqlite-tools as outputs."
+    }
+
+    output "sqlite-dev" {
+        files {
+            "usr/include"
+            "usr/lib/pkgconfig"
+        }
+        requires { runtime { package "sqlite" } }
+    }
+    output "sqlite-tools" {
+        files {
+            "usr/bin/sqlite3"
+            "usr/share/man"
+        }
+        requires { runtime { package "sqlite" } }
+    }
+    prepare {
+        require directory "${src}/sqlite/sqlite-autoconf-3500400" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/sqlite/sqlite-autoconf-3500400" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                "--disable-readline"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/sqlite" allow_failure }
+        }
+    }
+
+    install {
+        cd "${src}/sqlite/sqlite-autoconf-3500400" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/include/sqlite3.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/sqlite3.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/sqlite3" {
+            exists
+            executable
+        }
+    }
+
+}
