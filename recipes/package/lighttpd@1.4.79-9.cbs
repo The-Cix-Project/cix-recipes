@@ -56,6 +56,7 @@ package "lighttpd" {
     }
 
     metadata {
+        "artifact_sha256" "7aff2d2641731d24b30e876163a39337c0f4a7b3d263dd600d8ed29a372cbe74"
         "changelog" "1.4.79-9: back to tcc: 1.4.79-7 crashed on every LDAP login because openldap-client's static libldap.a was not position-independent, which gcc (1.4.79-8) refused to link and tcc did not; openldap-client 2.6.14-8 builds it with --with-pic."
     }
 
