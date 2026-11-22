@@ -1,0 +1,82 @@
+# dash -- the Debian Almquist shell: a small POSIX sh. First consumer:
+# the gitea image, whose git hooks are shell scripts git runs on every
+# push (gitea's SCRIPT_TYPE), in an image the owner wants without bash
+# (2026-11-22: "I want to move away from ever needing to install
+# bash"). It installs only /usr/bin/dash, never /bin/sh, so it never
+# competes with bash for a path (one package owns a path, #553).
+package "dash" {
+    version "0.5.13.6"
+    release 1
+    format "cixpkg"
+    license "BSD-3-Clause"
+
+    sources {
+        main "dash" {
+            url "http://gondor.apana.org.au/~herbert/dash/files/dash-0.5.13.6.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+    }
+
+    metadata {
+        "changelog" "0.5.13.6-1: first revision: a POSIX sh at /usr/bin/dash, for gitea's git hooks in an image without bash."
+    }
+
+    prepare {
+        require directory "${src}/dash/dash-0.5.13.6" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/dash" allow_failure }
+        }
+    }
+
+    build {
+        cd "${src}/dash/dash-0.5.13.6" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--bindir=/usr/bin"
+                env "CC" = "tcc"
+                env "CC_FOR_BUILD" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        # Run what was built, on the constructs gitea's hooks use:
+        # command substitution, a for loop and a test. A script whose
+        # interpreter is the new dash, since CPDL runs no interpreter
+        # by name (CPDL-E3006).
+        write "${build}/dashcheck" "#!${src}/dash/dash-0.5.13.6/src/dash\nx=$(echo ok)\nfor i in 1 2; do [ \"$x\" = ok ] || exit 3; done\nexit 7\n"
+        chmod 0755 "${build}/dashcheck"
+        run "${build}/dashcheck" {
+            expect exit 7
+        }
+    }
+
+    install {
+        cd "${src}/dash/dash-0.5.13.6" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/dash" {
+            exists
+            executable
+        }
+    }
+}
