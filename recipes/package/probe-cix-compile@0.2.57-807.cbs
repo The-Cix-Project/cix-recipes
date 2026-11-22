@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "1a3f26fde3dcea71f2030ab3290c23b7429eaa2f86a1c72345de9b026c7a940f"
+        "artifact_sha256.probe-cix-compile-installer-tools" "f473fedc1910fb0e1f024a63449f62403f7cde316ec620be8e48774ada5e5443"
+        "artifact_sha256.probe-cix-compile-cixd" "37c13f5f0743d08346b7b2d372b4d955c05f0a7ec122de996a990c99581dfb08"
+        "artifact_sha256.probe-cix-compile-cixctl" "897bf6fcefc01b389b4f6a6b08e38eaa986fc38e70d0c1d1f0f1fca4b22f5365"
         "changelog" "807: compile and selftest commit 21787192 (fresh-install fixes: #734 #732 #717 #720 #721 #719)."
     }
 
