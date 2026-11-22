@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "1f50cc5b5486b5a8f105d4765cfbcdba2bc9f8b932b1acf2d320894905c0ade1"
+        "artifact_sha256.cix-installer-tools" "b69ac650b77cee43d0d6557f9be3c93b6ff8417246ca385c6f30577e7fbce373"
+        "artifact_sha256.cixd" "a434d1eee8a3462243ae49ec52f0b649624d1fa432f059157a50954daf361488"
         "artifact_sha256" "524e33855cfaf7387c3cde0b755cade92a4bc4e4f3d8783dace7381acc753cf6"
         "changelog" "0.2.57-712: a staged slot outranks a boot entry written by a fast clock, so a reboot after an in-place switch comes back on the switched release (#723); with 0.2.57-711's kept routes and late interfaces (#715, ADR-0387)."
     }

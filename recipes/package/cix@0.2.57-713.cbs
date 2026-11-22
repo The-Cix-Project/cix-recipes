@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "70265c7903986ad2cb249f5bf39f53457fc3e72e4cc2595aeca25d027a0f2ad6"
+        "artifact_sha256.cix-installer-tools" "e9fb7228f36ba4f3faab3f59a87b4b7c06f4b4f3b7327e491a83afc55c0677e2"
+        "artifact_sha256.cixd" "0178482d4be74b54adb1d4d5b5981492438a8c1d28e075baca9d9865b4c092d9"
         "artifact_sha256" "1e38c95463dc29fe96696ef484cda798b72d918672553f24193c280e323ad148"
         "changelog" "0.2.57-713: confirming a slot makes it the entry that boots next, so a reboot after an in-place switch comes back on the switched release whatever clock wrote the other entry (#723); with kept routes and late interfaces (#715, ADR-0387)."
     }

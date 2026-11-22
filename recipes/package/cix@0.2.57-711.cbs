@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "4130d6d0d2e578022c425e180bfa8a3166d54f4f0e40e22829a55c0df9b57b92"
+        "artifact_sha256.cix-installer-tools" "5d6aaee5c3451cef13207940a624dd4d15b03baf303e6ee2a2a3c42e8ec5b397"
+        "artifact_sha256.cixd" "d26213dd0cdb8acc4960f8a6769da86eff38ea0aea6be89459333e1effef45ac"
         "artifact_sha256" "f6b1b522d467b948ebe72ed88d69ca9ecc136c36ba227095f2cce4612816df32"
         "changelog" "0.2.57-711: a reboot keeps the uplink and the default route -- a network interface absent at startup is attached when it appears, and added routes are kept and put back until their gateway is reachable (#715, ADR-0387)."
     }
