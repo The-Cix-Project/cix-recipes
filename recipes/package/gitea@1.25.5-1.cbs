@@ -56,6 +56,7 @@ package "gitea" {
     }
 
     metadata {
+        "artifact_sha256" "edca0bf56afa5ccf87ed4e3b77a102b25b359e72742509b9afb7df556e80ec01"
         "changelog" "1.25.5-1: first revision, for the forge on gibsson-1 (git.uk.home.arpa). Upstream's source release, vendored and with built assets, so the build is offline; tags bindata sqlite sqlite_unlock_notify."
     }
 
