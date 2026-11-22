@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "09529f03fb23bffdb3aff3cc5af302032f7dff9d7dadcf3cf3ca838df2e35be7"
+        "artifact_sha256.probe-cix-compile-installer-tools" "ce13cf02713ac615ab46bce23c130bc66148b1cc79d115b9438edac41038e4f4"
+        "artifact_sha256.probe-cix-compile-cixd" "68510d9db6122041e9853e31b97697a5cfc30cbed585dfbe44c30e3858d93586"
+        "artifact_sha256.probe-cix-compile-cixctl" "42791a344f62467764645d11626912579d33caf8de9cdc5d9b328677b2d4386f"
         "changelog" "799: compile and selftest commit 42a6a524 (#723: confirming a slot makes it the entry that boots next)."
     }
 
