@@ -1,0 +1,129 @@
+#
+# gitea -- the forge: git hosting, issues, pull requests and the API
+# that cixd's recipe sources speak (repo_kind "gitea"). The owner's
+# request of 2026-11-22: a full Gitea on gibsson-1 as
+# git.uk.home.arpa, with the existing forge's repositories moved to it.
+#
+# THE SOURCE IS UPSTREAM'S OWN SOURCE RELEASE, which is what makes an
+# offline build possible. Gitea's `make release` runs `frontend`,
+# `generate` and `vendor` before `release-sources` (Makefile v1.25.5,
+# line 778), so gitea-src-1.25.5.tar.gz carries the built web assets
+# and every Go module under vendor/: no node, no npm and no network.
+# Its sha256 is the one upstream publishes beside it
+# (dl.gitea.com/gitea/1.25.5/gitea-src-1.25.5.tar.gz.sha256).
+#
+# The build is the Makefile's backend build written out: `go generate`
+# with the tags (which embeds the assets for `bindata`), then `go build`
+# with the same tags and the same -X version flags. The version comes
+# from the VERSION file release-sources stores in the tree.
+#
+# WHY gcc. The sqlite tag links mattn/go-sqlite3, which compiles
+# SQLite's C amalgamation through cgo, and TCC cannot drive cgo
+# (ADR-0170, cix#31). Same reason as glauth.
+#
+package "gitea" {
+    version "1.25.5"
+    release 1
+    format "cixpkg"
+    license "MIT"
+
+    sources {
+        main "gitea" {
+            url "https://dl.gitea.com/gitea/1.25.5/gitea-src-1.25.5.tar.gz"
+            sha256 "94ac565aa9da5b80e784db53598e5b10a2e41c655c07f064050675bd97ef51f1"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "sed"
+            tool "findutils"
+            tool "binutils"
+            tool "go"
+        }
+        runtime {
+            # Gitea runs git for every repository operation.
+            package "git"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "cgo: the sqlite build tag links mattn/go-sqlite3, which compiles SQLite through cmd/cgo, whose batched symbol probing needs a compiler that continues past the first error; TCC stops at the first (ADR-0170, cix#31)"
+    }
+
+    metadata {
+        "changelog" "1.25.5-1: first revision, for the forge on gibsson-1 (git.uk.home.arpa). Upstream's source release, vendored and with built assets, so the build is offline; tags bindata sqlite sqlite_unlock_notify."
+    }
+
+    prepare {
+        require directory "${src}/gitea/gitea-src-1.25.5/vendor" {
+            exists
+        }
+        require file "${src}/gitea/gitea-src-1.25.5/VERSION" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/gitea" allow_failure }
+            run "ls" { "-1" "${src}/gitea/gitea-src-1.25.5" allow_failure }
+        }
+    }
+
+    build {
+        mkdir "${build}/gocache" parents
+        mkdir "${build}/gotmp" parents
+        cd "${src}/gitea/gitea-src-1.25.5" {
+            run "go" {
+                "generate"
+                "-tags" "bindata sqlite sqlite_unlock_notify"
+                "./..."
+                env "GOWORK" = "off"
+                env "GOFLAGS" = "-mod=vendor"
+                env "GOPROXY" = "off"
+                env "GOTOOLCHAIN" = "local"
+                env "GOCACHE" = "${build}/gocache"
+                env "GOTMPDIR" = "${build}/gotmp"
+                env "HOME" = "${build}"
+                env "CGO_ENABLED" = "0"
+            }
+            run "go" {
+                "build"
+                "-tags" "bindata sqlite sqlite_unlock_notify"
+                "-ldflags" "-s -w -X main.Version=1.25.5 -X main.Tags=bindata,sqlite,sqlite_unlock_notify"
+                "-o" "gitea"
+                "."
+                env "GOWORK" = "off"
+                env "GOFLAGS" = "-mod=vendor"
+                env "GOPROXY" = "off"
+                env "GOTOOLCHAIN" = "local"
+                env "GOCACHE" = "${build}/gocache"
+                env "GOTMPDIR" = "${build}/gotmp"
+                env "HOME" = "${build}"
+                env "CGO_ENABLED" = "1"
+                env "CC" = "/usr/bin/gcc"
+                jobs $jobs
+            }
+            # Run what was built: the version it reports is the one
+            # passed above, so this also proves the link took the flags.
+            run "./gitea" {
+                "--version"
+                expect {
+                    stdout contains "1.25.5"
+                }
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/gitea/gitea-src-1.25.5/gitea" to "${dest}/usr/bin/gitea"
+        require file "${dest}/usr/bin/gitea" {
+            exists
+            executable
+        }
+    }
+}
