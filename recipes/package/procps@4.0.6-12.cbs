@@ -92,6 +92,7 @@ package "procps" {
     }
 
     metadata {
+        "artifact_sha256" "0aef544633a81f849e02cb3f581e13cce4968cb35f3f98196bf1a42a9a0a0d00"
         "changelog" "4.0.6-12: requires ncurses-terminfo at run time, so a terminal description exists wherever it is installed; without it every TERM was refused (cix#730)."
     }
 
