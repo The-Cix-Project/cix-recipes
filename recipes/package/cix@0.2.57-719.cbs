@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "492fe1b9170cee509cab6800924c88589d9bda597b96d6c00f4fe4e760e603dd"
         "changelog" "0.2.57-719: a volume can adopt a disk's existing filesystem, unchanged, followed by its UUID; Cix never moves, re-owns, limits, snapshots, restores or formats it, and delete only forgets it (#725, ADR-0390)."
     }
 
