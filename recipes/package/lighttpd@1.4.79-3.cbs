@@ -1,0 +1,121 @@
+# lighttpd -- the web server the nas container runs, for its WebDAV
+# share (the owner's request of 2026-11-22: "a really robust" WebDAV
+# server in C that plays nice with LDAP). mod_webdav with properties
+# and locks (sqlite, libxml2), so macOS Finder and Windows Explorer
+# mount it read-write; mod_authn_ldap against the site's glauth pair;
+# TLS through OpenSSL. Built with tcc. sha256 measured on gibsson-1 by
+# probe-cix-tarball@874-1.
+package "lighttpd" {
+    version "1.4.79"
+    release 3
+    format "cixpkg"
+    license "BSD-3-Clause"
+
+    sources {
+        main "lighttpd" {
+            url "https://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-1.4.79.tar.xz"
+            sha256 "3b29a625b3ad88702d1fea4f5f42bb7d87488f2e4efc977d7f185329ca6084bd"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "pkgconf"
+            tool "openssl"
+            tool "openldap-client"
+            tool "sqlite"
+            tool "libxml2"
+            tool "pcre2"
+            tool "zlib"
+            tool "libuuid"
+            tool "autoconf"
+            tool "automake"
+            tool "libtool"
+            tool "m4"
+            tool "perl"
+        }
+        runtime {
+            package "openssl"
+            package "openldap-client"
+            package "sqlite"
+            package "libxml2"
+            package "pcre2"
+            package "zlib"
+        }
+    }
+
+    metadata {
+        "changelog" "1.4.79-3: generates configure with lighttpd's own autogen.sh (autoconf, automake, libtool): the 1.4.79 release tarball ships configure.ac and no configure (1.4.79-1: ./configure exited 127; 1.4.79-2 listed the tree). Built with tcc, as meson refuses it. The nas container's WebDAV share."
+    }
+
+    prepare {
+        require directory "${src}/lighttpd/lighttpd-1.4.79" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/lighttpd/lighttpd-1.4.79" {
+            run "./autogen.sh" { }
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--sbindir=/usr/sbin"
+                "--with-openssl"
+                "--with-ldap"
+                "--with-webdav-props"
+                "--with-webdav-locks"
+                "--with-pcre2"
+                "--with-zlib"
+                "--without-mysql"
+                "--without-pgsql"
+                "--without-dbi"
+                "--without-lua"
+                "--without-brotli"
+                "--without-zstd"
+                "--without-bzip2"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/lighttpd/lighttpd-1.4.79" allow_failure }
+        }
+    }
+
+    install {
+        cd "${src}/lighttpd/lighttpd-1.4.79" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/sbin/lighttpd" {
+            exists
+            executable
+        }
+        require file "${dest}/usr/lib/lighttpd/mod_webdav.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/lighttpd/mod_authn_ldap.so" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/lighttpd/mod_openssl.so" {
+            exists
+            nonempty
+        }
+    }
+}
