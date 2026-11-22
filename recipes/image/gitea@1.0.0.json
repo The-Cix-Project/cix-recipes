@@ -1,0 +1,13 @@
+{
+  "image": "gitea",
+  "version": "1.0.0",
+  "notes": "1.0.0: the forge on gibsson-1, git.uk.home.arpa (the owner, 2026-11-22). gitea, the git it runs for every repository operation, coreutils for the setup service that hands the data volume and TLS key to gitea's own user, ca-certificates so it can reach GitHub for the catalogue's push mirror, and hibr for the console and that setup command line. No bash.\n\nRolling throughout, as every image here is by charter.",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "gitea", "mode": "rolling", "version": "1.25.5" },
+    { "package": "git", "mode": "rolling", "version": "2.55.0" },
+    { "package": "coreutils", "mode": "rolling", "version": "9.11" },
+    { "package": "ca-certificates", "mode": "rolling", "version": "2026.09.03" },
+    { "package": "hibr", "mode": "rolling", "version": "0.99.557" }
+  ]
+}
