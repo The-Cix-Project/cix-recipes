@@ -35,6 +35,9 @@ package "sqlite" {
     }
 
     metadata {
+        "artifact_sha256" "c6b15027f30c0541888b6e6d637af34529405f17d9afce52c24d21c7ef75364a"
+        "artifact_sha256.sqlite-tools" "bbce3801b9dd6585fade32bb14690695860c674966f2c927cc2e58e478268527"
+        "artifact_sha256.sqlite-dev" "ef32ed80368f7d57c1b5465744d8b7d6c6314b09ec2a07634f880967e8049add"
         "changelog" "3.50.4-3: configure gets CC=tcc as an argument and CC_FOR_BUILD=tcc in the environment: autosetup builds its bootstrap jimsh0 before it reads any argument, trying only cc and gcc unless CC_FOR_BUILD names a compiler (3.50.4-1 and -2: No working C compiler found). For lighttpd's WebDAV properties and locks; sqlite-dev and sqlite-tools as outputs."
     }
 
