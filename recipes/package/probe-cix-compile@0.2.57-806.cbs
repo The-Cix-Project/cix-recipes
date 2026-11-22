@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "3116eaa5b21d79688987199aaf30bc525e4adfcae20b602f7f1f229a3bd41526"
+        "artifact_sha256.probe-cix-compile-installer-tools" "9effbf669c4ff4e1ef7f0ccc2a630d45a1c7e0185fdcf133d2bceaae284f8b18"
+        "artifact_sha256.probe-cix-compile-cixd" "8e088c36fb076eb6181912f9e1a827ffad31265e734bc68d2286af3d93634164"
+        "artifact_sha256.probe-cix-compile-cixctl" "1a6a6fa0b348e7acfd76adc2178b83fe6f260a3531fc411181586a40ef2a0ec9"
         "changelog" "806: compile and selftest commit 55a57659 (#725: a volume can adopt a disk's existing filesystem)."
     }
 
