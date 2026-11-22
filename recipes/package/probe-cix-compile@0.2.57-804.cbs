@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "4cdd7fd658eace2c66c16e9a06ae87d0b9d459db5c140f54b174a5e0bcdcc822"
+        "artifact_sha256.probe-cix-compile-installer-tools" "909412753ba8c9e23f5b5ad6f4b56087dfb8ba57e46f8d440b40c2bca0529195"
+        "artifact_sha256.probe-cix-compile-cixd" "1e68edea156bacae29df6fa9a1520cbf07050d1d139e73760f7ff502643729f7"
+        "artifact_sha256.probe-cix-compile-cixctl" "c7c3f5764404c7ceb09bb0cb1584542508c0c8d806656f94f36aa08a3bb4501b"
         "changelog" "804: compile and selftest commit 56f7f25c (#733: a container's LDAP account is staged before it starts), fetched from the new forge."
     }
 
