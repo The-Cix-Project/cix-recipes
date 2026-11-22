@@ -1,0 +1,55 @@
+# forgesync -- makes the forge match forge.json, through its API (cix
+# ADR-0388, the owner's decision of 2026-11-22). One hibr script, installed
+# as /usr/bin/forgesync with its #!/usr/bin/hibr line, as the hibr
+# maintainer advised: a Cix package that depends on hibr, so an image needs
+# nothing fetched at run time. Source: the owner's forge, the public
+# itdlabs/forgesync repository at the commit tested on gibsson-1 (a dry
+# pass, then a real one with 1 change, then one with 0).
+package "forgesync" {
+    version "1.0.0"
+    release 2
+    format "cixpkg"
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "forgesync" {
+            url "https://git.uk.home.arpa/itdlabs/forgesync/archive/5c3dacdb9ec6dab3338e4569e663755fffa0194c.tar.gz"
+            sha256 "631a5e4e23a115ee5483b72652ab14515e365fe9847ebb755fd1783c2b0bbcca"
+        }
+    }
+
+    requires {
+        build {
+            tool "coreutils"
+        }
+        runtime {
+            package "hibr"
+        }
+    }
+
+    metadata {
+        "changelog" "1.0.0-2: the source sha256, measured by -1's fetch on gibsson-1. First version: organisations, repository settings and push mirrors from forge.json; --export, --dry-run."
+    }
+
+    prepare {
+        require file "${src}/forgesync/forgesync/forgesync" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/forgesync" allow_failure }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/forgesync/forgesync/forgesync" to "${dest}/usr/bin/forgesync"
+        chmod 0755 "${dest}/usr/bin/forgesync"
+        mkdir "${dest}/usr/share/doc/forgesync" parents
+        copy "${src}/forgesync/forgesync/README.md" to "${dest}/usr/share/doc/forgesync/README.md"
+        require file "${dest}/usr/bin/forgesync" {
+            exists
+            executable
+        }
+    }
+}
