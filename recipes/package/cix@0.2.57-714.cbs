@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "76c2f1351acb2e55d5fa60f5c79ce6e390063e7ae9ebed6c08f2c25b18ddbe3b"
         "changelog" "0.2.57-714: a pki_issue certificate carries the site-qualified name dns_register publishes, so a client that trusts the site CA can reach a container by its DNS name (#727)."
     }
 
