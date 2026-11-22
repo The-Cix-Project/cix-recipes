@@ -55,6 +55,7 @@ package "vim" {
     }
 
     metadata {
+        "artifact_sha256" "018c4ece87869e34df57c7ce8005ecd85019715f41dc27efb01fb704ca9d0021"
         "changelog" "9.1.1428-6: requires ncurses-terminfo at run time, so a terminal description exists wherever it is installed; without it every TERM was refused (cix#730)."
     }
 
