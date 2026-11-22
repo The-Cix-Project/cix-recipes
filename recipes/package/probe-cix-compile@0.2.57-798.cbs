@@ -248,6 +248,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "fe8556a7b8cf4418967b2b8d9f0a0935e90216f759fa82f7337b08ee6d4dce42"
+        "artifact_sha256.probe-cix-compile-installer-tools" "c235548a7a3f406b28d751c40e693f75de19413c93384a5dc7b8bbd38926e14c"
+        "artifact_sha256.probe-cix-compile-cixd" "493bfd4f4b18144ea7ed101683b63e16cf59620ceca293f98edf0ac3be2098b7"
+        "artifact_sha256.probe-cix-compile-cixctl" "040b43fa0f07156838b735bef15c930c30754b720ad8ceb64de3eb85e94e6ee4"
         "changelog" "798: compile and selftest commit 4d71f8ea (#723: a staged slot outranks an entry written by a fast clock)."
     }
 
