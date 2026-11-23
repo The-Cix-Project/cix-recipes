@@ -77,6 +77,7 @@ package "radicale" {
     }
 
     metadata {
+        "artifact_sha256" "eba4dd3a36ec2075da9f1c01bb1ee48fb23de8d63c67ac6288b3858c7d0c67e3"
         "changelog" "3.9.2-1: first revision. Radicale and its pure-python dependencies staged to /usr/lib/radicale with a PYTHONPATH wrapper; sources pinned by PyPI's published sha256, layouts measured by probe-radicale-layout@1-1."
     }
 
