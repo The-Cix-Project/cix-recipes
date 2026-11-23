@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "5809bb20dfbe2118f51f967dd97fec77fda53106eb019e470cdfd28baf0eaaa9"
         "changelog" "0.2.57-723: a deployment is re-applied in place, through the rolling restart, and keeps the secrets it was applied with, so a change needs none typed again (#724, ADR-0392)."
     }
 
