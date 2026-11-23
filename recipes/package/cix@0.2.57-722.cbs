@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "1ecacd5545e6b16351824043a7038e17d53cc739fe666fe26a36fd1b183453f3"
+        "artifact_sha256.cix-installer-tools" "af5ba4b1d7ce0cc81e2575baee39d473173fea85ae60f0e41d5f716da01f9ac4"
+        "artifact_sha256.cixd" "54f8805940d431adea4e2b7f8569b7da4aa1240f87c21b67b82e8ba4a6addcce"
         "artifact_sha256" "b0f91aa408ab08f2a0bab00571af75cec123de211d44ec99454416b0b39111b3"
         "changelog" "0.2.57-722: discovery writes every release it finds, one commit at a time, instead of one per hourly pass (#735), and records its outcome on its schedule (#736)."
     }
