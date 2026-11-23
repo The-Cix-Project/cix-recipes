@@ -77,6 +77,7 @@ package "radicale" {
     }
 
     metadata {
+        "artifact_sha256" "770385aa49094aedbeed7fb3672a3961016fb08ba7faca2b063f5ae5f91211e7"
         "changelog" "3.9.2-2: stages each module's PKG-INFO as METADATA in a dist-info directory, as pip would, so importlib.metadata finds them; Radicale reads its own version that way at import and 3.9.2-1 stopped with PackageNotFoundError."
     }
 
