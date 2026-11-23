@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "64c9a898003f3188621bbe70c6eb4112f5164cee0a142bfedc15d442d152efd0"
         "changelog" "0.2.57-725: one user's sessions never refuse another user's login: a user holds at most 16, and a full table never refuses (#738, ADR-0394)."
     }
 
