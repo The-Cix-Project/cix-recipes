@@ -1,0 +1,110 @@
+#
+# mrustc -- a Rust compiler written in C++, used once: to build rustc
+# 1.90.0 from source, which is where Cix's Rust toolchain starts. The
+# owner chose on 2026-11-23 to bootstrap Rust (for Vaultwarden) rather
+# than take a rustc binary from anywhere: everything Cix ships is built
+# on a Cix host with Cix's toolchain, and rustc's own bootstrap needs a
+# previous rustc, so the chain has to start from a compiler that is not
+# written in Rust. mrustc v0.12.0 is tested to bootstrap 1.90.0
+# (README at the tag).
+#
+# Installs mrustc and minicargo, and the source tree (its rustc patches,
+# minicargo.mk and run_rustc) under /usr/share/mrustc: the rustc-1.90.0
+# recipe runs mrustc's own build of rustc from that tree.
+#
+package "mrustc" {
+    version "0.12.0"
+    release 1
+    format "cixpkg"
+
+    license "MIT"
+
+    sources {
+        main "mrustc" {
+            url "https://github.com/thepowersgang/mrustc/archive/refs/tags/v0.12.0.tar.gz"
+            sha256 "c1ba35f5fc5c4ca2952d9f5526e900dcb6632ea7fd4d71fa58029b3bb563ae56"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+            tool "glibc"
+            tool "linux-headers"
+            tool "zlib"
+        }
+        runtime {
+            package "zlib"
+            package "gcc-libs"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "language: mrustc is C++14 and TCC has no C++ front end, so this is the wrong tool rather than a TCC gap, as for cmake and btop."
+    }
+
+    metadata {
+        "changelog" "0.12.0-1: first revision, the first stage of the Rust bootstrap. sha256 measured on gibsson-1 by probe-mrustc-tarball@1-1."
+    }
+
+    prepare {
+        require file "${src}/mrustc/mrustc-0.12.0/Makefile" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" {
+                "${src}/mrustc"
+                allow_failure
+            }
+        }
+    }
+
+    build {
+        run "make" {
+            "-C"
+            "${src}/mrustc/mrustc-0.12.0"
+            "-j4"
+            "bin/mrustc"
+        }
+        run "make" {
+            "-C"
+            "${src}/mrustc/mrustc-0.12.0/tools/minicargo"
+            "-j4"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/mrustc/mrustc-0.12.0/bin/mrustc" to "${dest}/usr/bin/mrustc"
+        copy "${src}/mrustc/mrustc-0.12.0/bin/minicargo" to "${dest}/usr/bin/minicargo"
+        chmod 0755 "${dest}/usr/bin/mrustc"
+        chmod 0755 "${dest}/usr/bin/minicargo"
+        mkdir "${dest}/usr/share/mrustc" parents
+        copy tree "${src}/mrustc/mrustc-0.12.0/script-overrides" to "${dest}/usr/share/mrustc/script-overrides"
+        copy tree "${src}/mrustc/mrustc-0.12.0/run_rustc" to "${dest}/usr/share/mrustc/run_rustc"
+        copy tree "${src}/mrustc/mrustc-0.12.0/scripts" to "${dest}/usr/share/mrustc/scripts"
+        copy tree "${src}/mrustc/mrustc-0.12.0/lib" to "${dest}/usr/share/mrustc/lib"
+        copy "${src}/mrustc/mrustc-0.12.0/minicargo.mk" to "${dest}/usr/share/mrustc/minicargo.mk"
+        copy "${src}/mrustc/mrustc-0.12.0/rustc-1.90.0-src.patch" to "${dest}/usr/share/mrustc/rustc-1.90.0-src.patch"
+        copy "${src}/mrustc/mrustc-0.12.0/rustc-1.90.0-overrides.toml" to "${dest}/usr/share/mrustc/rustc-1.90.0-overrides.toml"
+        copy "${src}/mrustc/mrustc-0.12.0/build-1.90.0.sh" to "${dest}/usr/share/mrustc/build-1.90.0.sh"
+        copy "${src}/mrustc/mrustc-0.12.0/rust-version" to "${dest}/usr/share/mrustc/rust-version"
+        copy "${src}/mrustc/mrustc-0.12.0/rust-nightly-date" to "${dest}/usr/share/mrustc/rust-nightly-date"
+
+        require file "${dest}/usr/bin/mrustc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/minicargo" {
+            exists
+            nonempty
+        }
+    }
+}
