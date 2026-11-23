@@ -89,6 +89,7 @@ package "python" {
     }
 
     metadata {
+        "artifact_sha256" "a32e85edcd292650fbd6b89f62b0ab95814e71854f6f1287b319c00167e233a3"
         "changelog" "3.13.5-14: declares openssl as a build tool and gates _ssl and _hashlib. -13 added libffi for _ctypes but its build found no openssl headers, which earlier revisions got only by accident from another tool, so it shipped without _ssl."
     }
 
