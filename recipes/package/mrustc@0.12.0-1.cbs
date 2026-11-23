@@ -50,6 +50,7 @@ package "mrustc" {
     }
 
     metadata {
+        "artifact_sha256" "0380563c6b78eb31a40cb9a109b4afc4b32b0d179710998829f21c036470db45"
         "changelog" "0.12.0-1: first revision, the first stage of the Rust bootstrap. sha256 measured on gibsson-1 by probe-mrustc-tarball@1-1."
     }
 
