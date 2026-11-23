@@ -248,6 +248,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "5d20393bcaeefb892fea9efdd84579467bbe7ca62280969f4c890ada9172cb31"
+        "artifact_sha256.cix-installer-tools" "d345565c74561ae1db16a0beef0a79c4d9ca9bf95fe8edfa2c0b9ae2f49a4a3e"
+        "artifact_sha256.cixd" "dcfce21683df68d949d792afd923760d059721167185c4ef79337a9cd9cb166c"
         "artifact_sha256" "3d2e5328e9ae6458da75ea666313cbb60fbc302939b7a5bf983beeb385a377b2"
         "changelog" "0.2.57-720: fresh-install fixes. A certificate always names itself (#734); the busy message names its real cause (#732); the shell quotes like a POSIX shell (#717); login switches on only for a user with a password, ids are unique (#720); cix-recover reads both consoles (#721); DHCP lease scans retry (#719)."
     }
