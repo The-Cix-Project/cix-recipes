@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "b0f91aa408ab08f2a0bab00571af75cec123de211d44ec99454416b0b39111b3"
         "changelog" "0.2.57-722: discovery writes every release it finds, one commit at a time, instead of one per hourly pass (#735), and records its outcome on its schedule (#736)."
     }
 
