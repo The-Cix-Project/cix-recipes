@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "3834db3950d353552c5148d247fdb2bd337abe8217c9c709fbdef555f8362a06"
         "changelog" "0.2.57-721: the host syncs its clock only from upstream servers, never its own NTP containers, and a failed sync says why (#718, #716, ADR-0391); fresh hosts get hourly discovery (#722); missing firmware is one line per device (#709)."
     }
 
