@@ -88,6 +88,7 @@ package "python" {
     }
 
     metadata {
+        "artifact_sha256" "4b7f11f88a88ca5d95b282fa9b386af988cc961607787b57c65e8b5f68e4af6b"
         "changelog" "3.13.5-13: builds _ctypes. libffi is declared at build and run time and the install gates on the module; every revision through -12 was built without libffi, so import ctypes raised and Radicale (dav) could not start."
     }
 
