@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "275b459c4bfd43657886116c338e72d2f2556fafc60f53f179f4ecb968e9e9cb"
         "changelog" "0.2.57-726: a root CA carries keyUsage, and pki ca reissue re-signs an existing root with its own key so Python clients verify Cix certificates (ADR-0395)."
     }
 
