@@ -1,0 +1,32 @@
+# probe-mrustc-tarball -- the sha256 of mrustc v0.12.0's GitHub tag
+# archive, read from the checksum mismatch the deliberate zero below
+# produces. The fetch is the whole probe; nothing is built.
+package "probe-mrustc-tarball" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    license "MIT"
+
+    sources {
+        main "mrustc" {
+            url "https://github.com/thepowersgang/mrustc/archive/refs/tags/v0.12.0.tar.gz"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: measures mrustc v0.12.0's tag archive sha256 for the Rust bootstrap (owner's go-ahead, 2026-11-23)."
+    }
+
+    build {
+        run "true" {
+        }
+    }
+}
