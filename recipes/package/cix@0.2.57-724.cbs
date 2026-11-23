@@ -248,6 +248,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "e951583cdc4beacb33e8a45223e1779c3a87d879247d7739c8da9792da6c9367"
         "changelog" "0.2.57-724: an install blocked only by work in flight is queued, not refused, and starts by itself when that work ends; cixctl pkg queue shows it (#711, ADR-0393)."
     }
 
