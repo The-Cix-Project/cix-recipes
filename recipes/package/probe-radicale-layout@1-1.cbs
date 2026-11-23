@@ -1,0 +1,92 @@
+# probe-radicale-layout -- where each of Radicale's dependencies keeps its
+# python package inside its PyPI source archive, so the radicale recipe
+# copies the right directories in one cycle. Builds nothing; lists, then
+# fails on purpose so nothing is installed.
+package "probe-radicale-layout" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "radicale" {
+            url "https://files.pythonhosted.org/packages/d1/cc/369803acc91a1c4250ea1e3b5e7f949d9c67932c827d55ff7ec6d207bd97/radicale-3.9.2.tar.gz"
+            sha256 "d0ac4d537d0d357507eab9792183aee8861bfe8330fa4787574a276a4b091695"
+        }
+        extra "defusedxml" {
+            url "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124974bfe172b4daf3c984ebd9c2a06e2b8a4dc7331c72/defusedxml-0.7.1.tar.gz"
+            sha256 "1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69"
+        }
+        extra "libpass" {
+            url "https://files.pythonhosted.org/packages/97/e6/cd64d08c62c57487fefb4541ad57c9bf0dd150ecf667653d6c2c18b65c53/libpass-1.9.5.post0.tar.gz"
+            sha256 "7bf9897875443c782f4eb41903d98350619a25d42e96506c9763661a83607631"
+        }
+        extra "passlib" {
+            url "https://files.pythonhosted.org/packages/4a/05/0c74404b2e028a949ab89eac270203dc151d3033656b60b2f71db9fea6dd/passlib-1.9.5.tar.gz"
+            sha256 "15d39a9b2044a86f341a2e443170e4e9a6d71fe0266fe28b91032a8ca723f8aa"
+        }
+        extra "vobject" {
+            url "https://files.pythonhosted.org/packages/d0/8a/15c34b3d27c43fc81a467d0f66577afc5542326804c42f30557e31c3259e/vobject-0.9.9.tar.gz"
+            sha256 "ac44e5d7e2079d84c1d52c50a615b9bec4b1ba958608c4c7fe40cbf33247b38e"
+        }
+        extra "pythondateutil" {
+            url "https://files.pythonhosted.org/packages/18/39/b3927f3616f6223832f9b760e4208e8a7c7e1dea2b4d9ad7d32a5d214c3a/python_dateutil-4.0.0.tar.gz"
+            sha256 "d7295ff14fdc0f92f662100bfb6c551d160ca090f2939f1ec5b9794265c03f06"
+        }
+        extra "six" {
+            url "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz"
+            sha256 "ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"
+        }
+        extra "pytz" {
+            url "https://files.pythonhosted.org/packages/f5/b0/168030b0bfcc334cf09fa3313afdb888d892c8a0027324683d1de0ec277e/pytz-2026.6.tar.gz"
+            sha256 "3b0fc2727707663d6e517936f444fd8a8b240f1fc32f4bf7ee03274245945284"
+        }
+        extra "tzdata" {
+            url "https://files.pythonhosted.org/packages/7a/29/6a1391d31cd00ff9e927215a224a880e1e84e826b64ba80a499e51c074d8/tzdata-2026.6.tar.gz"
+            sha256 "85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d"
+        }
+        extra "ldap3" {
+            url "https://files.pythonhosted.org/packages/43/ac/96bd5464e3edbc61595d0d69989f5d9969ae411866427b2500a8e5b812c0/ldap3-2.9.1.tar.gz"
+            sha256 "f3e7fc4718e3f09dda568b57100095e0ce58633bcabbed8667ce3f8fbaa4229f"
+        }
+        extra "pyasn1" {
+            url "https://files.pythonhosted.org/packages/88/7e/3c0da41061a2021cac7cd524fd57092adbe5b515e8bf9005702e366802e2/pyasn1-0.6.5.tar.gz"
+            sha256 "6b11616a6bcf3a40e635f082bb232fa57b5e0dd7f517bd7ddd69ec3794508a47"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "findutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: lists the module layout of Radicale 3.9.2 and its ten dependencies' PyPI source archives."
+    }
+
+    build {
+        mkdir "${build}/deps" parents
+        extract $source.defusedxml into "${build}/deps" as "defusedxml"
+        extract $source.libpass into "${build}/deps" as "libpass"
+        extract $source.passlib into "${build}/deps" as "passlib"
+        extract $source.vobject into "${build}/deps" as "vobject"
+        extract $source.pythondateutil into "${build}/deps" as "pythondateutil"
+        extract $source.six into "${build}/deps" as "six"
+        extract $source.pytz into "${build}/deps" as "pytz"
+        extract $source.tzdata into "${build}/deps" as "tzdata"
+        extract $source.ldap3 into "${build}/deps" as "ldap3"
+        extract $source.pyasn1 into "${build}/deps" as "pyasn1"
+        run "find" {
+            "${src}/radicale" "${build}/deps" "-maxdepth" "3" "-name" "*.py" "-path" "*/__init__.py"
+        }
+        run "find" {
+            "${build}/deps" "-maxdepth" "3" "-name" "six.py"
+        }
+        run "false" {
+        }
+    }
+}
