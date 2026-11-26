@@ -249,6 +249,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "e412016c188d77181ae82254d7bef9c94749d66ebd492f5ee95eee41c330a0b2"
+        "artifact_sha256.cix-installer-tools" "2fa3131e17864b510c3b9465fc52c0b5d9e79b67607c482094dcb9bbf9bd6635"
+        "artifact_sha256.cixd" "135bf013c957747603ab750ee578e13edaff59f11fcc28ce005c63841e905e7d"
         "artifact_sha256" "8afa02972b6aa953804a16d8cdbbe0671fab067837c7fbf360a9b8f268a66314"
         "changelog" "0.2.57-727: deployment commit pushes a box-side change to the source that owns it first (ADR-0396, #740); deployment add of an owned name is refused. Deployments are named deployments everywhere (ADR-0397 step 1). The In Flight tab draws each build once. The test floor's corpus moves to cix-recipes 60e76de5."
     }
