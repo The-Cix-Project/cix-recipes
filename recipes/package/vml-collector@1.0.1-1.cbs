@@ -43,6 +43,7 @@ package "vml-collector" {
     }
 
     metadata {
+        "artifact_sha256" "0548b29748818e9f706e85ea02f1a76c662e8892a69caf99699c6a20c8c2a7b5"
         "changelog" "1.0.1-1: cli/vml-collector 1.0.1. Sends the Authorization header itself, since cixd answers 401 without a challenge and fetch -u only answers one (hibr #639); reads a secret file with no trailing newline. 1.0.0-1: first revision."
     }
 
