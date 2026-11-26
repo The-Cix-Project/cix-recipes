@@ -43,6 +43,7 @@ package "vml-collector" {
     }
 
     metadata {
+        "artifact_sha256" "fff6e5849a51780c2dec85ab19a1e9082646b13c2faba0c967c8ad1f6b838b1c"
         "changelog" "1.0.2-1: cli/vml-collector 1.0.2. Prunes its already-sent set by the timestamp at the front of each key and never reads a value back: hibr 0.99.559 returns empty for an array read whose key holds [..] (a kernel boot line does), which broke the pruning loop; no data was lost. 1.0.1-1: sends the Authorization header itself (hibr #639); accepts a secret file with no trailing newline. 1.0.0-1: first revision."
     }
 
