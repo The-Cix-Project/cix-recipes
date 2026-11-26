@@ -1,0 +1,108 @@
+#
+# victorialogs -- VictoriaLogs, the log database (single node); it takes syslog itself.
+# For the vml observability container (the owner,
+# 2026-11-26: VictoriaMetrics, VictoriaLogs, a hibr collector and
+# Grafana in one container, replacing syslog-1 and syslog-2).
+#
+# THE SOURCE IS UPSTREAM'S TAGGED TREE, and it builds offline: it
+# carries every Go module under vendor/ (with vendor/modules.txt) and the
+# web UI already built (the vmui assets embedded with go:embed), so no
+# network, no node and no npm. GitHub's archive of tag v1.54.0; its sha256
+# was measured on 2026-11-26.
+#
+# The build is the Makefile's pure (CGO_ENABLED=0) target written out:
+# go build ./app/victoria-logs with the buildinfo version flag, which the Makefile
+# fills from git (absent from an archive), so it is set here.
+#
+# Go: go.mod says go 1.27.4, so this needs go@1.27.4 installed in the
+# builder. GOTOOLCHAIN=local makes an older Go fail at once rather than
+# try to download a newer one.
+#
+package "victorialogs" {
+    version "1.54.0"
+    release 1
+    format "cixpkg"
+    license "Apache-2.0"
+
+    sources {
+        main "victorialogs" {
+            url "https://github.com/VictoriaMetrics/VictoriaLogs/archive/refs/tags/v1.54.0.tar.gz"
+            sha256 "4d1974e3034f9f4a3c3c26f4468e75a174ced21578011e87f3399b865750f414"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "findutils"
+            tool "binutils"
+            tool "go"
+        }
+    }
+
+    metadata {
+        "changelog" "1.54.0-1: first revision, for the vml image. Upstream's tagged tree, vendored with built vmui, so the build is offline; CGO_ENABLED=0; needs go 1.27.4."
+    }
+
+    prepare {
+        require file "${src}/victorialogs/VictoriaLogs-1.54.0/vendor/modules.txt" {
+            exists
+            nonempty
+        }
+        require directory "${src}/victorialogs/VictoriaLogs-1.54.0/app/victoria-logs" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/victorialogs" allow_failure }
+            run "ls" { "-1" "${src}/victorialogs/VictoriaLogs-1.54.0" allow_failure }
+        }
+    }
+
+    build {
+        mkdir "${build}/gocache" parents
+        mkdir "${build}/gotmp" parents
+        run "go" {
+            "version"
+            expect {
+                stdout contains "go1.27"
+            }
+        }
+        cd "${src}/victorialogs/VictoriaLogs-1.54.0" {
+            run "go" {
+                "build"
+                "-trimpath"
+                "-ldflags" "-s -w -X github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version=victoria-logs-cix-tags-v1.54.0"
+                "-o" "victoria-logs"
+                "./app/victoria-logs"
+                env "GOWORK" = "off"
+                env "GOFLAGS" = "-mod=vendor"
+                env "GOPROXY" = "off"
+                env "GOTOOLCHAIN" = "local"
+                env "GOCACHE" = "${build}/gocache"
+                env "GOTMPDIR" = "${build}/gotmp"
+                env "HOME" = "${build}"
+                env "CGO_ENABLED" = "0"
+                jobs $jobs
+            }
+            # Run what was built: it reports the version passed above,
+            # which also proves the link took the flag.
+            run "./victoria-logs" {
+                "-version"
+                expect {
+                    stdout contains "v1.54.0"
+                }
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/victorialogs/VictoriaLogs-1.54.0/victoria-logs" to "${dest}/usr/bin/victoria-logs"
+        require file "${dest}/usr/bin/victoria-logs" {
+            exists
+            executable
+        }
+    }
+}
