@@ -1,0 +1,73 @@
+# forgesync -- makes a Gitea forge match a forge.json, through its API (cix
+# ADR-0388, the owner's decision of 2026-11-22). One hibr script, installed
+# as /usr/bin/forgesync with its #!/usr/bin/hibr line: a Cix package that
+# depends on hibr, so an image needs nothing fetched at run time.
+#
+# 2.0.0 moves its source into the hibr catalogue: cli/forgesync in
+# itdlabs/hibr-apps (the owner, 2026-11-26: hibr tools live in the
+# catalogue, not in a repository each). The source is that repository's
+# archive at the commit the hibr session published, pinned by sha256,
+# since cbs takes only an archive as a main source (CPDL-E6001).
+#
+# 2.0.0 also makes its settings required configuration: FORGESYNC_API,
+# FORGESYNC_SOURCE and FORGESYNC_TOKEN_FILE have no defaults (a missing one
+# stops it, naming it), and FORGESYNC_CREDENTIALS is optional. A deployment
+# states them. 1.0.x's defaults named one site; the catalogue is public.
+package "forgesync" {
+    version "2.0.0"
+    release 1
+    format "cixpkg"
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "hibr-apps" {
+            # hibr-apps at the commit that published cli/forgesync 2.0.0.
+            url "https://git.uk.home.arpa/itdlabs/hibr-apps/archive/00028875a7eb6f165f465ec012dea130efca2b33.tar.gz"
+            sha256 "3b65af37894de952163a4c4670543736eca70750eae9bc1bf9ee901fd7c3a484"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+        runtime {
+            package "hibr"
+        }
+    }
+
+    metadata {
+        "changelog" "2.0.0-1: from the hibr catalogue (cli/forgesync in itdlabs/hibr-apps) at a pinned commit; FORGESYNC_API, FORGESYNC_SOURCE and FORGESYNC_TOKEN_FILE are required, with no site defaults; FORGESYNC_CREDENTIALS optional; sleeps in-process (sys sleepms). 1.0.0-3: bash as a build tool. First version: organisations, repository settings and push mirrors from forge.json; --export, --dry-run."
+    }
+
+    prepare {
+        require file "${src}/hibr-apps/hibr-apps/bundles/cli/forgesync.hibr" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/hibr-apps" allow_failure }
+            run "ls" { "-1" "${src}/hibr-apps/hibr-apps/bundles/cli" allow_failure }
+        }
+    }
+
+    build {
+        # The file is the catalogue's version 2.0.0, not some other one.
+        run "grep" {
+            "-q" "^app forgesync .* 2[.]0[.]0$"
+            "${src}/hibr-apps/hibr-apps/bundles/cli/forgesync.hibr"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/hibr-apps/hibr-apps/bundles/cli/forgesync.hibr" to "${dest}/usr/bin/forgesync"
+        chmod 0755 "${dest}/usr/bin/forgesync"
+        require file "${dest}/usr/bin/forgesync" {
+            exists
+            executable
+        }
+    }
+}
