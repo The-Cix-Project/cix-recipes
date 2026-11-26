@@ -42,6 +42,7 @@ package "wireguard-tools" {
     }
 
     metadata {
+        "artifact_sha256" "05400a38d4737cba8e51d2c795abcfb44f84ac164b7665c1d35a0c6bfdeceded"
         "changelog" "1.0.20260223-1: first revision, for the egress image. wg only (wg-quick needs bash, which that image does not carry); sha256 measured on the box (probe-cix-tarball@900-1)."
     }
 

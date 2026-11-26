@@ -39,6 +39,7 @@ package "forgesync" {
     }
 
     metadata {
+        "artifact_sha256" "3493597e454366e2a15fe0faf5e88bef6562214c4b4004bd33acc4f7fc4ad466"
         "changelog" "2.0.0-1: from the hibr catalogue (cli/forgesync in itdlabs/hibr-apps) at a pinned commit; FORGESYNC_API, FORGESYNC_SOURCE and FORGESYNC_TOKEN_FILE are required, with no site defaults; FORGESYNC_CREDENTIALS optional; sleeps in-process (sys sleepms). 1.0.0-3: bash as a build tool. First version: organisations, repository settings and push mirrors from forge.json; --export, --dry-run."
     }
 
