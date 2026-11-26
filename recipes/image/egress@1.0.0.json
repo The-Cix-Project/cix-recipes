@@ -1,0 +1,12 @@
+{
+  "image": "egress",
+  "version": "1.0.0",
+  "notes": "1.0.0: egress -- one WireGuard exit per container: the cores forward a policy's traffic to it, and it leaves only through the tunnel, masqueraded (the owner, 2026-11-26: policy-based routing to VPN exits). wireguard-tools configures the kernel's wireguard link (the module is loaded by the host's kmod policy, never from the container), iproute2 addresses it and routes forwarded traffic into it with a blackhole behind (no fall-through), nftables is the exit's firewall and NAT, and hibr runs the tunnel's bring-up and its health loop. No bash, no coreutils. Rolling throughout.",
+  "packages": [
+    { "package": "glibc", "mode": "rolling", "version": "2.44" },
+    { "package": "wireguard-tools", "mode": "rolling", "version": "1.0.20260223" },
+    { "package": "iproute2", "mode": "rolling", "version": "6.18.0" },
+    { "package": "nftables", "mode": "rolling", "version": "1.1.1" },
+    { "package": "hibr", "mode": "rolling", "version": "0.99.559" }
+  ]
+}
