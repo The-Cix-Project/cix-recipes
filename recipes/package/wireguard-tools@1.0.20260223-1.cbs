@@ -1,0 +1,84 @@
+#
+# wireguard-tools -- wg, the userspace tool that configures the kernel's
+# wireguard links (keys, peers, endpoints) over generic netlink. For the
+# egress image: one WireGuard exit per container, the owner's
+# policy-based routing of 2026-11-26.
+#
+# wg only. wg-quick is a bash script and the egress image carries no
+# bash; its job (address, MTU, routes) is done there with iproute2. No
+# bash completion and no systemd units either. The kernel module is not
+# this package: it is loaded by the host's kmod policy.
+#
+# Since 1.0 the tool has no libmnl dependency, so it links libc only.
+#
+package "wireguard-tools" {
+    version "1.0.20260223"
+    release 1
+    format "cixpkg"
+
+    license "GPL-2.0-only"
+
+    sources {
+        main "wireguard-tools" {
+            url "https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-1.0.20260223.tar.xz"
+            sha256 "af459827b80bfd31b83b08077f4b5843acb7d18ad9a33a2ef532d3090f291fbf"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "binutils"
+        }
+        runtime {
+            package "glibc"
+        }
+    }
+
+    metadata {
+        "changelog" "1.0.20260223-1: first revision, for the egress image. wg only (wg-quick needs bash, which that image does not carry); sha256 measured on the box (probe-cix-tarball@900-1)."
+    }
+
+    build {
+        cd "${src}/wireguard-tools/wireguard-tools-1.0.20260223/src" {
+            run "make" {
+                jobs $jobs
+                "CC=tcc"
+                "PREFIX=/usr"
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/wireguard-tools" allow_failure }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/wireguard-tools/wireguard-tools-1.0.20260223/src/wg" to "${dest}/usr/bin/wg"
+        chmod 0755 "${dest}/usr/bin/wg"
+        require file "${dest}/usr/bin/wg" {
+            exists
+            executable
+        }
+        run "${dest}/usr/bin/wg" {
+            "--version"
+            expect {
+                stdout contains "wireguard-tools"
+            }
+        }
+        run "${dest}/usr/bin/wg" {
+            "genkey"
+            stdout file "${build}/wg-genkey.txt"
+        }
+        require file "${build}/wg-genkey.txt" {
+            exists
+            nonempty
+        }
+    }
+}
