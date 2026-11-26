@@ -43,6 +43,7 @@ package "vml-collector" {
     }
 
     metadata {
+        "artifact_sha256" "f92d3ba349d1c5974248ba7466fa290589736b4f8447f244462fb76335beffd5"
         "changelog" "1.0.0-1: first revision, for the vml image. cli/vml-collector from the hibr catalogue (itdlabs/hibr-apps) at a pinned commit: Cix stats to VictoriaMetrics, kernel/cixd/audit log to VictoriaLogs."
     }
 
