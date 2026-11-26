@@ -43,6 +43,7 @@ package "victoriametrics" {
     }
 
     metadata {
+        "artifact_sha256" "20e7d30bc89bf660b37c2623cc3a1ac1b433704282131eb9e67d1651935e5e50"
         "changelog" "1.157.0-1: first revision, for the vml image. Upstream's tagged tree, vendored with built vmui, so the build is offline; CGO_ENABLED=0; needs go 1.27.4."
     }
 
