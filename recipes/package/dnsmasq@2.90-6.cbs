@@ -51,6 +51,7 @@ package "dnsmasq" {
     }
 
     metadata {
+        "artifact_sha256" "cf2db7a481f58695b31c0419fc5899181538a4d2229b05270569550ca4980814"
         "changelog" "2.90-6: the nftset gate greps a file, since --version prints several lines and CPDL expects one (-5 built; only that gate failed). 2.90-5: built with nftset (HAVE_NFTSET, linking libnftables from nftables), for the cores' per-domain policy routing; the install is gated on --version listing nftset. 2.90-4: converted from build.sh to CPDL (ADR-0305) and published as a .cixpkg; the minimal /etc/passwd and /etc/group are load-bearing (dnsmasq looks up its run-as user by name at startup)."
     }
 
