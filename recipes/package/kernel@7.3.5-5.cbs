@@ -98,6 +98,7 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256" "e612b7c4ee7aea009b732fb20ebcbb19c0229225372efecd2bf043556f91aff6"
         "artifact_sha256.kernel-modules" "7b57e39fa355b513b6ee6f8eb4a963eade732bf8783efe2ad9c9e7d6906bd172"
         "changelog" "7.3.5-5: policy routing, IP_MULTIPLE_TABLES (cix 88f79d5c): without it ip rule answered EOPNOTSUPP and every table id but local mapped to main, so a policy table route changed the main table. Gated by require config. 7.3.5-4: netfilter with nftables NAT and masquerade, and WireGuard, as modules."
     }
