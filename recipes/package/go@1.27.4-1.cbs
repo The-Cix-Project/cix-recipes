@@ -75,6 +75,7 @@ package "go" {
     }
 
     metadata {
+        "artifact_sha256" "110814330f7a84ccde20a2680fae1953a3cf0e2d65079f3fb0776be4682351bd"
         "changelog" "1.27.4-1: Go 1.27, for victoriametrics 1.157.0 and victorialogs 1.54.0 (go.mod: go 1.27.4), built by 1.25.14. Bootstrap floor go1.24.6, from src/cmd/dist/notgo124.go: 'Go 1.26 and later requires Go 1.24.6 as the minimum bootstrap toolchain.' Otherwise the 1.25.14-1 recipe: cgo and -race gates, testdata and foreign .syso removed."
     }
 
