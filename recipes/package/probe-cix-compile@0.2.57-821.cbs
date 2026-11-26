@@ -249,6 +249,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "59fbc44d1ff460ed48fec7e31eca6ffaed88aa17af86386b523ddd7619a849c1"
+        "artifact_sha256.probe-cix-compile-installer-tools" "796add39f8cddccc2e6e1bea4620c93f82c0205ddf7b481e7e973ac0642d85a0"
+        "artifact_sha256.probe-cix-compile-cixd" "db4379e02f2f985438a1c6d85230a02bcb6315ed2247300eb5c82a5194a898a6"
+        "artifact_sha256.probe-cix-compile-cixctl" "dc1c5e8343909f13ac1454d595101bd9663fa74dc7aa113f70436a7705946b4e"
         "changelog" "821: compile and selftest commit 0f03c5a5 (#740, ADR-0396; ADR-0397 step 1; the In Flight fix; ADR-0151 links)."
     }
 
