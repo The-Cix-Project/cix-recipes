@@ -1,6 +1,8 @@
 # cix-recipes
 
-Every recipe Cix builds from: packages, images and container deployments.
+The Cix catalogue: package and image recipes, which any Cix host may use.
+A site's container deployments live in that site's own repository (cix
+ADR-0396); `recipes/deployment/` here is empty by design.
 
 Split out of the [cix](https://git.home.arpa/itdlabs/cix) repository on
 2026-09-21 (cix#505), with history preserved.
@@ -13,12 +15,10 @@ One file per recipe, flat, in one directory per kind:
 recipes/package/zstd@1.5.7-5.cbs
 recipes/package/bash@5.2.37-6.cbs
 recipes/image/cix-builder@6.2.1.json
-recipes/deployment/dns-1@1.8.0.json
 ```
 
 `<name>@<version>.<ext>`, where the extension is the format: `cbs` for a
-package recipe in CPDL, `json` for an image recipe or a container
-deployment definition. There are no shell recipes (cix ADR-0329).
+package recipe in CPDL, `json` for an image recipe. There are no shell recipes (cix ADR-0329).
 
 It used to be `<name>/<version>/build.<ext>` — two directory levels
 carrying two fields, under a leaf filename that was the same two
