@@ -1,0 +1,77 @@
+# vml-collector -- polls the Cix API's JSON reads (host, container,
+# volume and storage stats; the kernel/cixd/audit log) into
+# VictoriaMetrics and VictoriaLogs. cixd serves no /metrics, by the
+# owner's decision (2026-11-26), so this is the metrics path for the vml
+# observability container.
+#
+# One hibr script, from the hibr catalogue: cli/vml-collector in
+# itdlabs/hibr-apps (the owner, 2026-11-26: hibr tools live in the
+# catalogue, not in a repository each). The source is that repository's
+# archive at the commit the hibr session published, pinned by sha256,
+# since cbs takes only an archive as a main source (CPDL-E6001).
+# Installed as /usr/bin/vml-collector with its #!/usr/bin/hibr line; it
+# needs nothing but hibr (fetch.so, sys.so and, through hibr, openssl):
+# no coreutils.
+#
+# Site settings (CIX_API, the app password, the CA file) belong to the
+# deployment, never to this package.
+package "vml-collector" {
+    version "1.0.2"
+    release 1
+    format "cixpkg"
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "hibr-apps" {
+            # hibr-apps at the commit that published cli/vml-collector
+            # 1.0.2 (bundle sha256 f4234716...f6a8 in the signed index).
+            # Archive sha256 measured twice by lab with the site CA, stable.
+            url "https://git.uk.home.arpa/itdlabs/hibr-apps/archive/477f3b7da3533f78a8dd20b74785a3d81a250c8e.tar.gz"
+            sha256 "1297a28df6e271ca57842a661a82a94cbb2bb3be979e64c39fe2fae0ee7a72b2"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+        runtime {
+            package "hibr"
+        }
+    }
+
+    metadata {
+        "changelog" "1.0.2-1: cli/vml-collector 1.0.2. Prunes its already-sent set by the timestamp at the front of each key and never reads a value back: hibr 0.99.559 returns empty for an array read whose key holds [..] (a kernel boot line does), which broke the pruning loop; no data was lost. 1.0.1-1: sends the Authorization header itself (hibr #639); accepts a secret file with no trailing newline. 1.0.0-1: first revision."
+    }
+
+    prepare {
+        require file "${src}/hibr-apps/hibr-apps/bundles/cli/vml-collector.hibr" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/hibr-apps" allow_failure }
+            run "ls" { "-1" "${src}/hibr-apps/hibr-apps/bundles/cli" allow_failure }
+        }
+    }
+
+    build {
+        # The file is the catalogue's version 1.0.2, not some other one.
+        run "grep" {
+            "-q" "^app vml-collector .* 1[.]0[.]2$"
+            "${src}/hibr-apps/hibr-apps/bundles/cli/vml-collector.hibr"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/hibr-apps/hibr-apps/bundles/cli/vml-collector.hibr" to "${dest}/usr/bin/vml-collector"
+        chmod 0755 "${dest}/usr/bin/vml-collector"
+        require file "${dest}/usr/bin/vml-collector" {
+            exists
+            executable
+        }
+    }
+}
