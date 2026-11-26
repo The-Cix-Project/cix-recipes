@@ -1,0 +1,77 @@
+# vml-collector -- polls the Cix API's JSON reads (host, container,
+# volume and storage stats; the kernel/cixd/audit log) into
+# VictoriaMetrics and VictoriaLogs. cixd serves no /metrics, by the
+# owner's decision (2026-11-26), so this is the metrics path for the vml
+# observability container.
+#
+# One hibr script, from the hibr catalogue: cli/vml-collector in
+# itdlabs/hibr-apps (the owner, 2026-11-26: hibr tools live in the
+# catalogue, not in a repository each). The source is that repository's
+# archive at the commit the hibr session published, pinned by sha256,
+# since cbs takes only an archive as a main source (CPDL-E6001).
+# Installed as /usr/bin/vml-collector with its #!/usr/bin/hibr line; it
+# needs nothing but hibr (fetch.so, sys.so and, through hibr, openssl):
+# no coreutils.
+#
+# Site settings (CIX_API, the app password, the CA file) belong to the
+# deployment, never to this package.
+package "vml-collector" {
+    version "1.0.1"
+    release 1
+    format "cixpkg"
+    license "GPL-3.0-or-later"
+
+    sources {
+        main "hibr-apps" {
+            # hibr-apps at the commit that published cli/vml-collector
+            # 1.0.1 (bundle sha256 1c0cfbc0...0c4f in the signed index).
+            # Archive sha256 measured twice by lab with the site CA, stable.
+            url "https://git.uk.home.arpa/itdlabs/hibr-apps/archive/b207f678c64cc411f98b3dc99021adb057731175.tar.gz"
+            sha256 "f1b40d5c446ee49d7e3c69c3d164f332741227ab7b246d4273325d49eda240fb"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+        runtime {
+            package "hibr"
+        }
+    }
+
+    metadata {
+        "changelog" "1.0.1-1: cli/vml-collector 1.0.1. Sends the Authorization header itself, since cixd answers 401 without a challenge and fetch -u only answers one (hibr #639); reads a secret file with no trailing newline. 1.0.0-1: first revision."
+    }
+
+    prepare {
+        require file "${src}/hibr-apps/hibr-apps/bundles/cli/vml-collector.hibr" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/hibr-apps" allow_failure }
+            run "ls" { "-1" "${src}/hibr-apps/hibr-apps/bundles/cli" allow_failure }
+        }
+    }
+
+    build {
+        # The file is the catalogue's version 1.0.1, not some other one.
+        run "grep" {
+            "-q" "^app vml-collector .* 1[.]0[.]1$"
+            "${src}/hibr-apps/hibr-apps/bundles/cli/vml-collector.hibr"
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        copy "${src}/hibr-apps/hibr-apps/bundles/cli/vml-collector.hibr" to "${dest}/usr/bin/vml-collector"
+        chmod 0755 "${dest}/usr/bin/vml-collector"
+        require file "${dest}/usr/bin/vml-collector" {
+            exists
+            executable
+        }
+    }
+}
