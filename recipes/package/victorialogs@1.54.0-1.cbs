@@ -43,6 +43,7 @@ package "victorialogs" {
     }
 
     metadata {
+        "artifact_sha256" "254be69fa17d3792fde964c191a5d10bc86676263372437d32531adfe6344e91"
         "changelog" "1.54.0-1: first revision, for the vml image. Upstream's tagged tree, vendored with built vmui, so the build is offline; CGO_ENABLED=0; needs go 1.27.4."
     }
 
