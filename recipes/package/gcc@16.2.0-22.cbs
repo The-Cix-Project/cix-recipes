@@ -116,6 +116,7 @@ package "gcc" {
     }
 
     metadata {
+        "artifact_sha256.gcc-libs" "2e45e7c576543931102522d17a4aa4953893e56404763889a4e647f528a1fedb"
         "artifact_sha256" "d082e69bcd2805f2ed842726d0010b1ed02511eb6a414e16877f712b7ed6f49b"
         "changelog" "16.2.0-22: builds with -j8, since the box that builds it gives builds eight CPUs and 16 GiB; -21 was -j1, sized for one CPU and 2 GiB, and was cancelled after three and a half hours. libatomic.so.1 joins the gcc-libs output in /usr/lib, as in -21, which never finished building."
     }
