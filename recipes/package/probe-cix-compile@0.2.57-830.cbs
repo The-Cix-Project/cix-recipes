@@ -283,6 +283,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "89494d780219d9c4d94bb60afe9e0be002da84bbba27b6e7352a6154dd971d3e"
+        "artifact_sha256.probe-cix-compile-installer-tools" "9ead33c52cc761dcd0a053fe8843b7c96bc3c04e5cba593af4011e61cbe1b209"
+        "artifact_sha256.probe-cix-compile-cixd" "1ecb71e7eb1b0cc536ca3e6c27e8f33f136b133d795fd9fde89d38db1e42bd6b"
+        "artifact_sha256.probe-cix-compile-cixctl" "18419ef0e2fec1c139bd5dcad58e2949364a8467f1f50002a126866f0efd416c"
         "changelog" "830: compile and selftest commit 68159dbd (829: the installer seed carried no glibc outputs; plus #764) (#762 floor plus ADR-0398 release A, the USB mode switch) from the public mirror, for release 0.2.57-729."
     }
 
