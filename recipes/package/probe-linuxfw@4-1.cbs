@@ -1,0 +1,36 @@
+# probe-linuxfw -- reads linux-firmware 20261019's rtw89 family before it
+# becomes an output of the linux-firmware recipe (2026-11-27, the owner's
+# "Yes to all"): which files rtw89/ holds, whether any is a symlink, and
+# what WHENCE says about them (their licence and any Link: entries).
+# Nothing is installed from it. Its source comes from the source cache.
+package "probe-linuxfw" {
+    version "4"
+    release 1
+    format "cixpkg"
+    sources {
+        main "fw" {
+            url "https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-20261019.tar.xz"
+            sha256 "a10d1ab5baf2c74ba92e8c7cf313e691696c26bddfa6df00db795e48d70cd4ca"
+        }
+    }
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "findutils"
+        }
+    }
+    metadata {
+        "changelog" "4: the rtw89 family in linux-firmware 20261019: its file list with types and sizes, its WHENCE entries, and its licence, before it becomes the rtw89-firmware output."
+    }
+    build {
+        run "find" { "${src}/fw/linux-firmware-20261019/rtw89" "-printf" "%y %s %p -> %l\n" }
+        run "grep" { "-n" "-E" "rtw89|^Link: rtw89|LICENCE.rtlwifi" "${src}/fw/linux-firmware-20261019/WHENCE" }
+        run "false" { }
+    }
+    install {
+        mkdir "${dest}/usr/share/probe-linuxfw" parents
+        write "${dest}/usr/share/probe-linuxfw/probe" "${version}-${release}\n"
+    }
+}
