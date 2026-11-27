@@ -249,6 +249,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "f850c0b9bf219a26fc655df30026634638470ad39efa607e319cff6c6df21e8a"
+        "artifact_sha256.cix-installer-tools" "8217ad860a9ce58eef767d9347202098a11ecc2192d7fcf540aa33c58a174763"
+        "artifact_sha256.cixd" "d77a7d39436657dd58c67980374871632d849af8a63fcbc69408b5a34e6f64be"
         "artifact_sha256" "960d377d33da36661b3ce93971fa92271769593b796a361904eab2479e48414a"
         "changelog" "0.2.57-728: a container's veth names cross to its child as whole 16-byte records, so a multi-network create no longer fails when cixd runs a name ahead (#757); the recipe fetches only public sources (the GitHub mirror, cache.cix.world). 0.2.57-727: deployment commit pushes a box-side change to its owning source first (ADR-0396, #740)."
     }
