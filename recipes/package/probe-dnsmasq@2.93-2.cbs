@@ -46,6 +46,7 @@ package "probe-dnsmasq" {
     }
 
     metadata {
+        "artifact_sha256" "fe9a933d47529053b97cab6ec5757af70d08f1ea8c1dc3fa1fc0438d5a625217"
         "changelog" "2.93-2: the source sha256, read from -1's fetch. 2.93-1: probe of dnsmasq 2.93 built as dnsmasq 2.90-6 is (tcc, HAVE_NFTSET), for the nftset crash; binary at /usr/sbin/dnsmasq-2.93-tcc, scratch image dnsrig only."
     }
 
