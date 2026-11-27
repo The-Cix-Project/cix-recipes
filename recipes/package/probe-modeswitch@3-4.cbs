@@ -1,0 +1,51 @@
+#
+# probe-modeswitch 3-3 -- upstream's matching and switch semantics, read
+# (not copied) so modeswitch.c agrees with what rule authors meant, and
+# the rules release A's methods cover, counted (ADR-0398).
+#
+package "probe-modeswitch" {
+    version "3"
+    release 4
+    format "cixpkg"
+
+    sources {
+        main "data" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-data-20261111.tar.bz2"
+            sha256 "221507574da7d11debdba94e40cf164b59fb8b19be1a3ecbec76e348b7a4fa73"
+        }
+        extra "prog" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-2.6.3.tar.bz2"
+            sha256 "cddb987af80eca5bc9c364dc0ccd0e2b788de4d28626d017277a48c06b0453b6"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "bzip2"
+            tool "sed"
+        }
+    }
+
+    metadata {
+        "changelog" "3-4: print the dispatcher's config-matching code. 3-3: read usb_modeswitch 2.6.3's attribute matching and switch sequence; count release A's coverage (ADR-0398)."
+    }
+
+    prepare {
+        extract $source.prog into "${build}" as "prog"
+    }
+
+    build {
+        run "grep" { "-n" "-e" "match" "-e" "string map" "-e" "regsub" "-e" "proc " "${build}/prog/usb_modeswitch_dispatcher.tcl" }
+        run "sed" { "-n" "190,330p" "${build}/prog/usb_modeswitch_dispatcher.tcl" }
+        run "sed" { "-n" "/^proc ReadUSBAttrs/,/^}/p" "${build}/prog/usb_modeswitch_dispatcher.tcl" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-modeswitch" parents
+        write "${dest}/usr/share/probe-modeswitch/probe" "${version}-${release}\n"
+    }
+}
