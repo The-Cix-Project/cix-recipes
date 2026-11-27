@@ -1,0 +1,42 @@
+#
+# probe-modeswitch 1 -- what sha256 does usb-modeswitch-data-20261111
+# hash to? (ADR-0398)
+#
+# The declared sha256 is deliberately zero: the fetch is the whole
+# probe, and the mismatch error carries the computed hash. Upstream
+# publishes only an md5 (4f91387d0f5e9c2e49cae82b0c9afedc) and no
+# signature, so the package is pinned by the hash measured here.
+#
+package "probe-modeswitch" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "data" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-data-20261111.tar.bz2"
+            sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1: measure the sha256 of usb-modeswitch-data-20261111 (ADR-0398)."
+    }
+
+    build {
+        run "false" {
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-modeswitch" parents
+        write "${dest}/usr/share/probe-modeswitch/probe" "${version}-${release}\n"
+    }
+}
