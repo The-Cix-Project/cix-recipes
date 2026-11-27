@@ -1,0 +1,40 @@
+#
+# probe-kconfig 1 -- does the public mirror serve cix b032d38e's kernel
+# config fragment with the sha256 kernel@7.3.5-7 declares? The fetch is
+# the whole probe: a mismatch names the bytes, and a match reaches the
+# deliberate failure below with the fragment's rtw89 lines printed.
+#
+package "probe-kconfig" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "config" {
+            url "https://raw.githubusercontent.com/The-Cix-Project/cix/b032d38edc669ec0b4b0990a18281aad97d536dc/image/kernel/qemu-part1.config"
+            sha256 "39bb39931b9adae8d311f0f18fd8c3bfb8195c3db81eb24836e91f0b7294a9f1"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: the kernel config fragment from the public mirror, checked against kernel@7.3.5-7's sha256."
+    }
+
+    build {
+        run "grep" { "-rn" "-e" "RTW89" "${src}" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-kconfig" parents
+        write "${dest}/usr/share/probe-kconfig/probe" "${version}-${release}\n"
+    }
+}
