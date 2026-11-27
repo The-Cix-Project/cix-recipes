@@ -1,0 +1,86 @@
+# probe-dnsmasq -- a measurement, not a package anything runs. dnsmasq
+# 2.93 built exactly as dnsmasq@2.90-6 is (tcc, HAVE_NFTSET), so lab's
+# rig can compare it with 2.90 on the nftset crash (2026-11-27, the
+# owner's go). Installed only into the scratch image dnsrig, which no
+# container follows.
+#
+# The binary is /usr/sbin/dnsmasq-2.93-tcc, not /usr/sbin/dnsmasq, so it
+# sits beside probe-dnsmasq-gcc's in one image: one package owns a path.
+# This probe also ships the minimal /etc/passwd and /etc/group dnsmasq
+# needs to look up its run-as user; the gcc probe does not.
+package "probe-dnsmasq" {
+    version "2.93"
+    release 2
+    format "cixpkg"
+
+    sources {
+        main "dnsmasq" {
+            url "https://thekelleys.org.uk/dnsmasq/dnsmasq-2.93.tar.xz"
+            sha256 "0c00d4e5c97c8306e5fb932b348b34269c9c29a0e7df0e8e82958b407092bc19"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "nftables"
+            tool "libnftnl"
+            tool "libmnl"
+            tool "gmp"
+        }
+        runtime {
+            package "glibc"
+            package "nftables"
+        }
+    }
+
+    metadata {
+        "changelog" "2.93-2: the source sha256, read from -1's fetch. 2.93-1: probe of dnsmasq 2.93 built as dnsmasq 2.90-6 is (tcc, HAVE_NFTSET), for the nftset crash; binary at /usr/sbin/dnsmasq-2.93-tcc, scratch image dnsrig only."
+    }
+
+    build {
+        cd "${src}/dnsmasq/dnsmasq-2.93" {
+            run "make" {
+                jobs $jobs
+                "CC=tcc"
+                "PREFIX=/usr"
+                "COPTS=-DHAVE_NFTSET"
+            }
+        }
+        on_fail {
+            run "ls" {
+                "-1" "${src}/dnsmasq"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" parents chmod 0755
+        mkdir "${dest}/etc" parents chmod 0755
+        copy "${src}/dnsmasq/dnsmasq-2.93/src/dnsmasq" to "${dest}/usr/sbin/dnsmasq-2.93-tcc"
+        chmod 0755 "${dest}/usr/sbin/dnsmasq-2.93-tcc"
+        write "${dest}/etc/passwd" "root:x:0:0:root:/root:/bin/sh\n"
+        write "${dest}/etc/group" "root:x:0:\n"
+        run "${dest}/usr/sbin/dnsmasq-2.93-tcc" {
+            "--version"
+            stdout file "${build}/dnsmasq-version.txt"
+        }
+        run "grep" {
+            "-q"
+            " nftset"
+            "${build}/dnsmasq-version.txt"
+        }
+    }
+}
