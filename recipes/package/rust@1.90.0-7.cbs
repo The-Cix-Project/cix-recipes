@@ -1,0 +1,179 @@
+#
+# rust -- the Rust compiler and cargo. 1.90.0 is the bootstrap: built by
+# mrustc (a Rust compiler written in C++) from rustc's own source, so
+# Cix's Rust starts from a compiler Cix built rather than a rustc binary
+# from anywhere (Build Provenance Mandate). The owner chose it on
+# 2026-11-23 for Vaultwarden, which needs 1.97.1; every later version is
+# built by the one before, as rustc's own bootstrap requires.
+#
+# The steps are mrustc v0.12.0's own build-1.90.0.sh: build mrustc,
+# unpack and patch the rustc source (handed over as a declared source,
+# since a build container has no network and the Makefile downloads it
+# only when absent), build the standard library and rustc and cargo
+# with mrustc (LLVM included), then run_rustc, which rebuilds std and an
+# optimised rustc with that rustc and lays out an install prefix.
+#
+# Installed into /usr: rustc and cargo in /usr/bin, their libraries and
+# lib/rustlib in /usr/lib, where rustc finds its sysroot from its own
+# path. No wrapper, and so no shell needed to run it.
+#
+# run_rustc's prefix is not an installable tree as it stands, read from
+# its Makefile at v0.12.0: bin/rustc is a shell wrapper setting
+# LD_LIBRARY_PATH to the build tree, bin/rustc_binary is the compiler,
+# and the shared libraries it links (librustc_driver, a dylib in 1.90's
+# Cargo.toml, and std) sit in lib/rustlib/<target>/lib, while cargo's
+# RUSTFLAGS give it an rpath of $ORIGIN/../lib. So every .so in rustlib
+# is also copied into /usr/lib, which is what that rpath and the wrapper's
+# LD_LIBRARY_PATH both name. -4 globbed librustc_driver-*.so there and
+# matched nothing, so the copy takes every name rather than one guessed.
+# The gates run with no LD_LIBRARY_PATH, as an installed rustc does: its
+# version, cargo's, and hello.rs compiled with the default linker (gcc)
+# against the installed sysroot, then run.
+package "rust" {
+    version "1.90.0"
+    release 7
+    format "cixpkg"
+
+    license "MIT OR Apache-2.0"
+
+    sources {
+        main "mrustc" {
+            url "https://github.com/thepowersgang/mrustc/archive/refs/tags/v0.12.0.tar.gz"
+            sha256 "c1ba35f5fc5c4ca2952d9f5526e900dcb6632ea7fd4d71fa58029b3bb563ae56"
+        }
+        extra "rustcsrc" {
+            url "https://static.rust-lang.org/dist/rustc-1.90.0-src.tar.gz"
+            sha256 "799a9f9cba4ed5351e071048bcf6b5560755d9009648def33a407dd4961f9b7e"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "findutils"
+            tool "diffutils"
+            tool "binutils"
+            tool "glibc"
+            tool "linux-headers"
+            tool "zlib"
+            tool "patch"
+            tool "tar"
+            tool "gzip"
+            tool "xz"
+            tool "cmake"
+            tool "python"
+            tool "pkgconf"
+            tool "openssl"
+            tool "curl"
+            tool "perl"
+        }
+        runtime {
+            package "glibc"
+            package "gcc-libs"
+            package "zlib"
+            package "openssl"
+        }
+    }
+
+    resources {
+        memory "16GiB"
+    }
+
+    toolchain "gcc" {
+        reason "language: mrustc and LLVM are C++, and TCC has no C++ front end; rustc's own build links through cc. The wrong tool rather than a TCC gap, as for mrustc and cmake."
+    }
+
+    metadata {
+        "changelog" "1.90.0-7: cargo's gate sets HOME, which a build lacks (-6 failed only there; its rustc gates and hello.rs passed). -6: every .so in rustlib also goes to /usr/lib, where rustc's ORIGIN-relative rpath looks; gates run without LD_LIBRARY_PATH. -4: gcc is the default linker (CFG_DEFAULT_LINKER). -2 declared perl. -1: stage 2 of the Rust bootstrap, rustc and cargo 1.90.0 by mrustc 0.12.0."
+    }
+
+    prepare {
+        require file "${src}/mrustc/mrustc-0.12.0/minicargo.mk" {
+            exists
+        }
+        materialize $source.rustcsrc to "${src}/mrustc/mrustc-0.12.0/rustc-1.90.0-src.tar.gz"
+    }
+
+    build {
+        run "make" {
+            "-C" "${src}/mrustc/mrustc-0.12.0" "-j8" "RUSTC_VERSION=1.90.0" "MRUSTC_TARGET_VER=1.90" "OUTDIR_SUF=-1.90.0" "PARLEVEL=8"
+        }
+        run "make" {
+            "-C" "${src}/mrustc/mrustc-0.12.0" "-f" "minicargo.mk" "RUSTCSRC" "RUSTC_VERSION=1.90.0" "MRUSTC_TARGET_VER=1.90" "OUTDIR_SUF=-1.90.0" "PARLEVEL=8"
+        }
+        run "make" {
+            "-C" "${src}/mrustc/mrustc-0.12.0" "-f" "minicargo.mk" "LIBS" "RUSTC_VERSION=1.90.0" "MRUSTC_TARGET_VER=1.90" "OUTDIR_SUF=-1.90.0" "PARLEVEL=8"
+        }
+        run "make" {
+            "-C" "${src}/mrustc/mrustc-0.12.0" "-f" "minicargo.mk" "output-1.90.0/rustc" "RUSTC_INSTALL_BINDIR=bin" "RUSTC_VERSION=1.90.0" "MRUSTC_TARGET_VER=1.90" "OUTDIR_SUF=-1.90.0" "PARLEVEL=8"
+            env "CFG_DEFAULT_LINKER" = "gcc"
+        }
+        run "make" {
+            "-C" "${src}/mrustc/mrustc-0.12.0" "-f" "minicargo.mk" "output-1.90.0/cargo" "RUSTC_VERSION=1.90.0" "MRUSTC_TARGET_VER=1.90" "OUTDIR_SUF=-1.90.0" "PARLEVEL=8"
+        }
+        run "make" {
+            "-C" "${src}/mrustc/mrustc-0.12.0/run_rustc" "RUSTC_VERSION=1.90.0" "MRUSTC_TARGET_VER=1.90" "OUTDIR_SUF=-1.90.0" "PARLEVEL=8"
+            "RUSTFLAGS_output-1.90.0/prefix-s/bin/hello_world=-C linker=gcc"
+            env "CFG_DEFAULT_LINKER" = "gcc"
+            env "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER" = "gcc"
+        }
+        on_fail {
+            run "find" {
+                "${src}/mrustc/mrustc-0.12.0/run_rustc" "-maxdepth" "4" "-path" "*prefix*" "-name" "*rustc*"
+                allow_failure
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/bin" parents
+        mkdir "${dest}/usr/lib" parents
+        copy tree "${src}/mrustc/mrustc-0.12.0/run_rustc/output-1.90.0/prefix/lib" to "${dest}/usr/lib"
+        copy "${src}/mrustc/mrustc-0.12.0/run_rustc/output-1.90.0/prefix/bin/rustc_binary" to "${dest}/usr/bin/rustc"
+        copy "${src}/mrustc/mrustc-0.12.0/run_rustc/output-1.90.0/prefix/bin/cargo" to "${dest}/usr/bin/cargo"
+        chmod 0755 "${dest}/usr/bin/rustc"
+        chmod 0755 "${dest}/usr/bin/cargo"
+        copy glob "${dest}/usr/lib/rustlib/x86_64-unknown-linux-gnu/lib/*.so" to "${dest}/usr/lib"
+        require file "${dest}/usr/bin/rustc" {
+            exists
+            nonempty
+        }
+
+        require directory "${dest}/usr/lib/rustlib/x86_64-unknown-linux-gnu/lib" {
+            exists
+        }
+        run "${dest}/usr/bin/rustc" {
+            "--version"
+            expect {
+                stdout contains "rustc 1.90.0"
+            }
+        }
+        run "${dest}/usr/bin/rustc" {
+            "--sysroot" "${dest}/usr"
+            "-o" "${build}/hello"
+            "${src}/mrustc/mrustc-0.12.0/samples/hello.rs"
+        }
+        run "${dest}/usr/bin/cargo" {
+            "--version"
+            env "HOME" = "${build}"
+        }
+        run "${build}/hello" {
+        }
+        on_fail {
+            run "find" {
+                "${src}/mrustc/mrustc-0.12.0/run_rustc/output-1.90.0/prefix" "-maxdepth" "6" "-name" "*.so*"
+                allow_failure
+            }
+            run "${dest}/usr/bin/rustc" {
+                "--version"
+                allow_failure
+            }
+        }
+    }
+}
