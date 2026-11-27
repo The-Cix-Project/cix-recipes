@@ -1,0 +1,72 @@
+# usb-modeswitch-data 20261111: the switch rules cixd reads to switch a
+# multi-mode USB device into its working mode (ADR-0398).
+#
+# DATA ONLY. Upstream's usb_modeswitch program and its udev rules are
+# not shipped: cixd's modeswitch.c is the engine (ADR-0398 decision 1),
+# and a rule file is matched by its own name, `VVVV:PPPP` plus optional
+# `:uMa=`/`:uPr=`/`:uSe=`/`:sVe=` attribute matches, so the udev rules
+# file adds nothing cixd needs.
+#
+# SOURCE AND TRUST. draisberghof.de publishes only an md5
+# (4f91387d0f5e9c2e49cae82b0c9afedc) and no signature, so this version is
+# pinned by the sha256 measured on a Cix host (probe-modeswitch@1-1:
+# 34209 bytes hash to 221507...fa73). It does not roll.
+#
+# UNPACKED BY HAND because CBS's libarchive is built --without-bz2lib
+# (libarchive@3.8.1-7) and upstream ships only .tar.bz2: the tarball is
+# the main source, which CBS leaves packed in ${src}/data, and bzip2 + tar unpack
+# it in the build phase. Measured by probe-modeswitch@2-2 and @2-4: the tree is
+# usb-modeswitch-data-20261111/{usb_modeswitch.d,COPYING,README,...}.
+#
+# Licence: GPL-2.0-or-later (README lines 128-136; COPYING is GPLv2).
+package "usb-modeswitch-data" {
+    version "20261111"
+    release 1
+    format "cixpkg"
+
+    license "GPL-2.0-or-later"
+
+    sources {
+        main "data" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-data-20261111.tar.bz2"
+            sha256 "221507574da7d11debdba94e40cf164b59fb8b19be1a3ecbec76e348b7a4fa73"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "bzip2"
+            tool "tar"
+        }
+    }
+
+    metadata {
+        "changelog" "20261111-1: new. The usb_modeswitch.d rule files only, for cixd's mode switcher (ADR-0398)."
+    }
+
+    build {
+        copy "${src}/data/usb-modeswitch-data-20261111.tar.bz2" to "${build}/msd.tar.bz2"
+        run "bzip2" { "-d" "${build}/msd.tar.bz2" }
+        mkdir "${build}/msd" parents
+        run "tar" { "-xf" "${build}/msd.tar" "-C" "${build}/msd" }
+        require directory "${build}/msd/usb-modeswitch-data-20261111/usb_modeswitch.d" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-laR" "${src}/data" "${build}/msd" allow_failure }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/share" parents
+        move "${build}/msd/usb-modeswitch-data-20261111/usb_modeswitch.d" to "${dest}/usr/share/usb_modeswitch"
+        mkdir "${dest}/usr/share/licenses/usb-modeswitch-data" parents
+        copy "${build}/msd/usb-modeswitch-data-20261111/COPYING" to "${dest}/usr/share/licenses/usb-modeswitch-data/COPYING"
+        require file "${dest}/usr/share/usb_modeswitch/0bda:1a2b:uMa=Realtek" {
+            exists
+            nonempty
+        }
+    }
+}
