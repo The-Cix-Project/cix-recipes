@@ -249,6 +249,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "6385f49dcfeec0fe086bd293687db665809bad8844d200a47d544e235430357f"
+        "artifact_sha256.probe-cix-compile-installer-tools" "e7da228a287ee9b6a280281dd9b9d2d66120b39ef14cbef514e5d6957e18f4a5"
+        "artifact_sha256.probe-cix-compile-cixd" "ca22a31233796cbe3fea6f54aa6e27b083d22b7236e20876caaa74f3faf70514"
+        "artifact_sha256.probe-cix-compile-cixctl" "dffaf42626bac434486237ad74c14a96e994318e0c5a6f062798fb0b8b277727"
         "changelog" "822: compile and selftest commit 1ae87b83 (#757) from the public mirror, the release recipe 0.2.57-728 renamed."
     }
 
