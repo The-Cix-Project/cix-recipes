@@ -1,0 +1,61 @@
+#
+# probe-modeswitch 3 -- the rule format and a sample of each method, so
+# modeswitch.c's parser is written from upstream's own REFERENCE and real
+# files, and release A's coverage is counted rather than guessed
+# (ADR-0398). bzip2 is declared so CBS's libarchive can extract the .bz2.
+#
+package "probe-modeswitch" {
+    version "3"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "data" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-data-20261111.tar.bz2"
+            sha256 "221507574da7d11debdba94e40cf164b59fb8b19be1a3ecbec76e348b7a4fa73"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "bzip2"
+        }
+    }
+
+    metadata {
+        "changelog" "3: print the rule REFERENCE, sample rules per method, and count the rules release A covers (ADR-0398)."
+    }
+
+    build {
+        run "cat" { "${src}/data/usb-modeswitch-data-20261111/REFERENCE" }
+        run "cat" { "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/0bda:1a2b:uMa=Realtek" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/0bda:1a2b:uMa=D-Link" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/0bda:a192" }
+        # One rule per method or key worth seeing in full.
+        run "grep" { "-rl" "-m" "1" "-e" "NeedResponse" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/nr.txt" }
+        run "head" { "-n" "3" "${build}/nr.txt" }
+        run "grep" { "-r" "-B" "8" "-A" "8" "-m" "1" "-e" "NeedResponse=1" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" }
+        run "grep" { "-r" "-B" "6" "-A" "6" "-m" "1" "-e" "MessageContent2" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" }
+        run "grep" { "-r" "-B" "6" "-A" "6" "-m" "1" "-e" "^Configuration" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/12d1:1f01" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/0bda:a192" }
+        run "grep" { "-r" "-B" "6" "-A" "6" "-m" "1" "-e" "TargetProductList" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/03f0:002a" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/0bda:a192" }
+        run "grep" { "-r" "-h" "-m" "1" "-e" "TargetClass" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/0bda:a192" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/12d1:1f01" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d/03f0:002a" }
+        # Coverage: files using a method release A does not implement.
+        run "grep" { "-rlE" "-e" "^ *(HuaweiMode|HuaweiNewMode|OptionMode|SierraMode|SonyMode|QisdaMode|QuantaMode|BlackberryMode|PantechMode|CiscoMode|GCTMode|KobilMode|MobileActionMode|SequansMode|Configuration|Interface|AltSetting|CheckSuccess)" "-e" "ZZZZnomatchZZZZ" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/unsup.txt" }
+        run "wc" { "-l" "${build}/unsup.txt" }
+        run "grep" { "-rlE" "-e" "^ *Configuration *=" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/conf.txt" }
+        run "wc" { "-l" "${build}/conf.txt" }
+        run "grep" { "-rlE" "-e" "^ *(HuaweiMode|HuaweiNewMode|OptionMode|SierraMode|SonyMode|QisdaMode|QuantaMode|BlackberryMode|PantechMode|CiscoMode|GCTMode|KobilMode|MobileActionMode|SequansMode)" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/vendor.txt" }
+        run "wc" { "-l" "${build}/vendor.txt" }
+        run "ls" { "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/all.txt" }
+        run "wc" { "-l" "${build}/all.txt" }
+        run "grep" { "-c" "-e" ":sVe=" "-e" ":uMa=" "-e" ":uPr=" "-e" ":uSe=" "${build}/all.txt" }
+        run "grep" { "-e" ":s" "-e" ":u" "${build}/all.txt" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-modeswitch" parents
+        write "${dest}/usr/share/probe-modeswitch/probe" "${version}-${release}\n"
+    }
+}
