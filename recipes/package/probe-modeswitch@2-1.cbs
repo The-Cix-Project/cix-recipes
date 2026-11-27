@@ -1,0 +1,81 @@
+#
+# probe-modeswitch 2 -- what does the switch data hold, and what does
+# kernel 7.3.5 already do with multi-mode dongles? (ADR-0398)
+#
+# Reads, compiles nothing, and fails deliberately so the log is kept.
+#
+#   1. The data: its licence, its layout, every rule naming a Realtek
+#      (0bda) device, and a count of each key across all rules -- the
+#      count that sizes release A's engine.
+#   2. The kernel (the tarball kernel@7.3.5-6 declares, which is the
+#      running kernel): which 0bda ids usb-storage ignores or handles,
+#      and whether any driver under drivers/net/wireless or drivers/usb
+#      names 0x1a2b, so cixd never switches what the kernel switches.
+#
+# Every grep carries a second -e that always matches, so a missing
+# identifier is the finding and not an aborted phase.
+#
+package "probe-modeswitch" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "data" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-data-20261111.tar.bz2"
+            sha256 "221507574da7d11debdba94e40cf164b59fb8b19be1a3ecbec76e348b7a4fa73"
+        }
+        extra "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz"
+            sha256 "8f293f83d54f0b7b9be56863ebc5e4ea79d73e530b4ae55c572be97ef39f0990"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: read usb-modeswitch-data-20261111 (licence, Realtek rules, key counts) and kernel 7.3.5's usb-storage and wireless handling of 0bda ids (ADR-0398)."
+    }
+
+    prepare {
+        extract $source.linux into "${build}" as "linux"
+    }
+
+    build {
+        run "ls" { "-la" "${src}/data/usb-modeswitch-data-20261111" }
+        run "ls" { "-la" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" "${build}/linux" stdout file "${build}/ls.txt" }
+        run "wc" { "-l" "${build}/ls.txt" }
+        run "head" { "-n" "40" "${src}/data/usb-modeswitch-data-20261111/COPYING" }
+        run "grep" { "-rn" "-i" "-e" "licen" "-e" "copyright" "${src}/data/usb-modeswitch-data-20261111/README" }
+
+        # Every rule for a Realtek device, in full.
+        run "grep" { "-rl" "-e" "0bda" "${src}/data/usb-modeswitch-data-20261111" }
+        run "grep" { "-rn" "-A" "12" "-e" "0bda" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" }
+        run "grep" { "-n" "-e" "0bda" "-e" "ACTION" "${src}/data/usb-modeswitch-data-20261111/40-usb_modeswitch.rules" }
+
+        # Count every key across all rules.
+        run "grep" { "-rhoE" "^ *[A-Za-z0-9]+ *=" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/keys.txt" }
+        run "sort" { "${build}/keys.txt" stdout file "${build}/keys-sorted.txt" }
+        run "uniq" { "-c" "${build}/keys-sorted.txt" }
+
+        # The kernel: which Realtek ids does usb-storage ignore or handle?
+        run "grep" { "-n" "-B" "3" "-A" "6" "-e" "0x0bda" "-e" "#include" "${build}/linux/drivers/usb/storage/unusual_devs.h" "${build}/linux/drivers/usb/storage/unusual_uas.h" }
+        run "grep" { "-n" "-B" "2" "-A" "4" "-e" "US_FL_IGNORE_DEVICE" "-e" "#include" "${build}/linux/drivers/usb/storage/usb.c" }
+        # Does any driver name 0x1a2b, or switch a device itself?
+        run "grep" { "-rn" "-e" "0x1a2b" "-e" "MODULE_LICENSE(\"Dual BSD/GPL\")" "${build}/linux/drivers/net/wireless/realtek" "${build}/linux/drivers/usb" }
+        run "grep" { "-rn" "-i" "-e" "switch_mode" "-e" "MODULE_LICENSE(\"Dual BSD/GPL\")" "${build}/linux/drivers/net/wireless/realtek/rtw88/usb.c" }
+
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-modeswitch" parents
+        write "${dest}/usr/share/probe-modeswitch/probe" "${version}-${release}\n"
+    }
+}
