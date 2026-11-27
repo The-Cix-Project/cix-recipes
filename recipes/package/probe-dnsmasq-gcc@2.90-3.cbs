@@ -49,6 +49,7 @@ package "probe-dnsmasq-gcc" {
     }
 
     metadata {
+        "artifact_sha256" "55918041b7e96cfe550c3093b0b754a6dd8165077b03814b8e522232584b6e18"
         "changelog" "2.90-3: -std=gnu17, since gcc 15 defaults to C23, where netlink.c's int (*callback)() takes no arguments. 2.90-2: gcc 14+ errors on incompatible pointer types (tcc accepts them), so they are warnings again. 2.90-1: control probe, dnsmasq 2.90 as dnsmasq 2.90-6 builds it (HAVE_NFTSET) but with gcc; binary at /usr/sbin/dnsmasq-2.90-gcc, scratch image dnsrig only."
     }
 
