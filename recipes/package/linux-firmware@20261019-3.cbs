@@ -54,6 +54,7 @@ package "linux-firmware" {
     build_image "cix-builder"
 
     metadata {
+        "artifact_sha256" "dae2df94aa14cd9ca909974a59e9e5a6bbda79e7b2955017089b1af2265b8995"
         "changelog" "20261019-3: adds the rtw89 family (Realtek 802.11ax/be USB and PCI chips) as the rtw89-firmware output, with its licence (the owner, 2026-11-27). 20261019-2: adds the rtw88 family as the rtw88-firmware output, with its licence, retiring the rtw88-firmware recipe (ADR-0381 release 3, cix#685); its rtw8822b_fw.bin is 161,240 bytes against rtw88-firmware@3-1's 150,984."
     }
 
