@@ -1,0 +1,66 @@
+#
+# probe-modeswitch 3-3 -- upstream's matching and switch semantics, read
+# (not copied) so modeswitch.c agrees with what rule authors meant, and
+# the rules release A's methods cover, counted (ADR-0398).
+#
+package "probe-modeswitch" {
+    version "3"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "data" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-data-20261111.tar.bz2"
+            sha256 "221507574da7d11debdba94e40cf164b59fb8b19be1a3ecbec76e348b7a4fa73"
+        }
+        extra "prog" {
+            url "https://www.draisberghof.de/usb_modeswitch/usb-modeswitch-2.6.3.tar.bz2"
+            sha256 "cddb987af80eca5bc9c364dc0ccd0e2b788de4d28626d017277a48c06b0453b6"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+            tool "bzip2"
+        }
+    }
+
+    metadata {
+        "changelog" "3-3: read usb_modeswitch 2.6.3's attribute matching and switch sequence; count release A's coverage (ADR-0398)."
+    }
+
+    prepare {
+        extract $source.prog into "${build}" as "prog"
+    }
+
+    build {
+        run "ls" { "-la" "${build}/prog" }
+        # Attribute matching (uMa/uPr/uSe/sVe) in the dispatcher.
+        run "grep" { "-rn" "-B" "4" "-A" "22" "-e" "uMa" "-e" "ZZnoZZ" "${build}/prog" "--include=*.tcl" "--include=*.sh" }
+        # The eject sequence, responses and ordering in the C program.
+        run "grep" { "-n" "-A" "14" "-e" "StandardEject)" "-e" "if (StandardEject" "${build}/prog/usb_modeswitch.c" }
+        run "grep" { "-n" "-B" "2" "-A" "40" "-e" "^int switchSendMessage" "-e" "^int switchSendMessage ()" "${build}/prog/usb_modeswitch.c" }
+        run "grep" { "-n" "-e" "LUN" "-e" "MaxLun" "-e" "GET_MAX_LUN" "-e" "0xfe" "-e" "#include" "${build}/prog/usb_modeswitch.c" }
+        # Coverage.
+        run "ls" { "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/all.txt" }
+        run "wc" { "-l" "${build}/all.txt" }
+        run "grep" { "-e" ":s" "-e" ":u" "${build}/all.txt" }
+        run "grep" { "-rlE" "-e" "^ *(HuaweiMode|HuaweiNewMode|HuaweiAltMode|OptionMode|SierraMode|SonyMode|QisdaMode|QuantaMode|BlackberryMode|PantechMode|CiscoMode|GCTMode|KobilMode|MobileActionMode|SequansMode|Configuration|Interface|AltSetting|ResetUSB|DetachStorageOnly)" "-e" "ZZnoZZ" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/unsup.txt" }
+        run "wc" { "-l" "${build}/unsup.txt" }
+        run "grep" { "-rlE" "-e" "^ *(StandardEject|MessageContent) *=" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/msg.txt" }
+        run "wc" { "-l" "${build}/msg.txt" }
+        run "grep" { "-rlE" "-e" "^ *Configuration *=" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/conf.txt" }
+        run "wc" { "-l" "${build}/conf.txt" }
+        run "grep" { "-rl" "-e" "StandardEject=1" "${src}/data/usb-modeswitch-data-20261111/usb_modeswitch.d" stdout file "${build}/se.txt" }
+        run "grep" { "-l" "-e" "MessageContent" "-e" "ZZnoZZ" "${build}/se.txt" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-modeswitch" parents
+        write "${dest}/usr/share/probe-modeswitch/probe" "${version}-${release}\n"
+    }
+}
