@@ -98,6 +98,7 @@ package "kernel" {
     }
 
     metadata {
+        "artifact_sha256.kernel-modules" "57eb1625f770b1b45e55d012d406ff4e4a4f75829821302c7f65e529fa1a50ed"
         "changelog" "7.3.5-6: conntrack marks (NF_CONNTRACK_MARK; nft ct mark pins a flow to its exit) and NFT_LOG, NFT_LIMIT, NFT_FIB_IPV4, for policy routing on the cores (cix f093d8e6). Gated by require config. 7.3.5-5: policy routing, IP_MULTIPLE_TABLES. 7.3.5-4: netfilter with nftables NAT and masquerade, and WireGuard, as modules."
     }
 
