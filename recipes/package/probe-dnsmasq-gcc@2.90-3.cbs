@@ -1,0 +1,80 @@
+# probe-dnsmasq-gcc -- the control for probe-dnsmasq: dnsmasq 2.90, the
+# same source and flags as dnsmasq@2.90-6, built with gcc instead of tcc,
+# so lab's rig can tell a compiler defect from a dnsmasq one on the
+# nftset crash (2026-11-27, the owner's go). Installed only into the
+# scratch image dnsrig, which no container follows.
+#
+# The binary is /usr/sbin/dnsmasq-2.90-gcc, beside probe-dnsmasq's
+# /usr/sbin/dnsmasq-2.93-tcc in one image (one package owns a path), and
+# this probe ships no /etc/passwd: probe-dnsmasq's serves both.
+package "probe-dnsmasq-gcc" {
+    version "2.90"
+    release 3
+    format "cixpkg"
+
+    sources {
+        main "dnsmasq" {
+            url "https://deb.debian.org/debian/pool/main/d/dnsmasq/dnsmasq_2.90.orig.tar.xz"
+            sha256 "8e50309bd837bfec9649a812e066c09b6988b73d749b7d293c06c57d46a109e4"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "findutils"
+            tool "diffutils"
+            tool "pkgconf"
+            tool "nftables"
+            tool "libnftnl"
+            tool "libmnl"
+            tool "gmp"
+        }
+        runtime {
+            package "glibc"
+            package "nftables"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "measurement: the gcc control for probe-dnsmasq's tcc build, to tell a compiler defect from a dnsmasq one"
+    }
+
+    metadata {
+        "changelog" "2.90-3: -std=gnu17, since gcc 15 defaults to C23, where netlink.c's int (*callback)() takes no arguments. 2.90-2: gcc 14+ errors on incompatible pointer types (tcc accepts them), so they are warnings again. 2.90-1: control probe, dnsmasq 2.90 as dnsmasq 2.90-6 builds it (HAVE_NFTSET) but with gcc; binary at /usr/sbin/dnsmasq-2.90-gcc, scratch image dnsrig only."
+    }
+
+    build {
+        cd "${src}/dnsmasq/dnsmasq-2.90" {
+            run "make" {
+                jobs $jobs
+                "CC=/usr/bin/gcc"
+                "PREFIX=/usr"
+                "COPTS=-DHAVE_NFTSET -std=gnu17 -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-function-declaration"
+            }
+        }
+    }
+
+    install {
+        mkdir "${dest}/usr/sbin" parents chmod 0755
+        copy "${src}/dnsmasq/dnsmasq-2.90/src/dnsmasq" to "${dest}/usr/sbin/dnsmasq-2.90-gcc"
+        chmod 0755 "${dest}/usr/sbin/dnsmasq-2.90-gcc"
+        run "${dest}/usr/sbin/dnsmasq-2.90-gcc" {
+            "--version"
+            stdout file "${build}/dnsmasq-version.txt"
+        }
+        run "grep" {
+            "-q"
+            " nftset"
+            "${build}/dnsmasq-version.txt"
+        }
+    }
+}
