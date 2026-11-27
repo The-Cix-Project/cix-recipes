@@ -42,6 +42,7 @@ package "usb-modeswitch-data" {
     }
 
     metadata {
+        "artifact_sha256" "39b935cd5bc8a838f844029115bb4a79062f190bfc7e42a47f7cca3b293973d2"
         "changelog" "20261111-2: CBS extracts the .tar.bz2 itself once bzip2 is a declared tool (libarchive runs the external program); the hand unpack goes. 20261111-1: new. The usb_modeswitch.d rule files only, for cixd's mode switcher (ADR-0398)."
     }
 
