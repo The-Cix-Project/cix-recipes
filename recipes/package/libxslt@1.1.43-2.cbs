@@ -1,0 +1,125 @@
+# libxslt -- the XSLT library on top of libxml2, with libexslt. First
+# consumer: lxml, which SearXNG parses every engine's HTML with; lxml
+# links both libxslt and libexslt. Built with gcc, since tcc refuses the
+# linker version script libxslt links with; without
+# Python bindings and without libgcrypt (EXSLT's crypto functions, which
+# lxml does not need). 1.1.43, not 1.1.45: 1.1.45 needs libxml2 2.15.1 and
+# the catalogue carries 2.14.5. sha256 from GNOME's own published sha256sum for
+# 1.1.43.
+#
+# Outputs as ADR-0371 asks of a library: the main package carries the
+# shared libraries only; libxslt-dev the headers, pkg-config files and
+# xslt-config; libxslt-tools xsltproc.
+package "libxslt" {
+    version "1.1.43"
+    release 2
+    format "cixpkg"
+    license "MIT"
+
+    sources {
+        main "libxslt" {
+            url "https://download.gnome.org/sources/libxslt/1.1/libxslt-1.1.43.tar.xz"
+            sha256 "5a3d6b383ca5afc235b171118e90f5ff6aa27e9fea3303065231a6d403f0183a"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+            tool "pkgconf"
+            tool "zlib"
+            tool "libxml2-dev"
+        }
+        runtime {
+            package "libxml2"
+        }
+    }
+
+    toolchain "gcc" {
+        reason "libxslt links libxslt.so with a linker version script, and tcc refuses --version-script (libxslt@1.1.43-1 on gibsson-1, 2026-11-28)."
+    }
+
+    metadata {
+        "changelog" "1.1.43-2: built with gcc: libxslt links with a version script and tcc refuses --version-script. 1.1.43-1: first revision, for lxml (SearXNG). No Python, no libgcrypt. Shared libraries only in the main package; libxslt-dev and libxslt-tools as outputs."
+    }
+
+    output "libxslt-dev" {
+        files {
+            "usr/include"
+            "usr/lib/pkgconfig"
+            "usr/lib/cmake"
+            "usr/lib/xsltConf.sh"
+            "usr/bin/xslt-config"
+            "usr/share/aclocal"
+        }
+        requires { runtime { package "libxslt" package "libxml2-dev" } }
+    }
+    output "libxslt-tools" {
+        files {
+            "usr/bin/xsltproc"
+            "usr/share/man"
+        }
+        requires { runtime { package "libxslt" } }
+    }
+
+    prepare {
+        require directory "${src}/libxslt/libxslt-1.1.43" {
+            exists
+        }
+    }
+
+    build {
+        cd "${src}/libxslt/libxslt-1.1.43" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--libdir=/usr/lib"
+                "--disable-static"
+                "--without-python"
+                "--without-crypto"
+                env "CC" = "/usr/bin/gcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/libxslt" allow_failure }
+        }
+    }
+
+    install {
+        cd "${src}/libxslt/libxslt-1.1.43" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/lib/pkgconfig/libxslt.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/lib/pkgconfig/libexslt.pc" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/include/libxslt/xslt.h" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/xsltproc" {
+            exists
+            executable
+        }
+        on_fail {
+            run "ls" { "-laR" "${dest}/usr/lib" "${dest}/usr/bin" allow_failure }
+        }
+    }
+}
