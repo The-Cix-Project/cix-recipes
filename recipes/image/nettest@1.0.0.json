@@ -1,0 +1,8 @@
+{
+  "image": "nettest",
+  "version": "1.0.0",
+  "notes": "1.0.0: the network test image: iperf3, client and server, for measuring a link's capacity between two hosts with no internet involved (first used to show a site's wired cross-connect ran at about a gigabit while its internet line ran at a few Mbit/s). iperf3 brings gcc-libs and glibc through its own runtime requirements, so they are not restated. Rolling, like every image.",
+  "packages": [
+    { "package": "iperf3", "mode": "rolling", "version": "3.22.1" }
+  ]
+}
