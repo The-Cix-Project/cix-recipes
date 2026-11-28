@@ -50,6 +50,7 @@ package "iperf3" {
     }
 
     metadata {
+        "artifact_sha256" "1992420cd76e1457fb7d67d1093ed8f8c1f97aa3b80d4e41982bd9ab946c7298"
         "changelog" "3.22.1-2: requires gcc-libs at run time: iperf3 calls pthread_cancel, which dlopen()s libgcc_s.so.1, a dependency no ELF walk sees (it aborted with SIGABRT without it). 3.22.1-1: new. The iperf3 client and server, built with tcc, libiperf linked in and no OpenSSL, for measuring a link's capacity without the internet."
     }
 
