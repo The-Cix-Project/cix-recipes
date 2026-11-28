@@ -283,6 +283,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "01c08c98e47724aa40ee9b2c2e714d3e3fe155cb7c563881eea3783744cabae6"
+        "artifact_sha256.probe-cix-compile-installer-tools" "541a7b386273b617cc830137a3274a922b0777fc71fa2b6772238905c8b0d0ff"
+        "artifact_sha256.probe-cix-compile-cixd" "cfbdaa5ee4f331f4b0aeaa8e1bed9a64b04773c937b2ed1bbc1cb1ea7a519fc4"
+        "artifact_sha256.probe-cix-compile-cixctl" "01ae60163b7547ba8be51257e61cabc126b128a1b61dbe633879b83758a0535d"
         "changelog" "835: the prepare move names this commit's directory (834 kept 833's). 834: compile and selftest commit 1972f7c2 (ADR-0400, #771: sources leave struct pkg_recipe, ceiling 4096) from the public mirror, for release 0.2.57-732."
     }
 
