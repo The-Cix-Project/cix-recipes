@@ -283,6 +283,9 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "5b4c013fdde138fc32cce27d7dc9f0a586bd2e6f43703a20270c4b7b0bc2a1e5"
+        "artifact_sha256.cix-installer-tools" "35388e4235e374b95e158d9b29d2f933809934f924536133aa189f89fe8b4694"
+        "artifact_sha256.cixd" "cf594747188a6b70857784432a9698cbb2c00ab77e169cf8313366ef9eb202a4"
         "artifact_sha256" "bd5992ea02a4effd8b20dc4cc87e2d400c3646ec7bff2d254d9b621dc6a91a97"
         "changelog" "0.2.57-729: cixd switches a multi-mode USB device into its working mode, on request (ADR-0398 release A). A kept build container holds an in-place switch instead of rebooting the host (#764). The installer seed and the test floor carry every output of their packages, and the floor pins only what the public cache carries (#762). 0.2.57-728: a container's veth names cross to its child as whole records (#757); the recipe fetches only public sources."
     }
