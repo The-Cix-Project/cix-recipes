@@ -1,0 +1,44 @@
+#
+# probe-llvmsrc 1 -- facts llvm@21.1.8-2 depends on, read from LLVM's own
+# CMake: whether llvm-config links libLLVM.so when the tools do (the
+# recipe runs it from ${dest}, where that library is not on the path),
+# what the shared library is named, and what installs with the static
+# component libraries. Reads, compiles nothing.
+#
+package "probe-llvmsrc" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "llvm-project" {
+            url "https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.8/llvm-project-21.1.8.src.tar.xz"
+            sha256 "4633a23617fa31a3ea51242586ea7fb1da7140e426bd62fc164261fe036aa142"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "1: llvm-config's dylib linking, libLLVM's name, and static-library install rules in LLVM 21.1.8, for llvm@21.1.8-2."
+    }
+
+    build {
+        run "cat" { "${src}/llvm-project/llvm-project-21.1.8.src/llvm/tools/llvm-config/CMakeLists.txt" }
+        run "grep" { "-n" "-e" "OUTPUT_NAME" "-e" "SHLIB_NAME" "-e" "LLVM_DYLIB" "-e" "SOVERSION" "-e" "set(" "${src}/llvm-project/llvm-project-21.1.8.src/llvm/tools/llvm-shlib/CMakeLists.txt" }
+        run "grep" { "-rn" "-e" "DISABLE_LLVM_LINK_LLVM_DYLIB" "-e" "ZZnoZZ" "${src}/llvm-project/llvm-project-21.1.8.src/llvm/tools" "${src}/llvm-project/llvm-project-21.1.8.src/llvm/utils" "${src}/llvm-project/llvm-project-21.1.8.src/llvm/cmake/modules/AddLLVM.cmake" }
+        run "grep" { "-n" "-A3" "-e" "LLVM_BUILD_LLVM_DYLIB" "-e" "LLVM_LINK_LLVM_DYLIB" "-e" "LLVM_INSTALL_TOOLCHAIN_ONLY" "-e" "LLVM_BUILD_TOOLS" "${src}/llvm-project/llvm-project-21.1.8.src/llvm/CMakeLists.txt" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-llvmsrc" parents
+        write "${dest}/usr/share/probe-llvmsrc/probe" "${version}-${release}\n"
+    }
+}
