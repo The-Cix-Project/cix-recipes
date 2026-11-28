@@ -68,6 +68,7 @@ package "llvm" {
     }
 
     metadata {
+        "artifact_sha256" "87fd11cb66b7cb2a251245dbcfc77070985a8c17ac542c314f09578d8517bea1"
         "changelog" "21.1.8-2: tools link one libLLVM.so instead of each embedding LLVM, which would have exceeded cbs's 1 GiB payload limit; llvm-config stays independent of it (DISABLE_LLVM_LINK_LLVM_DYLIB, read by probe-llvmsrc@1-1); the static libraries Rust links are still installed and gated. 21.1.8-1: first revision, for the Rust bootstrap's stages 1.91 to 1.97.1, X86 only."
     }
 
