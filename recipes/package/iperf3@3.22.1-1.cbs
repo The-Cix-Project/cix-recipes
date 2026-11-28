@@ -1,0 +1,95 @@
+# iperf3 3.22.1: network throughput testing, for checking a link's real
+# capacity between two hosts with no internet involved.
+#
+# BUILT STATIC IN ITS OWN LIBRARY. upstream builds libiperf as a shared
+# library and links iperf3 against it; --disable-shared links it into
+# the binary instead, so the binary needs nothing of its own at run time
+# and the version gate below can run it from ${dest}, where an installed
+# libiperf.so would not be on the library path.
+#
+# WITHOUT OPENSSL. iperf3's only use of it is the optional
+# username/password authentication of a test, which a link check does
+# not need. Without it the package depends on glibc alone.
+#
+# sha256 measured on a Cix host (probe-cix-tarball@917-1: 851587 bytes).
+package "iperf3" {
+    version "3.22.1"
+    release 1
+    format "cixpkg"
+
+    license "BSD-3-Clause"
+
+    sources {
+        main "iperf" {
+            url "https://github.com/esnet/iperf/releases/download/3.22.1/iperf-3.22.1.tar.gz"
+            sha256 "de018b5252e2a7068c89fac8b35a295d83334f2b7814aa9532a2a8107b04a4a9"
+        }
+    }
+
+    requires {
+        build {
+            compiler "tcc"
+            tool "make"
+            tool "linux-headers"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "gawk"
+            tool "binutils"
+        }
+        runtime {
+            package "glibc"
+        }
+    }
+
+    metadata {
+        "changelog" "3.22.1-1: new. The iperf3 client and server, built with tcc, libiperf linked in and no OpenSSL, for measuring a link's capacity without the internet."
+    }
+
+    prepare {
+        require directory "${src}/iperf/iperf-3.22.1" {
+            exists
+        }
+        on_fail {
+            run "ls" { "-la" "${src}/iperf" allow_failure }
+        }
+    }
+
+    build {
+        cd "${src}/iperf/iperf-3.22.1" {
+            run "./configure" {
+                "--prefix=/usr"
+                "--disable-shared"
+                "--enable-static"
+                "--without-openssl"
+                env "CC" = "tcc"
+            }
+            run "make" {
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        cd "${src}/iperf/iperf-3.22.1" {
+            run "make" {
+                "install"
+                "DESTDIR=${dest}"
+            }
+        }
+        require file "${dest}/usr/bin/iperf3" {
+            exists
+            executable
+        }
+        run "${dest}/usr/bin/iperf3" {
+            "--version"
+            stdout file "${build}/version.txt"
+        }
+        run "grep" { "-q" "iperf 3.22.1" "${build}/version.txt" }
+        on_fail {
+            run "cat" { "${build}/version.txt" allow_failure }
+            run "ls" { "-laR" "${dest}/usr" allow_failure }
+        }
+    }
+}
