@@ -1,0 +1,145 @@
+#
+# llvm -- LLVM 21.1.8, built once and shared by every later stage of the
+# Rust bootstrap, so rustc 1.91 to 1.97.1 each link it through
+# llvm-config instead of building their own LLVM again.
+#
+# WHY 21. Each rustc release accepts an external LLVM from a minimum its
+# bootstrap checks up to the major it bundles. Read from each release's
+# own source on 2026-11-26 (src/bootstrap/src/core/build_steps/llvm.rs
+# for the minimum, the src/llvm-project submodule's LLVMVersion.cmake
+# for the bundled major):
+#   1.91.0  >= 19, bundles 21      1.95.0  >= 20, bundles 22
+#   1.92.0  >= 20, bundles 21      1.96.0  >= 21, bundles 22
+#   1.93.0  >= 20, bundles 21      1.97.1  >= 21, bundles 22
+#   1.94.0  >= 20, bundles 21
+# 21 is the one major inside every range. 21.1.8 is its newest release.
+#
+# Built for what rustc needs and no more: the X86 target, static
+# libraries (rustc links LLVM into itself, so nothing loads an LLVM
+# library at run time), no tests, examples, benchmarks, docs or
+# bindings. Links are held to two at a time: LLVM's tools each link most
+# of the static libraries, and eight at once could exhaust the build
+# budget. The install is gated on llvm-config reporting 21.1.8 and the
+# X86 component.
+#
+package "llvm" {
+    version "21.1.8"
+    release 2
+    format "cixpkg"
+
+    license "Apache-2.0 WITH LLVM-exception"
+
+    sources {
+        main "llvm-project" {
+            url "https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.8/llvm-project-21.1.8.src.tar.xz"
+            sha256 "4633a23617fa31a3ea51242586ea7fb1da7140e426bd62fc164261fe036aa142"
+        }
+    }
+
+    requires {
+        build {
+            compiler "gcc"
+            tool "cmake"
+            tool "ninja"
+            tool "python"
+            tool "bash"
+            tool "coreutils"
+            tool "sed"
+            tool "grep"
+            tool "findutils"
+            tool "binutils"
+            tool "glibc"
+            tool "linux-headers"
+            tool "zlib"
+        }
+        runtime {
+            package "glibc"
+            package "gcc-libs"
+            package "zlib"
+        }
+    }
+
+    resources {
+        memory "16GiB"
+    }
+
+    toolchain "gcc" {
+        reason "language: LLVM is C++17, and TCC has no C++ front end. The wrong tool rather than a TCC gap, as for cmake and mrustc."
+    }
+
+    metadata {
+        "changelog" "21.1.8-2: tools link one libLLVM.so instead of each embedding LLVM, which would have exceeded cbs's 1 GiB payload limit; llvm-config stays independent of it (DISABLE_LLVM_LINK_LLVM_DYLIB, read by probe-llvmsrc@1-1); the static libraries Rust links are still installed and gated. 21.1.8-1: first revision, for the Rust bootstrap's stages 1.91 to 1.97.1, X86 only."
+    }
+
+    prepare {
+        require file "${src}/llvm-project/llvm-project-21.1.8.src/llvm/CMakeLists.txt" {
+            exists
+            nonempty
+        }
+        on_fail {
+            run "ls" { "-1" "${src}/llvm-project" allow_failure }
+        }
+    }
+
+    build {
+        cd "${src}/llvm-project/llvm-project-21.1.8.src" {
+            run "cmake" {
+                "-S" "llvm"
+                "-B" "${build}/llvm"
+                "-G" "Ninja"
+                "-DCMAKE_BUILD_TYPE=Release"
+                "-DCMAKE_INSTALL_PREFIX=/usr"
+                "-DLLVM_TARGETS_TO_BUILD=X86"
+                "-DLLVM_ENABLE_PROJECTS="
+                "-DLLVM_ENABLE_ASSERTIONS=OFF"
+                "-DLLVM_INCLUDE_TESTS=OFF"
+                "-DLLVM_INCLUDE_EXAMPLES=OFF"
+                "-DLLVM_INCLUDE_BENCHMARKS=OFF"
+                "-DLLVM_INCLUDE_DOCS=OFF"
+                "-DLLVM_ENABLE_BINDINGS=OFF"
+                "-DLLVM_ENABLE_ZLIB=ON"
+                "-DLLVM_ENABLE_ZSTD=OFF"
+                "-DLLVM_ENABLE_LIBXML2=OFF"
+                "-DLLVM_ENABLE_LIBEDIT=OFF"
+                "-DLLVM_BUILD_LLVM_DYLIB=ON"
+                "-DLLVM_LINK_LLVM_DYLIB=ON"
+                "-DLLVM_PARALLEL_LINK_JOBS=2"
+            }
+            run "cmake" {
+                "--build" "${build}/llvm"
+                jobs $jobs
+            }
+        }
+    }
+
+    install {
+        run "cmake" {
+            "--install" "${build}/llvm"
+            env "DESTDIR" = "${dest}"
+        }
+        require file "${dest}/usr/lib/libLLVMCore.a" {
+            exists
+            nonempty
+        }
+        require file "${dest}/usr/bin/llvm-config" {
+            exists
+            executable
+        }
+        run "${dest}/usr/bin/llvm-config" {
+            "--version"
+            expect {
+                stdout contains "21.1.8"
+            }
+        }
+        run "${dest}/usr/bin/llvm-config" {
+            "--components"
+            expect {
+                stdout contains "x86"
+            }
+        }
+        on_fail {
+            run "du" { "-sh" "${dest}/usr/lib" "${dest}/usr/bin" "${dest}/usr/include" allow_failure }
+            run "ls" { "-1" "${dest}/usr/bin" allow_failure }
+        }
+    }
+}
