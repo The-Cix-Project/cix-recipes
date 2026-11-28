@@ -1,0 +1,40 @@
+#
+# probe-rtw89 1 -- kernel 7.3.5's rtw89 Kconfig: every USB chip symbol,
+# what each depends on and selects, and the USB ids each driver claims,
+# so the config fragment names exactly what exists (rtw89 for the
+# switched Realtek dongle, ADR-0398). Reads, compiles nothing.
+#
+package "probe-rtw89" {
+    version "2"
+    release 1
+    format "cixpkg"
+
+    sources {
+        main "linux" {
+            url "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz"
+            sha256 "8f293f83d54f0b7b9be56863ebc5e4ea79d73e530b4ae55c572be97ef39f0990"
+        }
+    }
+
+    requires {
+        build {
+            tool "bash"
+            tool "coreutils"
+            tool "grep"
+        }
+    }
+
+    metadata {
+        "changelog" "2: which driver claims 0bda:b832, the id the dongle came back as. 1: read rtw89's Kconfig and USB id tables in 7.3.5."
+    }
+
+    build {
+        run "grep" { "-rn" "-i" "-e" "0xb832" "-e" "0xb851" "-e" "USB_DEVICE_AND_INTERFACE_INFO(0x0bda" "${src}/linux/linux-7.3.5/drivers/net/wireless/realtek/rtw89" }
+        run "false" { }
+    }
+
+    install {
+        mkdir "${dest}/usr/share/probe-rtw89" parents
+        write "${dest}/usr/share/probe-rtw89/probe" "${version}-${release}\n"
+    }
+}
