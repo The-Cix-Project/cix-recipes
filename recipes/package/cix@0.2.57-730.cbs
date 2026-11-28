@@ -283,6 +283,7 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256" "cfa29a7f9c47e0fadda44243aec0f6fec07007b30b8e1c0314166d8e1cd4a0d0"
         "changelog" "0.2.57-730: a container is shown in its category and its group (ADR-0399): container reads return roll_group and category, the dashboard and cixctl container ls --tree draw one tree, and a deployment re-apply changing only those is updated with no restart."
     }
 
