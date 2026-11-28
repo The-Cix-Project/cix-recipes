@@ -283,6 +283,10 @@ package "probe-cix-compile" {
     }
 
     metadata {
+        "artifact_sha256" "c559af706a57d1812b3e7fa32da883d520e83d6282c78a9c248378371cba61af"
+        "artifact_sha256.probe-cix-compile-installer-tools" "01d30723144e9eca597f5aed73dc9645b5e0728c7332fb67210330e681963c22"
+        "artifact_sha256.probe-cix-compile-cixd" "97ffcd0a3fe39632c8258316890fd46f67c5d78a5980cdaaee063673a225f70e"
+        "artifact_sha256.probe-cix-compile-cixctl" "a6eefece894b852c987b0bee3911339b84d084d7ac0886d5abddb6270338acea"
         "changelog" "831: compile and selftest commit e7508b2d (ADR-0399: a container is shown in its category and its group; a label-only re-apply does not restart) from the public mirror, for release 0.2.57-730."
     }
 
