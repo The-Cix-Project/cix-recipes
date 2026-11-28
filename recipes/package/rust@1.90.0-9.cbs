@@ -90,6 +90,7 @@ package "rust" {
     }
 
     metadata {
+        "artifact_sha256" "0dd48073e25447c4ea8226a5bb25b471b194251e0ddda43175a281e35c158fbd"
         "changelog" "1.90.0-9: the std gate names libstd.rlib, the file run_rustc's Makefile produces (-8's libstd*.rlib glob also matched libstd_detect). -8: rustlib carries the standard library only, not the compiler's rlibs (-7's 1.59 GB payload failed cbs's 1 GiB verify). -7: cargo's gate sets HOME. -6: the libraries go to /usr/lib for rustc's rpath. -4: gcc is the default linker. -1: Rust bootstrap stage 2 by mrustc 0.12.0."
     }
 
