@@ -283,6 +283,10 @@ package "cix" {
     }
 
     metadata {
+        "artifact_sha256.cixctl" "98fbc8a3dcd490a246dc8149e65abb375207c2f934ad1f8e7d9b6f4b59981855"
+        "artifact_sha256.cix-installer-tools" "3767167e183629e286254300e859d8e8d31d041a9b2aa32e6e9777f8586c5c7e"
+        "artifact_sha256.cixd" "529d7ba964b741c1ec74a1c67f4d4ca20d73337544d008e10e1dd1b9e94c4e96"
+        "artifact_sha256" "fd415a321b38d65f470745a19a7e251b619e8f6dc7e73876ffb77820f2f920f3"
         "changelog" "0.2.57-731: a plugged-in dongle switches by itself (ADR-0398 release B): GET/PUT /v1/system/modeswitch (auto by default), a pass after any USB add or remove and at start, a loop guard that leaves a device that comes back as a disk until it is unplugged, and the port records carried across a handover."
     }
 
