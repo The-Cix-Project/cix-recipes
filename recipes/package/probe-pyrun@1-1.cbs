@@ -1,0 +1,41 @@
+# probe-pyrun: does CPDL accept python3 as a run executable, and can a
+# build container run it? Answers whether a Python C extension can be
+# built through its own setup machinery here (SearXNG, cix#14 work).
+package "probe-pyrun" {
+    version "1"
+    release 1
+    format "cixpkg"
+
+    license "MIT"
+
+    sources {
+        main "six" {
+            url "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz"
+            sha256 "ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"
+        }
+    }
+
+    requires {
+        build {
+            tool "python"
+            tool "coreutils"
+        }
+    }
+
+    metadata {
+        "changelog" "1-1: probe whether python3 runs in a build phase."
+    }
+
+    build {
+        run "/usr/bin/python3" {
+            "-c" "import sys, sysconfig; print('PYRUN', sys.version.split()[0], sysconfig.get_paths()['include'], sysconfig.get_config_var('EXT_SUFFIX'))"
+        }
+        run "false" {
+        }
+    }
+
+    install {
+        run "true" {
+        }
+    }
+}
