@@ -44,6 +44,7 @@ package "iperf3" {
     }
 
     metadata {
+        "artifact_sha256" "a7cc7c14e21aececaa450ff4a1974d2a20e8287c0230e958ab04fca8ac7eeece"
         "changelog" "3.22.1-1: new. The iperf3 client and server, built with tcc, libiperf linked in and no OpenSSL, for measuring a link's capacity without the internet."
     }
 
