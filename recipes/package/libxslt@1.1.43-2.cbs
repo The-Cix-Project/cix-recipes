@@ -48,6 +48,9 @@ package "libxslt" {
     }
 
     metadata {
+        "artifact_sha256" "22b2a9eb0287713f8b478848ddcc24a3e384abbbb86c5387b4438e72214542b3"
+        "artifact_sha256.libxslt-tools" "4ed7774de4405feb0d23c3384b595611783114057ad6e0e8bcd21811e4ad7fdd"
+        "artifact_sha256.libxslt-dev" "a5399c12aa797d385f7f288f749f4850d7a8e800084b7bc25656736a0d5ea05d"
         "changelog" "1.1.43-2: built with gcc: libxslt links with a version script and tcc refuses --version-script. 1.1.43-1: first revision, for lxml (SearXNG). No Python, no libgcrypt. Shared libraries only in the main package; libxslt-dev and libxslt-tools as outputs."
     }
 
